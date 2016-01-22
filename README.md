@@ -34,4 +34,6 @@ Gravity is a layout engine for programmers. Unlike Interface Builder, which pres
 
 Gravity is more than a layout engine. Gravity is a metaphor. For the way we picture and convey the information we want to display to our users. It is minimalism and efficiency.
 
-Calling Gravity an "engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the real work behind the scenes. It's really just an interpretive layer that converts a simple XML document into a fully-constructed interface. Gravity the curtain that hides the great and powerful Oz.
+Calling Gravity an "engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the real work behind the scenes. It's really just an interpretive layer that converts a simple XML document into a fully-constructed interface. Gravity is the curtain that hides the great and powerful Oz.
+
+Coming soon.
