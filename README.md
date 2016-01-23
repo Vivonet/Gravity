@@ -10,7 +10,7 @@ Auto layout tends to work well in two scenarios:
 
 It fails though, utterly in my opinion, at handling 99% of the layouts typical in modern software: those that need slightly more power than the absolute basic defaults, but which are not so mind-numbingly complex as to require the type of prioritized constraint engine Auto Layout is based upon (especially when 99% of its use is to resize a view from one screen size to a subtly different screen size).
 
-Here's my background: I've always been a Mac guy, but I dabbled with .NET for a while in the early 2000's. During this time I discovered (and eventually fell in love with) WPF, a.k.a. Windows Presentation Foundation. WPF represented a quantum leap forward in the simple expressibility of arbitrary visual layouts using a simple hierarchical structure: XML. (Now, editing XML by hand is a nightmare unto itself, but that's really beside the point.)
+Here's my background: I've always been a Mac guy, but I dabbled with .NET for a while in the mid 2000's. During this time I discovered (and eventually fell quite in love with) WPF, a.k.a. Windows Presentation Foundation. WPF represented a quantum leap forward in the natural expressibility of visual layouts using a simple hierarchical structure: XML.
 
 After leaving the Windows world and coming back to Apple by means of the iOS platform, I was utterly dismayed at the mediocre layout tools available to me: at first it was Interface Builder with springs and struts. While the springs and struts model was a breeze to understand and worked fairly well for very simple interfaces, it was ultimately very limited in what it could express. But it wasn't until Apple released their "next big thing" in layout that things got truly bad.
 
