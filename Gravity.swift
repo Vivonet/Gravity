@@ -30,11 +30,15 @@ public enum GravityDirection: Int {
 @available(iOS 9.0, *)
 @objc public class Gravity: NSObject, NSXMLParserDelegate {
 
-	static var converters = Dictionary<String, (value: String) -> AnyObject?>()
+	static var converters = Dictionary<String, (String) -> AnyObject?>()
+	static var styles = Dictionary<String, (UIView) -> ()>() // styles by class name, e.g. "UIButton" TODO: add support for style class names too, e.g. style="styleClass"
+	// styles can also be used to do any post processing on an element after initialization; it doesn't have to be style related
+	// i wonder if we can use this or a similar concept to set up data binding/templating (we'd probably need to track changes somehow)
 
 	var elementStack = [UIView]()
 	var attributeStack = [[String : String]]()
 	var gravityStack = [GravityDirection]()
+	var colorStack = [UIColor]() // can we do a stack of styles? i want something like CSS
 	var rootElement: UIView? = nil
 	var containerView = GravityView()
 	
@@ -88,6 +92,7 @@ public enum GravityDirection: Int {
 		}, forTypeName: "UIFont")
 		
 		registerConverter({ (var value: String) -> AnyObject? in
+//			return UIColor.magentaColor()
 			value = value.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet)
 			var int = UInt32()
 			NSScanner(string: value).scanHexInt(&int)
@@ -108,6 +113,7 @@ public enum GravityDirection: Int {
 	
 	override init() {
 		gravityStack.append(GravityDirection.TopLeft)
+		colorStack.append(UIColor.blackColor())
 	}
 	
 	public class func constructFromFile(filename: String) -> GravityView? {
@@ -143,27 +149,32 @@ public enum GravityDirection: Int {
 		return containerView
 	}
 	
-	public class func registerConverter( converter: (String) -> AnyObject?, forTypeName typeName: String ) {
+	public class func registerConverter(converter: (String) -> AnyObject?, forTypeName typeName: String) {
 //		if Gravity.converters[className] == nil {
 //			Gravity.converters[className] = Array<(String) -> NSObject?>()
 //		}
 		Gravity.converters[typeName] = converter
 	}
 	
+	public class func registerStyle(style: (UIView) -> (), forTypeName typeName: String) {
+		Gravity.styles[typeName] = style
+	}
+	
 	func typeName(some: Any) -> String {
 		return (some is Any.Type) ? "\(some)" : "\(some.dynamicType)"
 	}
 	
-	@objc public func parser(parser: NSXMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String]) {
+	@objc public func parser(parser: NSXMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, var attributes attributeDict: [String : String]) {
 		var className = elementName
 		attributeStack.append(attributeDict)
 		
-		if let attributeValue = attributeDict["gravity"] {
-			let valueParts = attributeValue.stringByReplacingOccurrencesOfString("-", withString: " ").componentsSeparatedByString(" ") // allow to be in the form "top-left" or "top left"
+		if let gravityValue = attributeDict["gravity"] {
+			let valueParts = gravityValue.stringByReplacingOccurrencesOfString("-", withString: " ").componentsSeparatedByString(" ") // allow to be in the form "top-left" or "top left"
 			let left = valueParts.contains("left")
 			let top = valueParts.contains("top")
 			let right = valueParts.contains("right")
 			let bottom = valueParts.contains("bottom")
+			// FIXME: this is really poorly implemented--figure out a way for this to be more piecewise
 			var gravity: GravityDirection?
 			if top && left {
 				gravity = GravityDirection.TopLeft
@@ -178,12 +189,18 @@ public enum GravityDirection: Int {
 				gravityStack.append(gravity!)
 			}
 		}
+		if let colorValue = attributeDict["color"] {
+			let converter = Gravity.converters["UIColor"]!
+			let color: UIColor = converter(colorValue) as! UIColor
+			colorStack.append(color)
+			attributeDict.removeValueForKey("color")//test
+		}
 		
 		// MARK: - ELEMENTS -
 		
 		var element: UIView?
 		switch elementName {
-			case "H", "h", "V", "v":
+			case "H", "V":
 				element = UIStackView()
 //				self.addElement(element)
 				if let stackView = element as? UIStackView {
@@ -198,16 +215,17 @@ public enum GravityDirection: Int {
 							stackView.axis = UILayoutConstraintAxis.Vertical
 							stackView.alignment = gravityStack.last!.isLeft() ? UIStackViewAlignment.Leading : UIStackViewAlignment.Trailing
 							
-						case "XIB":
-							className = "UIView"
-							// TODO
-						
 						default:
 							break // change to throw when i learn how to do that
 					}
 //					stackView.layoutMarginsRelativeArrangement = true//test
 //					stackView.alignment = 
+					stackView.userInteractionEnabled = false
 				}
+			
+			case "XIB":
+				className = "UIView"
+				// TODO
 			
 			default:
 //				if elementName == "UIButton" {
@@ -219,10 +237,13 @@ public enum GravityDirection: Int {
 //						button.backgroundColor = UIColor.blueColor()
 //						button.setContentCompressionResistancePriority(1000, forAxis: UILayoutConstraintAxis.Horizontal)
 					} else if let label = element as? UILabel {
+						label.textAlignment = gravityStack.last!.isLeft() ? NSTextAlignment.Left : NSTextAlignment.Right
+						label.textColor = colorStack.last!
 //						label.numberOfLines = 0
 //						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
 					} else if let imageView = element as? UIImageView {
 						imageView.contentMode = UIViewContentMode.ScaleAspectFit
+						imageView.tintColor = colorStack.last!
 //						UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
 //							imageView.autoSetContentCompressionResistancePriorityForAxis(ALAxis.Horizontal)
 //							imageView.autoSetContentHuggingPriorityForAxis(ALAxis.Horizontal)
@@ -262,6 +283,10 @@ public enum GravityDirection: Int {
 				// throw
 			}
 			elementStack.append(element!)
+			
+			if let styler = Gravity.styles[className] {
+				styler(element!)
+			}
 		}
 		
 		// MARK: - ATTRIBUTES -
@@ -276,6 +301,7 @@ public enum GravityDirection: Int {
 				}
 				
 				var propertyName = key
+				var propertyType: String?
 				var currentContext: NSObject? = element
 				var value: AnyObject? = attributeValue
 				
@@ -305,6 +331,8 @@ public enum GravityDirection: Int {
 							}
 							continue
 						
+//						case "textAlignment":
+						
 						default:
 							break
 					}
@@ -322,7 +350,7 @@ public enum GravityDirection: Int {
 				else if let imageView = currentContext as? UIImageView {
 					switch propertyName {
 						case "image":
-							imageView.image = UIImage(named: attributeValue)
+							imageView.image = UIImage(named: attributeValue)?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate)
 							continue
 							
 						default:
@@ -352,9 +380,13 @@ public enum GravityDirection: Int {
 							break
 					}
 				}
-//				else {
-//					handled = false
-//				}
+				
+				// this is string.endsWith in swift. :| lovely.
+				if let range = propertyName.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch) {
+					if range.endIndex == propertyName.endIndex {
+						propertyType = "UIColor" // bit of a hack because UIButton.backgroundColor doesn't seem to know its property class via inspection :/
+					}
+				}
 				
 				// TODO: look up type of target property and use its name to look up a converter
 //				if let classType =  {
@@ -365,12 +397,14 @@ public enum GravityDirection: Int {
 				if property != nil {
 					if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
 						if components.count >= 2 {
-							let propertyType = components[1]
-							NSLog("propertyType: %@", propertyType)
-							if let converter = Gravity.converters[propertyType] {
-								value = converter(value: attributeValue)
-							}
+							propertyType = components[1]
+							NSLog("propertyType: %@", propertyType!)
 						}
+					}
+				}
+				if propertyType != nil {
+					if let converter = Gravity.converters[propertyType!] {
+						value = converter(attributeValue)
 					}
 				}
 				
@@ -473,6 +507,9 @@ public enum GravityDirection: Int {
 		if let attrs = attributeStack.last {
 			if attrs["gravity"] != nil {
 				gravityStack.popLast()
+			}
+			if attrs["color"] != nil {
+				colorStack.popLast()
 			}
 		}
 		elementStack.popLast()

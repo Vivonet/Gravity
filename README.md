@@ -1,7 +1,7 @@
 #Gravity
 A simple XML-based layout description language for iOS powered by Auto Layout.
 
-**tl;dr** It's kinda like HTML for Auto Layout.
+**tl;dr** It's kinda like HTML and is *infinitely* easier to use than Auto Layout.
 
 ##Introduction
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating and disappointing as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
@@ -42,3 +42,6 @@ Gravity is more than a layout engine. Gravity is a metaphor. For the way we pict
 Calling Gravity an "engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the real work behind the scenes. It's really just an interpretive layer that converts a simple XML document into a fully-constructed interface. Gravity is the curtain that hides the great and powerful Oz.
 
 Coming soon.
+
+##Requirements
+Gravity makes heavy use of the `UIStackView`, so iOS 9 only, I'm afraid! This is brand spankin' new stuff!
