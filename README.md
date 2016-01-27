@@ -3,8 +3,51 @@ A simple XML-based layout description language for iOS powered by Auto Layout.
 
 **tl;dr** It's kinda like HTML and is *infinitely* easier to use than Auto Layout.
 
+##Sample
+Here's what some actual functioning Gravity looks like:
+
+```xml
+<H gravity="middle" color="#fff">
+	<V gravity="top left">
+		<UILabel id="titleLabel" text="1188 W Georgia St" maxWidth="250" font="System Semibold 16" textColor="#ffffff" wrap="true"/>
+		<UILabel id="hoursLabel" text="Open today: 6am - 11pm" font="System 14.0" textColor="#ffffff7f"/>
+		<UIView height="6"/>
+		<H gravity="middle" spacing="0" height="28" color="#ffffff">
+			<UIButton id="carButton" backgroundColor="#0076FF" minWidth="80">
+				<H alignment="center" userInteractionEnabled="false">
+					<UIView width="4"/>
+					<UIImageView width="22" height="22" image="Directions-Car"/>
+					<UIView width="2"/>
+					<UILabel text="12 mins" font="System Bold 16.0"/>
+					<UIView width="4"/>
+				</H>
+			</UIButton>
+			<UIView width="6"/>
+			<UIButton id="walkButton" backgroundColor="#0076FF">
+				<H alignment="center" userInteractionEnabled="false">
+					<UIView width="4"/>
+					<UIImageView width="22" height="22" image="Directions-Walk"/>
+					<UIView width="2"/>
+					<UILabel text="22 mins" font="System Bold 16.0"/>
+					<UIView width="4"/>
+				</H>
+			</UIButton>
+		</H>
+	</V>
+	<UIView width="8"/>
+	<UIView>
+		<UIButton width="64" backgroundColor="#ffffff00">
+			<V alignment="center">
+				<UIImageView image="chevron-right-bold"/>
+				<UILabel text="Order" color="#fff"/>
+			</V>
+		</UIButton>
+	</UIView>
+</H>
+```
+
 ##Introduction
-In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating and disappointing as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
+In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
 
 Auto Layout has its apologists, and while there's no arguing it's a powerful system, the fact remains that if you've ever had to work with Auto Layout at some point in your career, you're all but guaranteed to have had a frustrating experience.
 
@@ -42,6 +85,13 @@ Gravity is more than a layout engine. Gravity is a metaphor. For the way we pict
 Calling Gravity an "engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the real work behind the scenes. It's really just an interpretive layer that converts a simple XML document into a fully-constructed interface. Gravity is the curtain that hides the great and powerful Oz.
 
 Coming soon.
+
+##Q&A
+**Q: Isn't a XIB file already XML? Why do I need another XML format?**
+**A:** The answer has to do with the intended purpose of the XML and how it is utilized. Yes, XIB files are XML-based, but they're XML-based as a *serialization format*, not as a language with a user experience. XIB files are not intended to be authored by hand. Gravity, on the other hand, is designed from the ground up to be written by hand and is therefore intentionally simple and concise. Furthermore, XIB's XML format does absolutely nothing to abstract away the pains of Auto Layout. So even if you were to attempt to author a XIB file by hand (seriously though, don't), you'd still be programming with Auto Layout, albeit in a different form. Gravity is an abstraction layer built on top of Auto Layout. XIB is just Interface Builder serialized to XML.
+
+**Q: Is there design-time support for Gravity?**
+**A:** Not yet, but this is definitely something I would like to do. I am not sure what is possible and what not at this point. Please contribute if you have any ideas.
 
 ##Requirements
 Gravity makes heavy use of the `UIStackView`, so iOS 9 only, I'm afraid! This is brand spankin' new stuff!

@@ -11,20 +11,61 @@ import UIKit
 
 // TODO: add identifiers for all added constraints
 
-public enum GravityDirection: Int {
-	case TopLeft
-	case TopRight
-	case BottomLeft
-	case BottomRight
-	// TODO: do we want to add a "center" gravity? maybe split into h-gravity and v-gravity
+public struct GravityDirection: OptionSetType {
+	// we could also just do this with two separate member variables
+	public var rawValue: Int = 0
 	
-	func isTop() -> Bool {
-		return self == TopLeft || self == TopRight
+	public init(rawValue: Int) {
+		self.rawValue = rawValue
 	}
 	
-	func isLeft() -> Bool {
-		return self == TopLeft || self == BottomLeft
+	// horizontal gravity
+	static let Left = GravityDirection(rawValue: 0b001)
+	static let Right = GravityDirection(rawValue: 0b010)
+	static let Center = GravityDirection(rawValue: 0b011) // or should left | right = wide?
+	static let Wide = GravityDirection(rawValue: 0b100)
+	
+	// vertical gravity
+	static let Top = GravityDirection(rawValue: 0b001 << 3)
+	static let Bottom = GravityDirection(rawValue: 0b010 << 3)
+	static let Middle = GravityDirection(rawValue: 0b011 << 3)
+	static let Tall = GravityDirection(rawValue: 0b100 << 3)
+	
+	func hasHorizontal() -> Bool {
+		return horizontal.rawValue > 0
 	}
+	var horizontal: GravityDirection {
+		get {
+			return GravityDirection(rawValue: rawValue & 0b111)
+		}
+		set(value) {
+			rawValue = vertical.rawValue | (value.rawValue & 0b111)
+		}
+	}
+	
+	func hasVertical() -> Bool {
+		return vertical.rawValue > 0
+	}
+	var vertical: GravityDirection {
+		get {
+			return GravityDirection(rawValue: rawValue & (0b111 << 3))
+		}
+		set(value) {
+			rawValue = horizontal.rawValue | (value.rawValue & (0b111 << 3))
+		}
+	}
+	
+//	func isLeft() -> Bool {
+//		return horizontal == GravityDirection.Left
+//	}
+//	
+//	func isTop() -> Bool {
+//		return vertical == GravityDirection.Top
+//	}
+}
+
+enum GravityError: ErrorType {
+	case InvalidParse
 }
 
 @available(iOS 9.0, *)
@@ -39,6 +80,9 @@ public enum GravityDirection: Int {
 	var attributeStack = [[String : String]]()
 	var gravityStack = [GravityDirection]()
 	var colorStack = [UIColor]() // can we do a stack of styles? i want something like CSS
+	var elementMetadata = Dictionary<UIView, GravityMetadata>() // does this actually work?? we don't have to wrap UIView in something?
+	// actually do we need this to be a stack? since all elements are unique we could do this all in one dictionary, but we'd need to be sure to remove elements appropriately
+	
 	var rootElement: UIView? = nil
 	var containerView = GravityView()
 	
@@ -92,7 +136,6 @@ public enum GravityDirection: Int {
 		}, forTypeName: "UIFont")
 		
 		registerConverter({ (var value: String) -> AnyObject? in
-//			return UIColor.magentaColor()
 			value = value.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet)
 			var int = UInt32()
 			NSScanner(string: value).scanHexInt(&int)
@@ -112,7 +155,7 @@ public enum GravityDirection: Int {
 	}
 	
 	override init() {
-		gravityStack.append(GravityDirection.TopLeft)
+		gravityStack.append([GravityDirection.Top, GravityDirection.Left])
 		colorStack.append(UIColor.blackColor())
 	}
 	
@@ -121,13 +164,28 @@ public enum GravityDirection: Int {
 		return gravity.constructFromFile(filename)
 	}
 	
-	// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time
+	public class func constructFromXML(xml: String) -> GravityView? {
+		return Gravity().constructFromXML(xml)
+	}
+	
 	public func constructFromFile(filename: String) -> GravityView? {
 		// if filename doesn't end with .xml (and can't be found as specified) append .xml
 		let url = NSURL(fileURLWithPath: NSBundle.mainBundle().resourcePath!).URLByAppendingPathComponent(filename, isDirectory: false)
-		if let parser = NSXMLParser(contentsOfURL: url) {
+		do {
+			return try constructFromXML(String(contentsOfURL: url, encoding: NSUTF8StringEncoding))
+		} catch {
+			return nil
+		}
+	}
+	
+	// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time
+	public func constructFromXML(xml: String) -> GravityView? {
+		if let data = xml.dataUsingEncoding(NSUTF8StringEncoding) {
+			let parser = NSXMLParser(data: data)
 			parser.delegate = self
-			parser.parse()
+			if !parser.parse() {
+				return nil
+			}
 		}
 //		let containerView = GravityView()
 		containerView.addSubview(rootElement!)
@@ -168,35 +226,52 @@ public enum GravityDirection: Int {
 		var className = elementName
 		attributeStack.append(attributeDict)
 		
-		if let gravityValue = attributeDict["gravity"] {
+		// MARK: - GLOBAL ATTRIBUTES -
+		
+		// does if var work like if let?
+		if var gravityValue = attributeDict["gravity"] {
+			gravityValue = gravityValue.lowercaseString
+			var gravity = GravityDirection()
+//			var vGravity: GravityDirection
 			let valueParts = gravityValue.stringByReplacingOccurrencesOfString("-", withString: " ").componentsSeparatedByString(" ") // allow to be in the form "top-left" or "top left"
-			let left = valueParts.contains("left")
-			let top = valueParts.contains("top")
-			let right = valueParts.contains("right")
-			let bottom = valueParts.contains("bottom")
-			// FIXME: this is really poorly implemented--figure out a way for this to be more piecewise
-			var gravity: GravityDirection?
-			if top && left {
-				gravity = GravityDirection.TopLeft
-			} else if top && right {
-				gravity = GravityDirection.TopRight
-			} else if bottom && left {
-				gravity = GravityDirection.BottomLeft
-			} else if bottom && right {
-				gravity = GravityDirection.BottomRight
+			if valueParts.contains("left") {
+				gravity.horizontal = GravityDirection.Left
+			} else if valueParts.contains("center") {
+				gravity.horizontal = GravityDirection.Center
+			} else if valueParts.contains("right") {
+				gravity.horizontal = GravityDirection.Right
+			} else if valueParts.contains("wide") {
+				gravity.horizontal = GravityDirection.Wide
 			}
-			if gravity != nil {
-				gravityStack.append(gravity!)
+			
+			if valueParts.contains("top") {
+				gravity.vertical = GravityDirection.Top
+			} else if valueParts.contains("mid") || valueParts.contains("middle") {
+				gravity.vertical = GravityDirection.Middle
+			} else if valueParts.contains("bottom") {
+				gravity.vertical = GravityDirection.Bottom
+			} else if valueParts.contains("tall") {
+				gravity.vertical = GravityDirection.Tall
 			}
+
+			if !gravity.hasHorizontal() {
+				gravity.horizontal = gravityStack.last!.horizontal
+			}
+			
+			if !gravity.hasVertical() {
+				gravity.vertical = gravityStack.last!.vertical
+			}
+
+			gravityStack.append(gravity)
 		}
 		if let colorValue = attributeDict["color"] {
 			let converter = Gravity.converters["UIColor"]!
-			let color: UIColor = converter(colorValue) as! UIColor
+			let color = converter(colorValue) as! UIColor
 			colorStack.append(color)
 			attributeDict.removeValueForKey("color")//test
 		}
 		
-		// MARK: - ELEMENTS -
+		// MARK: - ELEMENT PRE-PROCESSING -
 		
 		var element: UIView?
 		switch elementName {
@@ -208,19 +283,36 @@ public enum GravityDirection: Int {
 						case "H":
 							className = "UIStackView"
 							stackView.axis = UILayoutConstraintAxis.Horizontal
-							stackView.alignment = gravityStack.last!.isTop() ? UIStackViewAlignment.Top : UIStackViewAlignment.Bottom
+							// FIXME: we need to handle the gravity of manually-created UIStackViews; make this more universal, perhaps just set the classname (and axis??) and construct it below
+//							stackView.alignment = gravityStack.last!.vertical == GravityDirection.Top ? UIStackViewAlignment.Top : UIStackViewAlignment.Bottom
+//							switch gravityStack.last!.vertical {
+//								case GravityDirection.Top:
+//									stackView.alignment = UIStackViewAlignment.Top
+//									break
+//								case GravityDirection.Middle:
+//									stackView.alignment = UIStackViewAlignment.Center
+//									break
+//								case GravityDirection.Bottom:
+//									stackView.alignment = UIStackViewAlignment.Bottom
+//									break
+//								case GravityDirection.Tall:
+//									stackView.alignment = UIStackViewAlignment.Fill
+//									break
+//							}
 						
 						case "V":
 							className = "UIStackView"
 							stackView.axis = UILayoutConstraintAxis.Vertical
-							stackView.alignment = gravityStack.last!.isLeft() ? UIStackViewAlignment.Leading : UIStackViewAlignment.Trailing
+//							stackView.alignment = gravityStack.last!.horizontal == GravityDirection.Left ? UIStackViewAlignment.Leading : UIStackViewAlignment.Trailing
 							
 						default:
 							break // change to throw when i learn how to do that
 					}
 //					stackView.layoutMarginsRelativeArrangement = true//test
 //					stackView.alignment = 
-					stackView.userInteractionEnabled = false
+
+					// if the stackView is contained in a button it needs to be interaction-disabled in order for the button to accept clicks. i'm not sure why this is.
+//					stackView.userInteractionEnabled = true
 				}
 			
 			case "XIB":
@@ -228,41 +320,20 @@ public enum GravityDirection: Int {
 				// TODO
 			
 			default:
-//				if elementName == "UIButton" {
-//					elementName = "UIView"
-//				}
-				if let classType = NSClassFromString(className) as! UIView.Type? {
-					element = classType.init()
-					if let button = element as? UIButton {
-//						button.backgroundColor = UIColor.blueColor()
-//						button.setContentCompressionResistancePriority(1000, forAxis: UILayoutConstraintAxis.Horizontal)
-					} else if let label = element as? UILabel {
-						label.textAlignment = gravityStack.last!.isLeft() ? NSTextAlignment.Left : NSTextAlignment.Right
-						label.textColor = colorStack.last!
-//						label.numberOfLines = 0
-//						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
-					} else if let imageView = element as? UIImageView {
-						imageView.contentMode = UIViewContentMode.ScaleAspectFit
-						imageView.tintColor = colorStack.last!
-//						UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
-//							imageView.autoSetContentCompressionResistancePriorityForAxis(ALAxis.Horizontal)
-//							imageView.autoSetContentHuggingPriorityForAxis(ALAxis.Horizontal)
-//						})
-//						[UIView autoSetPriority:ALLayoutPriorityRequired forConstraints:^{
-//    [myImageView autoSetContentCompressionResistancePriorityForAxis:ALAxisHorizontal];
-//    [myImageView autoSetContentHuggingPriorityForAxis:ALAxisHorizontal];
-//}];
-					} else if element != nil {
-//						element!.backgroundColor = UIColor.greenColor() // temp
-					}
-//					self.addElement(element)
-				}
 				break
 		}
+
+		if element == nil {
+			if let classType = NSClassFromString(className) as! UIView.Type? {
+				element = classType.init()
+				
+			}
+		}
+		
+		// how do we handle manually created stackviews with an axis property??
+		
 		
 		// add element to view and stack
-		
-		
 		if element != nil {
 			if let top = elementStack.last {
 				if let stackView = top as? UIStackView {
@@ -283,6 +354,7 @@ public enum GravityDirection: Int {
 				// throw
 			}
 			elementStack.append(element!)
+			elementMetadata[element!] = GravityMetadata()
 			
 			if let styler = Gravity.styles[className] {
 				styler(element!)
@@ -295,9 +367,23 @@ public enum GravityDirection: Int {
 		// we should check the property type of the property we are setting and look up a registered converter; we can include a bunch of built-in converters for obvious things like UIColor, UIFont etc.
 		for (key, attributeValue) in attributeDict {
 			if let element = elementStack.last {
-				if key == "id" { // special override case
-					containerView.ids[attributeValue] = element
-					continue
+				switch key { // special override cases (these pseudo-attributes take precedence over any class-specific attributes)
+					case "id":
+						containerView.ids[attributeValue] = element
+						continue
+					
+					case "shrinks":
+						// TODO: assert/ensure we are contained within a stack view
+						elementMetadata[element]!.shrinks = Int(attributeValue) ?? 0
+						continue
+						
+					case "grows":
+						// TODO: assert/ensure we are contained within a stack view
+						elementMetadata[element]!.grows = Int(attributeValue) ?? 0
+						continue
+					
+					default:
+						break
 				}
 				
 				var propertyName = key
@@ -356,21 +442,40 @@ public enum GravityDirection: Int {
 						default:
 							break
 					}
-				} else if let _ = currentContext as? UIStackView {
+				} else if let stackView = currentContext as? UIStackView {
 					switch propertyName {
+						case "axis":
+							switch attributeValue.lowercaseString {
+								case "horizontal", "h":
+									stackView.axis = UILayoutConstraintAxis.Horizontal
+									break
+								
+								case "vertical", "v":
+									stackView.axis = UILayoutConstraintAxis.Vertical
+									break
+								
+								default:
+									break
+							}
+							break
+						
 						case "alignment":
 							switch attributeValue.lowercaseString {
 								case "center":
 									value = UIStackViewAlignment.Center.rawValue as NSNumber
+									break
 								
 								case "fill":
 									value = UIStackViewAlignment.Fill.rawValue as NSNumber
+									break
 								
 								case "top":
 									value = UIStackViewAlignment.Top.rawValue as NSNumber
+									break
 								
 								case "trailing":
 									value = UIStackViewAlignment.Trailing.rawValue as NSNumber
+									break
 								
 								default:
 									break
@@ -398,7 +503,7 @@ public enum GravityDirection: Int {
 					if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
 						if components.count >= 2 {
 							propertyType = components[1]
-							NSLog("propertyType: %@", propertyType!)
+//							NSLog("propertyType: %@", propertyType!)
 						}
 					}
 				}
@@ -410,6 +515,7 @@ public enum GravityDirection: Int {
 				
 //				if !handled {
 					switch propertyName {
+						// FIXME: may want to set these with higher priority than default to avoid view/container bindings conflicting
 						case "width":
 //							NSLog("set width to %@", value)
 							(currentContext as? UIView)?.autoSetDimension(ALDimension.Width, toSize: CGFloat((attributeValue as NSString).floatValue))
@@ -456,7 +562,11 @@ public enum GravityDirection: Int {
 							break
 						
 						default:
-							currentContext?.setValue(value, forKey: propertyName)
+//							try {
+								try currentContext?.setValue(value, forKey: propertyName)
+//							} catch {
+//								return nil
+//							}
 					}
 				}
 //			}
@@ -466,26 +576,101 @@ public enum GravityDirection: Int {
 		}
 	}
 	
-	func colorForStackLevel(level: Int) -> UIColor {
-		NSLog("level %d", level)
-		switch level % 5 {
-			case 0:
-				return UIColor.magentaColor()
-			case 1:
-				return UIColor.greenColor()
-			case 2:
-				return UIColor.purpleColor()
-			case 3:
-				return UIColor.cyanColor()
-			case 4:
-				return UIColor.redColor()
-			default:
-				return UIColor.whiteColor()
-		}
-	}
-	
 	public func parser(parser: NSXMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
-		if let stackView = elementStack.last as? UIStackView {
+	
+		let element = elementStack.last!
+		
+		// MARK: - ELEMENT POST-PROCESSING -
+		
+		if let stackView = element as? UIStackView {
+			if attributeStack.last!["alignment"] == nil { // only if alignment is not explicitly set
+				if stackView.axis == UILayoutConstraintAxis.Horizontal {
+					switch gravityStack.last!.vertical {
+						case GravityDirection.Top:
+							stackView.alignment = UIStackViewAlignment.Top
+							break
+						case GravityDirection.Middle:
+							stackView.alignment = UIStackViewAlignment.Center
+							break
+						case GravityDirection.Bottom:
+							stackView.alignment = UIStackViewAlignment.Bottom
+							break
+						case GravityDirection.Tall:
+							stackView.alignment = UIStackViewAlignment.Fill
+							break
+						default:
+							break // throw?
+					}
+				} else {
+					switch gravityStack.last!.horizontal {
+						case GravityDirection.Top:
+							stackView.alignment = UIStackViewAlignment.Top
+							break
+						case GravityDirection.Middle:
+							stackView.alignment = UIStackViewAlignment.Center
+							break
+						case GravityDirection.Bottom:
+							stackView.alignment = UIStackViewAlignment.Bottom
+							break
+						case GravityDirection.Tall:
+							stackView.alignment = UIStackViewAlignment.Fill
+							break
+						default:
+							break // throw?
+					}
+				}
+			}
+			
+			// MARK: Content Compression Resistance
+			let baseCompressionResistance = Float(750)
+			var shrinkIndex = Dictionary<Int, UIView>()
+			for subview in stackView.arrangedSubviews {
+				let rank = elementMetadata[subview]!.shrinks
+				let adjustedIndex = rank == 0 ? 0 : (1000 - abs(rank)) * (rank > 0 ? -1 : 1)
+				NSLog("rank %d adjusted to %d", rank, adjustedIndex)
+				shrinkIndex[adjustedIndex] = subview
+			}
+			let sortedShrinks = shrinkIndex.sort({ (first: (Int, UIView), second: (Int, UIView)) -> Bool in
+				return first.0 < second.0
+			})
+			for var i = 0; i < sortedShrinks.count; i++ {
+//				let shrinkTuple = sortedShrinks[i]
+				var compressionResistance: Float
+				if i > 0 && sortedShrinks[i].0 == sortedShrinks[i-1].0 {
+					compressionResistance = sortedShrinks[i-1].1.contentCompressionResistancePriorityForAxis(stackView.axis)
+				} else {
+					compressionResistance = baseCompressionResistance + Float(i) / Float(sortedShrinks.count)
+				}
+				sortedShrinks[i].1.setContentCompressionResistancePriority(compressionResistance, forAxis: stackView.axis)
+				NSLog("%d: %f", sortedShrinks[i].0, compressionResistance)
+			}
+			
+			
+			// MARK: Content Hugging
+			let baseContentHugging = Float(200)
+			var growIndex = Dictionary<Int, UIView>()
+			for subview in stackView.arrangedSubviews {
+				let rank = elementMetadata[subview]!.grows
+				let adjustedIndex = rank == 0 ? 0 : (1000 - abs(rank)) * (rank > 0 ? -1 : 1)
+				NSLog("rank %d adjusted to %d", rank, adjustedIndex)
+				growIndex[adjustedIndex] = subview
+			}
+			let sortedGrows = growIndex.sort({ (first: (Int, UIView), second: (Int, UIView)) -> Bool in
+				return first.0 < second.0
+			})
+			for var i = 0; i < sortedGrows.count; i++ {
+//				let shrinkTuple = sortedShrinks[i]
+				var contentHugging: Float
+				if i > 0 && sortedGrows[i].0 == sortedGrows[i-1].0 {
+					contentHugging = sortedGrows[i-1].1.contentHuggingPriorityForAxis(stackView.axis)
+				} else {
+					contentHugging = baseContentHugging + Float(i) / Float(sortedGrows.count)
+				}
+				sortedGrows[i].1.setContentHuggingPriority(contentHugging, forAxis: stackView.axis)
+				NSLog("%d: %f", sortedGrows[i].0, contentHugging)
+			}
+			
+			// TODO: clean this code up
 			let spacer = UIView()
 //			spacer.text = "hi"
 			spacer.userInteractionEnabled = false
@@ -498,12 +683,55 @@ public enum GravityDirection: Int {
 //			spacer.autoSetDimension(ALDimension.Height, toSize: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
 
 //			spacer.backgroundColor = colorForStackLevel(stack.count)
-			if stackView.axis == UILayoutConstraintAxis.Horizontal && !gravityStack.last!.isLeft() || stackView.axis == UILayoutConstraintAxis.Vertical && !gravityStack.last!.isTop() {
+
+			// note that we probably only want to do this for certain gravities
+			if stackView.axis == UILayoutConstraintAxis.Horizontal && gravityStack.last!.horizontal == GravityDirection.Right || stackView.axis == UILayoutConstraintAxis.Vertical && gravityStack.last!.vertical == GravityDirection.Bottom {
 				stackView.insertArrangedSubview(spacer, atIndex: 0)
-			} else {
+			} else if stackView.axis == UILayoutConstraintAxis.Horizontal && gravityStack.last!.horizontal == GravityDirection.Left || stackView.axis == UILayoutConstraintAxis.Vertical && gravityStack.last!.vertical == GravityDirection.Top {
 				stackView.addArrangedSubview(spacer) // add an empty view to act as a space filler
 			}
+
+		} else if let button = element as? UIButton {
+			button.adjustsImageWhenHighlighted = true
+//						button.backgroundColor = UIColor.blueColor()
+//						button.setContentCompressionResistancePriority(1000, forAxis: UILayoutConstraintAxis.Horizontal)
+		} else if let label = element as? UILabel {
+			switch gravityStack.last!.horizontal {
+				case GravityDirection.Left:
+					label.textAlignment = NSTextAlignment.Left
+					break
+				case GravityDirection.Center:
+					label.textAlignment = NSTextAlignment.Center
+					break
+				case GravityDirection.Right:
+					label.textAlignment = NSTextAlignment.Right
+					break
+				case GravityDirection.Wide:
+					label.textAlignment = NSTextAlignment.Justified
+					break
+				default:
+					// TODO: throw
+					break
+			}
+			label.textColor = colorStack.last!
+//						label.numberOfLines = 0
+//						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
+		} else if let imageView = element as? UIImageView {
+			imageView.contentMode = UIViewContentMode.ScaleAspectFit
+			imageView.tintColor = colorStack.last!
+//						UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
+//							imageView.autoSetContentCompressionResistancePriorityForAxis(ALAxis.Horizontal)
+//							imageView.autoSetContentHuggingPriorityForAxis(ALAxis.Horizontal)
+//						})
+//						[UIView autoSetPriority:ALLayoutPriorityRequired forConstraints:^{
+//    [myImageView autoSetContentCompressionResistancePriorityForAxis:ALAxisHorizontal];
+//    [myImageView autoSetContentHuggingPriorityForAxis:ALAxisHorizontal];
+//}];
 		}
+	
+//		if let stackView = elementStack.last as? UIStackView {
+//		}
+		
 		if let attrs = attributeStack.last {
 			if attrs["gravity"] != nil {
 				gravityStack.popLast()
@@ -512,7 +740,12 @@ public enum GravityDirection: Int {
 				colorStack.popLast()
 			}
 		}
-		elementStack.popLast()
+		
+		if let poppedElement = elementStack.popLast() {
+			// this might be preemptive; we should only do this when the stack closes, at which point the child metadata will already be removed
+			// we don't actually need to remove any metadata as we parse, we can clean it up afterwards
+//			elementMetadata.removeValueForKey(poppedElement)
+		}
 		attributeStack.popLast()
 	}
 }
@@ -522,6 +755,7 @@ public enum GravityDirection: Int {
 	
 	public func autoSize() {
 		layoutIfNeeded()
+		
 		frame.size.width = subviews[0].frame.size.width
 		frame.size.height = subviews[0].frame.size.height
 	}
@@ -537,18 +771,23 @@ public enum GravityDirection: Int {
 //	}
 }
 
-@objc public class GravitySpacer: UIView {
-//	init() {
-//		super.init(forAutoLayout: ())
-//		setContentCompressionResistancePriority(1, forAxis: UILayoutConstraintAxis.Horizontal)
-//		setContentCompressionResistancePriority(1, forAxis: UILayoutConstraintAxis.Vertical)
-//	}
-//
-//	required public init?(coder aDecoder: NSCoder) {
-//	    fatalError("init(coder:) has not been implemented")
-//	}
-	
-	public override func intrinsicContentSize() -> CGSize {
-		return CGSize(width: 0, height: 0)
-	}
+// make this a struct??
+public struct GravityMetadata {
+	var shrinks: Int = 0
+	var grows: Int = 0
 }
+//@objc public class GravitySpacer: UIView {
+////	init() {
+////		super.init(forAutoLayout: ())
+////		setContentCompressionResistancePriority(1, forAxis: UILayoutConstraintAxis.Horizontal)
+////		setContentCompressionResistancePriority(1, forAxis: UILayoutConstraintAxis.Vertical)
+////	}
+////
+////	required public init?(coder aDecoder: NSCoder) {
+////	    fatalError("init(coder:) has not been implemented")
+////	}
+//	
+//	public override func intrinsicContentSize() -> CGSize {
+//		return CGSize(width: 0, height: 0)
+//	}
+//}
