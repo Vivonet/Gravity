@@ -97,7 +97,7 @@ In regular Auto Layout, you control how elements expand and contract by a combin
 
 In Gravity, things are much simpler to wrap your head around. You simply specify the order in which elements in a container should collapse and which element should grow. Positive numbers mean first, negative numbers mean last. So if you want an element to be the first to grow* when there is extra space, set grows="1". If you want it to be the last to shrink when there is not enough room, shrinks="-1". You can order as many or as few as you want.
 
-* *Technically only one element can ever grow, due to current limitations.*
+* Technically only one element can ever grow, due to current limitations. Note also that the `grows` attribute only comes into effect when there is more space than needed for all items in the container. It does not affect the growth of elements when the container is already compressed. In that case, it simply follows the reverse of the shrinking order until all items are their natural sizes, at which point the `grows` attribute takes effect.
 
 Like so:
 
@@ -144,3 +144,5 @@ Gravity does not presently have any effect on UIViews, because UIViews simply ma
 
 ##Requirements
 Gravity makes heavy use of the `UIStackView`, so iOS 9 only, I'm afraid! This is brand spankin' new stuff!
+
+Oh and it also depends on https://github.com/PureLayout/PureLayout as well, for now at least.
