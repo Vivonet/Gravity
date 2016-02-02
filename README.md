@@ -109,7 +109,7 @@ Like so:
 </H>
 ```
 
-Given the above layout, it's easy to see that the label will be the first thing to shrink when space gets tight, and the status icon (which is apprently quite important) will be the last thing to go. If there is extra space, it will all go to the middle content label.
+Given the above layout, it's easy to see that the label will be the first thing to shrink when space gets tight, and the status icon (which is apparently quite important) will be the last thing to go. If there is extra space, it will all go to the middle content label.
 
 Perhaps you want the label to shrink, but only to a point. If you set a minWidth on the label, that will have a higher constraint priority and block the element from shrinking any further.
 
