@@ -72,6 +72,11 @@ public class GravityView: UIView, NSXMLParserDelegate, GravityElement, GravityPl
 		parser.delegate = self
 		parser.parse()
 //		NSLog("100%% reconsituted xml!\n" + (rootNode?.description ?? ""))
+
+		if rootNode == nil {
+			NSLog("Error: Could not parse Gravity XML.")
+			return
+		}
 		
 		_ = rootNode!.view // make sure the view hierarchy is fully constructed
 		

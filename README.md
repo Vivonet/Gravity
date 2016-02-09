@@ -92,6 +92,10 @@ Constructing an interface is a way of communicating. It is a way for the develop
 Apple seems to treat interface development as a finely tuned work of art. A masterpiece of balancing cards. And while there's nothing wrong with a perfected UI, the order of magnitude longer time it takes to develop could easily be argued away in a great many cases.
 
 ##The Basics
+Gravity is, at its heart, an XML representation of a native layout. Its elements are classes and its attributes are generally properties on those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond direclty to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "label" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
+
+But even better than that is the fact that you can automatically embed subviews inside any other view, including UIButtons. So you can actually lay out your button's contents using Gravity too! (Note: There are limitations in doing this for buttons, namely that embedded views do not presently respect the button's control state and will not react to presses.)
+
 In Gravity, you arrange your views by using a combination of stacking and layering. Stacking is fundamental while layering is generally more optional for more complex layouts.
 
 ###Stacking
@@ -129,8 +133,24 @@ You can programmatically get a reference to the native `NSLayoutConstraint` for 
 For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can access the corresponding constraint by passing in "width", "minWidth", and so on.
 
 ##Benefits
+###True Native UI
+Gravity is purely an iOS framework (and perhaps someday OS X). It doesn't make compromises when it comes to supporting multiple platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
+
 ###Rapid Prototyping
 Gravity is so simple, you can actually use it to build real usable interfaces faster than you could in a visual layout tool. Use it to sketch out interface ideas 
+
+###No More Interface Builder!
+One of the main motivations for Gravity was to break free of the horror known as Interface Builder. Now you can finally architect your interfaces simply and precisely in code. No need for scary wishy-washy mouse-driven interface design anymore. Take complete control of your layout and ditch less worthy paradigms and complex proprietary file formats. Interfaces should not be drawn with a mouse. That's really all there is to say about it. Welcome to the 21st century.
+
+##Downsides
+Everything comes at a cost! It would be foolish to claim Gravity didn't have any downsides at all. So in the interest of full disclosure, here are a few:
+
+###No Immediate Feedback
+Probably the biggest limitation of Gravity right now is that you cannot immediately see a visual representation of your UI while editing your layout. This isn't a limitation of the design Gravity per se, but more a limitation of Mac OS and the fact that you cannot instantiate iOS controls inside OS X inside anything other than a simulator. (I honestly don't know how Interface Builder does it, or whether it may be possible some day to integrate Gravity with Xcode's design-time tools.)
+
+That said, there is the included demo app **Gravity Assist** that allows you to see the results of adjustments to your layout in real time. The only problem is you have to run it on a device or the simulator. :(
+
+I expect things will improve in this area as time goes by, but for now your best bet is to just compile and run to see your changes. One piece of good news is that because xml files are merely considered resources in your app, if you've only modified xml files since your last build, rebuilding is almost instantaneous because everything is already compiled!
 
 ##Tips
 Gravity is not just an easier way to work with Auto Layout, it's really a whole philosophy: Build your interfaces from the inside-out, not the outside-in. Let the content be key. Don't waste space.

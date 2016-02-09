@@ -12,6 +12,13 @@ import UIKit
 
 // TODO: add identifiers for all added constraints
 
+struct GravityConstraintPriorities {
+/**
+	The generic containment constraint of an auto-sizing UIView. These constraints ensure that the view will automatically size to fit its contents, but are low priority so as to be easily overridden.
+*/
+	static let ViewContainment: UILayoutPriority = 300
+}
+
 // rename to GravityCore?
 @available(iOS 9.0, *)
 @objc public class Gravity: NSObject {
@@ -365,6 +372,8 @@ import UIKit
 				view.translatesAutoresizingMaskIntoConstraints = false // do we need this??
 				
 				// TODO: determine if the instance is an instance of UIView or UIViewController and handle the latter by embedding a view controller
+				
+				// TODO: should we set clipsToBounds for views by default?
 			}
 		}
 		
@@ -528,10 +537,26 @@ import UIKit
 //		let sortedChildren = childNodes.sort { (a, b) -> Bool in
 //			return Int(a["zIndex"] ?? "0") < Int(b["zIndex"] ?? "0")
 //		}
+
+		// MARK: Default Child Handling
 		
 		for childNode in sortedChildren {
 			view.addSubview(childNode.view)
 			
+			UIView.autoSetPriority(GravityConstraintPriorities.ViewContainment + Float(childNode.depth)) {
+				// TODO: come up with better constraint identifiers than this
+				// experimental: only apply these implicit constraints if the parent is not filled
+				if childNode.parentNode?.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) != true {
+					childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+					childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+				}
+				
+				if childNode.parentNode?.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) != true {
+					childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+					childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+				}
+			}
+						
 			// TODO: we need to size a view to its contents by default (running into an issue where views are 0 sized)
 			
 //			 TODO: add support for margins via a margin and/or padding attribute
