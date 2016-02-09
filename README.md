@@ -9,11 +9,11 @@ Here's what some actual functioning Gravity looks like:
 ```xml
 <H gravity="middle" color="#fff">
 	<V gravity="top left">
-		<UILabel id="titleLabel" text="1188 W Georgia St" maxWidth="250" font="System Semibold 16" textColor="#ffffff" wrap="true"/>
+		<UILabel id="titleLabel" text="1188 W Georgia St" maxWidth="200" font="System Semibold 16" textColor="#ffffff" wrap="true"/>
 		<UILabel id="hoursLabel" text="Open today: 6am - 11pm" font="System 14.0" textColor="#ffffff7f"/>
 		<UIView height="6"/>
 		<H gravity="middle" spacing="0" height="28" color="#ffffff">
-			<UIButton id="carButton" backgroundColor="#0076FF" minWidth="80">
+			<UIButton id="carButton" action="carButtonPressed:" backgroundColor="#0076FF" cornerRadius="4" minWidth="80">
 				<H alignment="center" userInteractionEnabled="false">
 					<UIView width="4"/>
 					<UIImageView width="22" height="22" image="Directions-Car"/>
@@ -23,7 +23,7 @@ Here's what some actual functioning Gravity looks like:
 				</H>
 			</UIButton>
 			<UIView width="6"/>
-			<UIButton id="walkButton" backgroundColor="#0076FF">
+			<UIButton id="walkButton" backgroundColor="#0076FF" cornerRadius="4">
 				<H alignment="center" userInteractionEnabled="false">
 					<UIView width="4"/>
 					<UIImageView width="22" height="22" image="Directions-Walk"/>
@@ -36,15 +36,20 @@ Here's what some actual functioning Gravity looks like:
 	</V>
 	<UIView width="8"/>
 	<UIView>
-		<UIButton width="64" backgroundColor="#ffffff00">
-			<V alignment="center">
+		<UIButton width="64" gravity="center" backgroundColor="#ffffff00">
+			<V>
 				<UIImageView image="chevron-right-bold"/>
+				<UIView height="6"/>
 				<UILabel text="Order" color="#fff"/>
 			</V>
 		</UIButton>
 	</UIView>
 </H>
 ```
+
+This produces the following view, rendered entirely from the above XML (not including the bubble view) and assuming the images are present in the project:
+
+[[img/Sample.png]]
 
 ##Introduction
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
@@ -92,7 +97,7 @@ Constructing an interface is a way of communicating. It is a way for the develop
 Apple seems to treat interface development as a finely tuned work of art. A masterpiece of balancing cards. And while there's nothing wrong with a perfected UI, the order of magnitude longer time it takes to develop could easily be argued away in a great many cases.
 
 ##The Basics
-Gravity is, at its heart, an XML representation of a native layout. Its elements are classes and its attributes are generally properties on those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond direclty to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "label" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
+Gravity is, at its heart, an XML representation of a native layout. Its elements are classes and its attributes are generally properties on those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond directly to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "label" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
 
 But even better than that is the fact that you can automatically embed subviews inside any other view, including UIButtons. So you can actually lay out your button's contents using Gravity too! (Note: There are limitations in doing this for buttons, namely that embedded views do not presently respect the button's control state and will not react to presses.)
 
@@ -146,7 +151,7 @@ One of the main motivations for Gravity was to break free of the horror known as
 Everything comes at a cost! It would be foolish to claim Gravity didn't have any downsides at all. So in the interest of full disclosure, here are a few:
 
 ###No Immediate Feedback
-Probably the biggest limitation of Gravity right now is that you cannot immediately see a visual representation of your UI while editing your layout. This isn't a limitation of the design Gravity per se, but more a limitation of Mac OS and the fact that you cannot instantiate iOS controls inside OS X inside anything other than a simulator. (I honestly don't know how Interface Builder does it, or whether it may be possible some day to integrate Gravity with Xcode's design-time tools.)
+Probably the biggest limitation of Gravity right now is that you cannot immediately see a visual representation of your UI while editing your layout. This isn't a limitation of the design of Gravity per se, but more a limitation of Mac OS and the fact that you cannot instantiate iOS controls inside OS X inside anything other than a simulator. (I honestly don't know how Interface Builder does it, or whether it may be possible some day to integrate Gravity with Xcode's design-time tools, but I suspect Apple keeps much of this proprietary.)
 
 That said, there is the included demo app **Gravity Assist** that allows you to see the results of adjustments to your layout in real time. The only problem is you have to run it on a device or the simulator. :(
 
@@ -160,7 +165,7 @@ Gravity (that is the "gravity" attribute) is a **scoped attribute** that control
 
 Gravity affects the element it is directly applied to, as well as all of its children. If the element is contained within another view (other than a stack view), and the parent view is bigger than the child, the child will align itself within its parent based on the child's gravity. If the child does not explicitly specify its own gravity, it inherits the gravity from its parent.
 
-Gravity also affects the *containers* (the <H> and <V> stack views). Gravity may, however, also affect certain views if they implement custom handlers. For example, text elements like UILabel adjust their justification to follow the gravity (including GravityDirection.Wide, which becomes Justified).
+Gravity also affects the *containers* (the `<H>` and `<V>` stack views). Gravity may, however, also affect certain views if they implement custom handlers. For example, text elements like UILabel adjust their justification to follow the gravity (including GravityDirection.Wide, which becomes Justified).
 
 Gravity has a special meaning when applied to a UIView.
 

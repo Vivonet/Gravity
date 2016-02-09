@@ -32,8 +32,9 @@ public class GravityView: UIView, NSXMLParserDelegate, GravityElement, GravityPl
 	@IBInspectable public var filename: String = "" {
 		didSet {
 			// if filename doesn't end with .xml (and can't be found as specified) append .xml
+			let effectiveName = filename.rangeOfString(".xml", options: NSStringCompareOptions.BackwardsSearch, range: nil, locale: nil) == nil ? "\(filename).xml" : filename
 			NSLog("GravityView filename changed!")
-			let url = NSURL(fileURLWithPath: NSBundle.mainBundle().resourcePath!).URLByAppendingPathComponent(filename, isDirectory: false)
+			let url = NSURL(fileURLWithPath: NSBundle.mainBundle().resourcePath!).URLByAppendingPathComponent(effectiveName, isDirectory: false)
 			do {
 				xml = try String(contentsOfURL: url, encoding: NSUTF8StringEncoding)
 			} catch {

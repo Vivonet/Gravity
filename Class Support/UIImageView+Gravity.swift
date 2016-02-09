@@ -26,7 +26,7 @@ extension UIImageView: GravityElement {
 	
 	public func processElement(node: GravityNode) -> Bool {
 		self.contentMode = UIViewContentMode.ScaleAspectFit
-//		self.translatesAutoresizingMaskIntoConstraints = false
+		self.layer.minificationFilter = kCAFilterTrilinear // improves UIImageView rendering
 		self.tintColor = node.color
 		
 //////						UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in

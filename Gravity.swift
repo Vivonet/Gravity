@@ -685,6 +685,7 @@ struct GravityConstraintPriorities {
 //    }
 //}
 
+@available(iOS 9.0, *)
 extension GravityNode: SequenceType {
 	public func generate() -> AnyGenerator<GravityNode> {
 		var childGenerator = childNodes.generate()
