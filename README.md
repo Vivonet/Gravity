@@ -49,7 +49,7 @@ Here's what some actual functioning Gravity looks like:
 
 This produces the following view, rendered entirely from the above XML (not including the bubble view) and assuming the images are present in the project:
 
-[[https://github.com/devios1/Gravity/blob/master/img/Sample.png]]
+[[https://github.com/devios1/Gravity/blob/master/img/Sample.png|alt=Sample]]
 
 ##Introduction
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
