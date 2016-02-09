@@ -47,9 +47,9 @@ Here's what some actual functioning Gravity looks like:
 </H>
 ```
 
-This produces the following view, rendered entirely from the above XML (not including the bubble view) and assuming the images are present in the project:
+This produces the following view (everything inside the bubble), rendered entirely from the above XML (assuming the images are present in the project):
 
-![Sample](https://github.com/devios1/Gravity/blob/master/img/Sample.png)
+![Sample](img/Sample.png)
 
 ##Introduction
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
@@ -137,15 +137,24 @@ You can programmatically get a reference to the native `NSLayoutConstraint` for 
 
 For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can access the corresponding constraint by passing in "width", "minWidth", and so on.
 
+There are only a handful of these implemented at the moment.
+
 ##Benefits
 ###True Native UI
 Gravity is purely an iOS framework (and perhaps someday OS X). It doesn't make compromises when it comes to supporting multiple platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
 
 ###Rapid Prototyping
-Gravity is so simple, you can actually use it to build real usable interfaces faster than you could in a visual layout tool. Use it to sketch out interface ideas 
+Gravity is so simple, you can actually use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.
+
+Gravity uses all native types (except for the special GravityView), so migrating from a Gravity-based layout to a storyboard or XIB is also very natural. Just make your controller properties IBOutlets and bind them as usual.
 
 ###No More Interface Builder!
 One of the main motivations for Gravity was to break free of the horror known as Interface Builder. Now you can finally architect your interfaces simply and precisely in code. No need for scary wishy-washy mouse-driven interface design anymore. Take complete control of your layout and ditch less worthy paradigms and complex proprietary file formats. Interfaces should not be drawn with a mouse. That's really all there is to say about it. Welcome to the 21st century.
+
+###No More Outlets!
+Outlets are a joke. Most frameworks would simply bind interface elements to their code-side counterparts automatically (as does Gravity), but for some reason Apple felt like burdening the user with this bizarre ritual of tying views to their properties manually by dragging lines from Interface Builder into your code file. Okay.
+
+Thankfully this nonsense is gone with Gravity. Interface elements are automatically bound to their controller properties of the same name. So that's one whole paradigm you won't even have to think about anymore when using Gravity.
 
 ##Downsides
 Everything comes at a cost! It would be foolish to claim Gravity didn't have any downsides at all. So in the interest of full disclosure, here are a few:
@@ -156,6 +165,12 @@ Probably the biggest limitation of Gravity right now is that you cannot immediat
 That said, there is the included demo app **Gravity Assist** that allows you to see the results of adjustments to your layout in real time. The only problem is you have to run it on a device or the simulator. :(
 
 I expect things will improve in this area as time goes by, but for now your best bet is to just compile and run to see your changes. One piece of good news is that because xml files are merely considered resources in your app, if you've only modified xml files since your last build, rebuilding is almost instantaneous because everything is already compiled!
+
+###It's Young
+This project is brand new and so far I'm the only one developing it. That's clearly a downside! But hopefully one that will not remain true for long.
+
+###No Unit Testing
+There's no unit testing yet, but Gravity is clearly something that would benefit greatly from a suite of unit tests, so you can bet they're coming at some point.
 
 ##Tips
 Gravity is not just an easier way to work with Auto Layout, it's really a whole philosophy: Build your interfaces from the inside-out, not the outside-in. Let the content be key. Don't waste space.
@@ -183,11 +198,11 @@ Note that the same class can be at once both a GravityElement and a GravityPlugi
 ##Q&A
 **Q: Isn't a XIB file already XML? Why do I need another XML format?**
 
-**A:** The answer has to do with the intended purpose of the XML and how it is utilized. Yes, XIB files are XML-based, but they're XML-based as a *serialization format*, not as a language with a user experience. XIB files are not intended to be authored by hand. Gravity, on the other hand, is designed from the ground up to be written by hand and is therefore intentionally simple and concise. Furthermore, XIB's XML format does absolutely nothing to abstract away the pains of Auto Layout. So even if you were to attempt to author a XIB file by hand (seriously though, don't), you'd still be programming with Auto Layout, albeit in a different form. Gravity is an abstraction layer built on top of Auto Layout. XIB is just Interface Builder serialized to XML.
+**A:** Yes, XIB files are XML-based, but they're XML-based as a *serialization format*, not as a language with a user experience. XIB files are not intended to be authored by hand. Gravity, on the other hand, is designed from the ground up to be written by hand and is therefore intentionally simple and concise. Furthermore, XIB's XML format does absolutely nothing to abstract away the pains of Auto Layout. So even if you were to attempt to author a XIB file by hand (seriously though, don't), you'd still be programming with Auto Layout, albeit in a different form. Gravity is an abstraction layer built on top of Auto Layout. XIB is just Interface Builder serialized to XML.
 
 **Q: Doesn't the strictness of the hierarchy restrict the interfaces you can create?**
 
-**A:** Yes, this is a natural result of what Gravity is. You'd be surprised how perfectly it works out in many cases, and when you start to think like Gravity, you start to design like Gravity. Interfaces build themselves from the inside-out. Like I said, it's a philosophy too. It's not going to be for everyone.
+**A:** Yes, to a degree. This is a natural result of what Gravity is. But you'd be surprised how well it works out in most cases, and when you start to think like Gravity, you start to design like Gravity. Interfaces build themselves from the inside-out. Like I said, it's a philosophy too.
 
 **Q: Is there design-time support for Gravity?**
 
@@ -198,6 +213,6 @@ Note that the same class can be at once both a GravityElement and a GravityPlugi
 **A:** Not yet, but I don't expect this would be too difficult. I just don't have any experience with AppKit on OS X, but I expect it will be very possible to port/extend Gravity to OS X in the near future.
 
 ##Requirements
-Gravity makes heavy use of the `UIStackView`, so iOS 9 only, I'm afraid! This is brand spankin' new stuff!
+Gravity makes heavy use of the `UIStackView`, so iOS 9 only, I'm afraid! This is brand spankin' new stuff! (Note: I may try to implement support for [TZStackView](https://github.com/tomvanzummeren/TZStackView) to bring support for Gravity to older iOS versions.)
 
-Oh and it also depends on https://github.com/PureLayout/PureLayout as well, for now at least.
+It also depends on Tyler Fox's life-saving [PureLayout](https://github.com/PureLayout/PureLayout) framework as well, for now at least.
