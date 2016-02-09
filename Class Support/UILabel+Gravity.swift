@@ -26,7 +26,7 @@ extension UILabel: GravityElement {
 	}
 	
 	public func processElement(node: GravityNode) -> Bool {
-		switch node.gravity {
+		switch node.gravity.horizontal { // TODO: should improve this, possibly by splitting into horizontalGravity and verticalGravity properties
 			case GravityDirection.Left:
 				self.textAlignment = NSTextAlignment.Left
 				break
@@ -36,9 +36,9 @@ extension UILabel: GravityElement {
 			case GravityDirection.Right:
 				self.textAlignment = NSTextAlignment.Right
 				break
-			case GravityDirection.Wide:
-				self.textAlignment = NSTextAlignment.Justified
-				break
+//			case GravityDirection.Wide:
+//				self.textAlignment = NSTextAlignment.Justified // does this make sense?
+//				break
 			default:
 				// TODO: throw
 				break

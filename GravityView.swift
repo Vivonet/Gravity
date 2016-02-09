@@ -11,9 +11,17 @@ import Foundation
 @available(iOS 9.0, *)
 @IBDesignable
 @objc(GravityView)
-public class GravityView: UIView, NSXMLParserDelegate, GravityElement {
+public class GravityView: UIView, NSXMLParserDelegate, GravityElement, GravityPlugin {
 	private var nodeStack = [GravityNode]()
+	private var widthIdentifiers = [String: [GravityNode]]()
+	
 	public var rootNode: GravityNode?
+	
+	public var controller: NSObject? = nil {
+		didSet {
+			controllerChanged()
+		}
+	}
 
 	@IBInspectable public var xml: String = "" {
 		didSet {
@@ -43,12 +51,12 @@ public class GravityView: UIView, NSXMLParserDelegate, GravityElement {
 	
 	convenience public init(xml: String) {
 		self.init()
-		self.xml = xml
+		defer { self.xml = xml } // defer allows didSet to be called
 	}
 	
 	convenience public init(filename: String) {
 		self.init()
-		self.filename = filename
+		defer { self.filename = filename } // defer allows didSet to be called
 	}
 
 	required public init?(coder aDecoder: NSCoder) {
@@ -63,18 +71,38 @@ public class GravityView: UIView, NSXMLParserDelegate, GravityElement {
 		let parser = NSXMLParser(data: data)
 		parser.delegate = self
 		parser.parse()
-		NSLog("100%% reconsituted xml!\n" + (rootNode?.description ?? ""))
-//		}
+//		NSLog("100%% reconsituted xml!\n" + (rootNode?.description ?? ""))
+		
+		_ = rootNode!.view // make sure the view hierarchy is fully constructed
+		
+		for (identifier, nodes) in widthIdentifiers {
+			if identifier == "fill" || identifier == "auto" { // special keywords
+				continue
+			}
+			
+			let first = nodes[0]
+			for var i = 1; i < nodes.count; i++ {
+				nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
+			}
+		}
 
 		for subview in subviews {
 			subview.removeFromSuperview()
 		}
 		addSubview(rootNode!.view)
 		
+		for node in rootNode! {
+			NSLog("ITERATING NODE: \(node.nodeName)")
+			for plugin in Gravity.plugins {
+				plugin.processElement?(node) // post-process
+			}
+		}
+		
 		rootNode!.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
 		rootNode!.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
 		
 		autoSize()
+		controllerChanged()
 		
 //		// TODO: add more convenient support for instantiating a view within an interface (such as via another view or view controller)
 //		// perhaps we should write this as an extension on UIView and then we can simply check the size of the parent view
@@ -91,13 +119,49 @@ public class GravityView: UIView, NSXMLParserDelegate, GravityElement {
 		frame.size.height = subviews[0].frame.size.height
 	}
 	
+	private func controllerChanged() {
+		if controller != nil {
+			rootNode?.connectController(controller!)
+		}
+	}
+	
+	// MARK: GravityElement
+	
 	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
 		return false
 	}
 	
+	public func processElement(node: GravityNode) -> Bool {
+		self.translatesAutoresizingMaskIntoConstraints = false
+		return false
+	}
+	
+	// MARK: GravityPlugin
+	
+	public static func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
+		switch attribute {
+			case "width":
+				let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+				if value.rangeOfCharacterFromSet(charset) != nil {
+					if node.gravityView!.widthIdentifiers[value] == nil {
+						node.gravityView!.widthIdentifiers[value] = [GravityNode]()
+					}
+					node.gravityView!.widthIdentifiers[value]?.append(node)
+//				if "\((value as NSString).floatValue)" != value {
+					return true
+				}
+				return false
+				
+			default:
+				return false
+		}
+	}
+	
+	// MARK: NSXMLParserDelegate
+	
 	@objc public func parser(parser: NSXMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String]) {
 	
-		let node = GravityNode(parentNode: nodeStack.last, nodeName: elementName, attributes: attributeDict)
+		let node = GravityNode(gravityView: nodeStack.last?.gravityView ?? self, parentNode: nodeStack.last, nodeName: elementName, attributes: attributeDict)
 		rootNode = rootNode ?? node
 		nodeStack.last?.childNodes.append(node)
 		nodeStack.append(node)

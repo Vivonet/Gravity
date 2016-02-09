@@ -1,7 +1,7 @@
 #Gravity
-A simple XML-based layout description language for iOS powered by Auto Layout and written in Swift.
+An easy to learn XML-based layout description language for iOS powered by Auto Layout.
 
-**tl;dr** It's kinda like HTML for apps and is *infinitely* easier to use than Auto Layout. Literally infinitely. I measured it.
+**tl;dr** It's kinda like HTML for apps and is *infinitely* easier to use than Auto Layout.
 
 ##Sample
 Here's what some actual functioning Gravity looks like:
@@ -92,6 +92,14 @@ Constructing an interface is a way of communicating. It is a way for the develop
 Apple seems to treat interface development as a finely tuned work of art. A masterpiece of balancing cards. And while there's nothing wrong with a perfected UI, the order of magnitude longer time it takes to develop could easily be argued away in a great many cases.
 
 ##The Basics
+In Gravity, you arrange your views by using a combination of stacking and layering. Stacking is fundamental while layering is generally more optional for more complex layouts.
+
+###Stacking
+Stacking can take place either horizontally or vertically and takes place in a **stack view**. A stack view contains an arbitrary number of child views, each of which will be stacked in a line along the axis of the stack view.
+
+###Layering
+Layers in Gravity are analogous to layers in drawing and paint programs: unlike stack views which arrange their subviews in a line horizontally or vertically, layering arranges views *inwards* and *outwards*—that is, along the Z axis.
+
 ###Growing and Shrinking
 In regular Auto Layout, you control how elements expand and contract by a combination of **content hugging priority** and **content compression resistance priority**, each of which (being a priority) takes a value between 0 and 1000.
 
@@ -115,15 +123,37 @@ Perhaps you want the label to shrink, but only to a point. If you set a minWidth
 
 Unfortunately, I haven't figured out how to get UIStackView to grow or shrink multiple elements equally together. This was really the intended design, but unfortunately doesn't appear to be possible just yet and the stack view seems to always just choose the last element.
 
+###Accessing Constraints
+You can programmatically get a reference to the native `NSLayoutConstraint` for any of a node's many different constraints by passing a string identifying the constraint, generally by the name of the attribute the constraint affects.
+
+For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can access the corresponding constraint by passing in "width", "minWidth", and so on.
+
+##Benefits
+###Rapid Prototyping
+Gravity is so simple, you can actually use it to build real usable interfaces faster than you could in a visual layout tool. Use it to sketch out interface ideas 
+
 ##Tips
 Gravity is not just an easier way to work with Auto Layout, it's really a whole philosophy: Build your interfaces from the inside-out, not the outside-in. Let the content be key. Don't waste space.
 
 ###Gravity
 Gravity (that is the "gravity" attribute) is a **scoped attribute** that controls the general direction of attraction for elements in the interface. It applies to its entire subtree until overridden by a different child value. ("color" is another scoped attribute. You can use it to set the default foreground color of all elements in a subtree, including templated UIImageViews.)
 
-Gravity primarily affects the *containers* (the <H> and <V> stack views), but it can be applied to any node in your tree. So you must change the gravity of an element's parent container if you want to affect how that element is aligned within it. Gravity may, however, also affect certain views if they implement custom handlers. For example, text elements like UILabel adjust their justification to follow the gravity (including GravityDirection.Wide, which becomes Justified).
+Gravity affects the element it is directly applied to, as well as all of its children. If the element is contained within another view (other than a stack view), and the parent view is bigger than the child, the child will align itself within its parent based on the child's gravity. If the child does not explicitly specify its own gravity, it inherits the gravity from its parent.
 
-Gravity does not presently have any effect on UIViews, because UIViews simply match the size of their content so there is nothing to align.
+Gravity also affects the *containers* (the <H> and <V> stack views). Gravity may, however, also affect certain views if they implement custom handlers. For example, text elements like UILabel adjust their justification to follow the gravity (including GravityDirection.Wide, which becomes Justified).
+
+Gravity has a special meaning when applied to a UIView.
+
+##More Advanced Stuff
+###Class Support
+Gravity makes it easy to add XML support to any existing class. If you have control of the class, simply add the `GravityElement` protocol and implement its one required method. If you don't control the class, you can create a class extension that adds support for the GravityElement protocol to any existing class. See the classes in the "Class Support" folder of Gravity for some examples.
+
+###Plugins
+If you can't do what you need via the GravityElement protocol, chances are you will need to write a Gravity plugin. Gravity supports (or rather, will support) a simple plugin architecture allowing you to insert custom logic at key points and extend the framework to suit your needs. The intention is to make it as flexible as possible, providing the ability for plugins to override default behavior at all of the necessary key points such as element instantiation, attribute processing, and pre- and post-processing of elements.
+
+One key use of plugins is to handle element instantiation from a node where the default behavior is unsatisfactory. By default, Gravity uses the name of the element to identify a class and instantiate a default (parameterless) instance of that class, which can then be configured by handling the node's attributes in turn. However, if the element name does not correspond to a class name, or the class requires more complicated initialization (e.g. UICollectionView), you can create a Gravity plugin to accomplish this.
+
+Note that the same class can be at once both a GravityElement and a GravityPlugin when it makes sense to do so. For example, the UIStackView+Gravity extension provides attribute handling for UIStackView elements, but also registers itself as a GravityPlugin in order to explicitly handle the `<H>` and `<V>` shorthand tags.
 
 ##Q&A
 **Q: Isn't a XIB file already XML? Why do I need another XML format?**

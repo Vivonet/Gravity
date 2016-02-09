@@ -18,15 +18,13 @@ extension UIButton: GravityElement {
 				return true
 			
 			case "action":
-				// TODO: implement actions as strings that map to methods on the controller
-				// should support parameterless and single-parameter variations
-				break
+				return true // return true because we are handling this attribute in connectController()
 			
 			default:
 				break
 		}
 		
-		return false//super.processAttribute(gravity, attribute: attribute, value: value)
+		return false
 	}
 	
 	public func processElement(node: GravityNode) -> Bool {
@@ -36,5 +34,17 @@ extension UIButton: GravityElement {
 		// it seems for some reason, UIButtons have an intrinsic height of 34; i need to figure out where that is coming from and kill it with fire
 		
 		return false
+	}
+	
+	public func connectController(node: GravityNode, controller: NSObject) {
+		if let action = node["action"] {
+			removeTarget(nil, action: nil, forControlEvents: UIControlEvents.TouchUpInside) // unverified
+			let exception = tryBlock {
+				self.addTarget(controller, action: Selector(action), forControlEvents: UIControlEvents.TouchUpInside)
+			}
+			if exception != nil {
+				NSLog("Warning: Action \"\(action)\" not found on object \(controller).")
+			}
+		}
 	}
 }
