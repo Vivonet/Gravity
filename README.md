@@ -4,7 +4,13 @@ An easy to learn XML-based layout description language for iOS powered by Auto L
 **tl;dr** It's kinda like HTML for apps and is *infinitely* easier to use than Auto Layout.
 
 ##Sample
-Here's what some actual functioning Gravity looks like:
+Suppose you wanted to construct the following simple layout (everything inside the bubble):
+
+![Sample](img/Sample.png)
+
+With Gravity, your job is to break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stacks views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is clearly our first division and it is horizontal. Everything else is stacked vertically, with the two directions buttons stacked horizontally at the bottom.
+
+Taking all this into account (and adding appropriate styling and margins), here is the actual Gravity code that produced the above layout (assuming the images are present in the project):
 
 ```xml
 <H gravity="middle" color="#fff">
@@ -47,9 +53,9 @@ Here's what some actual functioning Gravity looks like:
 </H>
 ```
 
-This produces the following view (everything inside the bubble), rendered entirely from the above XML (assuming the images are present in the project):
+Gravity aims to reduce the mental burden of going from a layout you have *in mind* to an actual functioning application in code. It accomplishes this by representing your layout in a much more natural and intuitive manner, as illustrated above.
 
-![Sample](img/Sample.png)
+The best part of Gravity is that everything is relative and dynamic. If you change the size or style of any of the labels, the entire layout will adjust itself naturally to suit it. You don't have to "correct" the rest of your layout because you changed one thing.
 
 ##Introduction
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
@@ -75,15 +81,13 @@ The *good* news is that Auto Layout is now sufficiently powerful enough to act a
 
 Why "Gravity"?
 
-Well, gravity is simple. It's a law: things attract. Gravity is the universe's way of optimizing space, just like your interface elements will automatically size and shrink to their ideal size and will just automatically look good and behave like you want.
+Well, gravity is simple. It's a law: things attract. Gravity is the universe's way of optimizing space, just like your interface elements will naturally size to their ideal size and will just automatically look good and behave like you want, and more importantly, how your users expect.
 
 Go ahead, sketch out a simple UI on a piece of paper or your favourite app. Looking at it, you already have a good idea of which elements should expand or shrink, and which elements should collapse before other elements. It's usually pretty obvious. Gravity aims to turn that intuitive knowledge into a functioning UI with as little work as possible.
 
-Gravity is inspired on the surface by WPF, but is a much much simpler take on it. You define an interface as a tree: everything has its place in the hierarchy and the resultant interface is generated programmatically with all of the proper layout constraints in place, so you get all the power of auto layout without even having to touch it. (Although you *can* touch it if you want to. It's all still there. Gravity isn't a black box.)
+Gravity is inspired on the surface by WPF, but is a much simpler take on it. You define an interface as a tree: everything has its place in the hierarchy and the resultant interface is generated deterministically with all of the proper layout constraints in place, so you get all the power of auto layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
 
-Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you tweak your interface *textually*, just like editing source code. Yeah you have to rebuild and run to see your changes, but the control and precision it gives you is worth it. It's also far, far harder to accidentally do something unintended and end up breaking your entire UI. Interface builder is fragile like that. Gravity aims to be a solid mathematical foundation for your app's interface.
-
-Another bonus? Because Gravity's syntax is so much simpler than a XIB file, things like source control diffs are so much more readable.
+Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you build and tweak your interface *textually*, just like editing source code. It's mathematically precise and has far fewer points of potential failure than Auto Layout. Gravity aims to be a solid mathematical foundation for your app's interface.
 
 Gravity is more than just a layout language. Gravity is a metaphor. For the way we picture and convey the information we want to display to our users. It is minimalism and efficiency.
 
@@ -140,25 +144,28 @@ For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can
 There are only a handful of these implemented at the moment.
 
 ##Benefits
-###True Native UI
-Gravity is purely an iOS framework (and perhaps someday OS X). It doesn't make compromises when it comes to supporting multiple platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
+###True Native UI (Fast!)
+Gravity is purely an Auto Layout framework. It doesn't make compromises when it comes to supporting different platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
 
 ###Rapid Prototyping
 Gravity is so simple, you can actually use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.
 
 Gravity uses all native types (except for the special GravityView), so migrating from a Gravity-based layout to a storyboard or XIB is also very natural. Just make your controller properties IBOutlets and bind them as usual.
 
+But why you would want to do that I have no idea, because…
+
 ###No More Interface Builder!
-One of the main motivations for Gravity was to break free of the horror known as Interface Builder. Now you can finally architect your interfaces simply and precisely in code. No need for scary wishy-washy mouse-driven interface design anymore. Take complete control of your layout and ditch less worthy paradigms and complex proprietary file formats. Interfaces should not be drawn with a mouse. That's really all there is to say about it. Welcome to the 21st century.
+One of the main motivations for Gravity was to break free of the horror known as Interface Builder. Now you can finally architect your interfaces simply and precisely in code. No need for scary wishy-washy mouse-driven interface design anymore. Take complete control of your layout and ditch less worthy paradigms and complex proprietary file formats. Interfaces should not be drawn with a mouse. That's really all there is to say about it.
 
 ###No More Outlets!
 Outlets are a joke. Most frameworks would simply bind interface elements to their code-side counterparts automatically (as does Gravity), but for some reason Apple felt like burdening the user with this bizarre ritual of tying views to their properties manually by dragging lines from Interface Builder into your code file. Okay.
 
 Thankfully this nonsense is gone with Gravity. Interface elements are automatically bound to their controller properties of the same name. So that's one whole paradigm you won't even have to think about anymore when using Gravity.
 
-##Downsides
-Everything comes at a cost! It would be foolish to claim Gravity didn't have any downsides at all. So in the interest of full disclosure, here are a few:
+###Readable Source Control Diffs
+Because Gravity's syntax is so much simpler than a XIB file, things like source control diffs actually become human-parseable.
 
+##Downsides
 ###No Immediate Feedback
 Probably the biggest limitation of Gravity right now is that you cannot immediately see a visual representation of your UI while editing your layout. This isn't a limitation of the design of Gravity per se, but more a limitation of Mac OS and the fact that you cannot instantiate iOS controls inside OS X inside anything other than a simulator. (I honestly don't know how Interface Builder does it, or whether it may be possible some day to integrate Gravity with Xcode's design-time tools, but I suspect Apple keeps much of this proprietary.)
 
@@ -166,14 +173,11 @@ That said, there is the included demo app **Gravity Assist** that allows you to 
 
 I expect things will improve in this area as time goes by, but for now your best bet is to just compile and run to see your changes. One piece of good news is that because xml files are merely considered resources in your app, if you've only modified xml files since your last build, rebuilding is almost instantaneous because everything is already compiled!
 
-###It's Young
-This project is brand new and so far I'm the only one developing it. That's clearly a downside! But hopefully one that will not remain true for long.
-
 ###No Unit Testing
 There's no unit testing yet, but Gravity is clearly something that would benefit greatly from a suite of unit tests, so you can bet they're coming at some point.
 
 ##Tips
-Gravity is not just an easier way to work with Auto Layout, it's really a whole philosophy: Build your interfaces from the inside-out, not the outside-in. Let the content be key. Don't waste space.
+Gravity is not just an easier way to work with Auto Layout, it's really a whole philosophy: Build your interfaces from the inside out, not the outside in. Let the content be key. Don't waste space. Think contextually.
 
 ###Gravity
 Gravity (that is the "gravity" attribute) is a **scoped attribute** that controls the general direction of attraction for elements in the interface. It applies to its entire subtree until overridden by a different child value. ("color" is another scoped attribute. You can use it to set the default foreground color of all elements in a subtree, including templated UIImageViews.)

@@ -83,7 +83,7 @@ struct GravityConstraintPriorities {
 				}
 			}
 			return font
-		}, forTypeName: "UIFont")
+		}, forType: UIFont.self)
 		
 		registerConverter({ (var value: String) -> AnyObject? in
 			value = value.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet)
@@ -101,7 +101,7 @@ struct GravityConstraintPriorities {
 					return UIColor.clearColor()
 			}
 			return UIColor(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: CGFloat(a) / 255)
-		}, forTypeName: "UIColor")
+		}, forType: UIColor.self)
 	}
 	
 //	public class func start(xml: String) {
@@ -110,7 +110,7 @@ struct GravityConstraintPriorities {
 	
 	// returns Bool so it can be returned from applicationDidFinishLaunchingWithOptions
 	public class func start(filename: String) -> UIWindow {
-		var window = UIWindow(frame: UIScreen.mainScreen().bounds)
+		let window = UIWindow(frame: UIScreen.mainScreen().bounds)
 //		let mainStoryboard: UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
 //		var exampleViewController: ExampleViewController = mainStoryboard.instantiateViewControllerWithIdentifier("ExampleController") as! ExampleViewController
 //		let vc = 
@@ -128,6 +128,14 @@ struct GravityConstraintPriorities {
 		plugins.append(type)
 	}
 	
+	public class func convert<T: AnyObject>(value: String) -> T? {
+		if let converter = converters["\(T.self)"] {
+			return converter(value) as? T
+		} else {
+			return nil
+		}
+	}
+	
 	// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time
 	public class func constructFromFile(filename: String) -> GravityView? {
 		let gravityView = GravityView()
@@ -143,15 +151,15 @@ struct GravityConstraintPriorities {
 	
 //////		let fitSize = rootElement?.systemLayoutSizeFittingSize(CGSize(width: 400, height: 400));
 	
-	public class func registerConverter(converter: (String) -> AnyObject?, forTypeName typeName: String) {
-		Gravity.converters[typeName] = converter
+	public class func registerConverter(converter: (String) -> AnyObject?, forType type: AnyClass) {
+		Gravity.converters["\(type)"] = converter
 	}
 	
-	public class func registerStyle(style: (UIView) -> (), forTypeName typeName: String) {
-		Gravity.styles[typeName] = style
+	public class func registerStyle(style: (UIView) -> (), forType type: AnyClass) {
+		Gravity.styles["\(type)"] = style
 	}
 	
-	func typeName(some: Any) -> String {
+	private func typeName(some: Any) -> String {
 		return (some is Any.Type) ? "\(some)" : "\(some.dynamicType)"
 	}
 }
@@ -175,7 +183,13 @@ struct GravityConstraintPriorities {
 			return attributes[attribute]
 		}
 	}
-	// add Int subscript for child nodes too?
+	// add Int-indexed subscript for child nodes too? or is that supported by SequenceType? probably we need CollectionType or something for that
+	
+//	subscript(attribute: String) -> T? {
+//		get {
+//			return Gravity.convert(attribute) as T?
+//		}
+//	}
 	
 	private var _view: UIView?
 	public var view: UIView {
@@ -203,8 +217,7 @@ struct GravityConstraintPriorities {
 	
 	public var color: UIColor {
 		get {
-			let converter = Gravity.converters["UIColor"]!
-			return converter(getScopedAttribute("color") ?? "#000") as! UIColor
+			return Gravity.convert(getScopedAttribute("color") ?? "#000")!
 		}
 	}
 	
@@ -320,12 +333,11 @@ struct GravityConstraintPriorities {
 	}
 	
 	// do we need to return if our job is to set view? what about return Bool if the node was fully handled (children and all)
-	public func processNode() -> UIView {
+	public func processNode() {
 		// TODO: check registered element name index and see if there is an associated class
 //		var element: UIView?
 		var className = nodeName
 		
-		// TODO: add plugin hook, move H, V into a plugin
 		for plugin in Gravity.plugins {
 			_view = plugin.instantiateElement?(self)
 			if _view != nil {
@@ -378,6 +390,11 @@ struct GravityConstraintPriorities {
 		}
 		
 		// MARK: - ATTRIBUTES -
+		
+		if _view == nil {
+			NSLog("Error: Could not instantiate class ‘\(className)’.")
+			return
+		}
 		
 		for (key, attributeValue) in attributes {
 			switch key { // special override cases (these pseudo-attributes take precedence over any class-specific attributes)
@@ -504,7 +521,7 @@ struct GravityConstraintPriorities {
 		
 		if let gravityElement = view as? GravityElement {
 			if gravityElement.processElement?(self) == true {
-				return view // handled
+				return //view // handled
 			}
 		}
 		
@@ -611,7 +628,7 @@ struct GravityConstraintPriorities {
 			}
 		}
 		
-		return view
+//		return view
 	}
 	
 	internal func connectController(controller: NSObject) {
