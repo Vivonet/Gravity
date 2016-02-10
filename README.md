@@ -136,12 +136,23 @@ Perhaps you want the label to shrink, but only to a point. If you set a minWidth
 
 Unfortunately, I haven't figured out how to get UIStackView to grow or shrink multiple elements equally together. This was really the intended design, but unfortunately doesn't appear to be possible just yet and the stack view seems to always just choose the last element.
 
+###Gravity
+Aligning things in Gravity is done with… gravity! Not just a cool name, it's also a key concept in the framework. Gravity is a scoped property that determines the direction elements are attracted to in an interface.
+
+Gravity does not have a corresponding concept in Auto Layout because it comes about from the fact that Gravity is hierarchical (in fact much of the framework's power comes from this fact). Elements inherit their gravity from their parent element in the tree. Thus, changing the gravity for an element affects that element and all elements inside it. You can change the direction of gravity at any point in the tree.
+
+Gravity is split into two axes: horizontal and vertical, and each axis can have one of three possible values. For example, the horizontal gravity can be one of Left, Center, and Right, while the vertical gravity can be one of Top, Middle, and Bottom. Remember, Center means horizontal center while Middle means vertical center.
+
+You can specify one or both axes of gravity at a time. If you omit an axis, that axis will continue to inherit its value from its parent element. Separate multiple gravity values with a space. So, to dock a view to the top-right corner of its parent, set `gravity="top right"`. To center an element horizontally without affecting its vertical gravity, simply set `gravity="center"`. Remember, changing the gravity affects all child elements too, so if you want the things *inside* the view to dock to a different edge, don't forget to adjust their gravity as well.
+
+Note: You can also set native properties like the `alignment` of a stack view or the `textAlignment` of a label directly to avoid changing the gravity for an entire subtree.
+
 ###Accessing Constraints
-You can programmatically get a reference to the native `NSLayoutConstraint` for any of a node's many different constraints by passing a string identifying the constraint, generally by the name of the attribute the constraint affects.
+You can programmatically get a reference to the native `NSLayoutConstraint` for any of a node's many different constraints by passing a string identifying the constraint, generally by the name of the attribute the constraint affects. This can be very handy for animations or if you need to programmatically adjust a layout in real time.
 
 For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can access the corresponding constraint by passing in "width", "minWidth", and so on.
 
-There are only a handful of these implemented at the moment.
+Note: There are only a handful of these implemented at the moment. More to come.
 
 ##Benefits
 ###True Native UI (Fast!)
