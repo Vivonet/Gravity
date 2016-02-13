@@ -147,12 +147,36 @@ You can specify one or both axes of gravity at a time. If you omit an axis, that
 
 Note: You can also set native properties like the `alignment` of a stack view or the `textAlignment` of a label directly to avoid changing the gravity for an entire subtree.
 
-###Accessing Constraints
-You can programmatically get a reference to the native `NSLayoutConstraint` for any of a node's many different constraints by passing a string identifying the constraint, generally by the name of the attribute the constraint affects. This can be very handy for animations or if you need to programmatically adjust a layout in real time.
+###Encapsulation
+Encapsulation couldn't be simpler in Gravity. To create a reusable control or layout template, all you need to do is author that layout as its own gravity file. You can then reference it in another layout by creating a node with the same name as that file. That's literally all you have to do. There's no registering, no linking, no outlets.
 
-For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can access the corresponding constraint by passing in "width", "minWidth", and so on.
+But it gets even better. Give an element in your sub-layout an id, and you will be able to configure it from the parent referencing layout using attribute dot notation!
 
-Note: There are only a handful of these implemented at the moment. More to come.
+**FormRow.xml**
+```xml
+<H gravity="middle">
+	<UILabel id="titleLabel" gravity="left" color="#666" width="col1" minWidth="80" text="Title"/>
+	<UILabel id="valueLabel" text="Value"/>
+</H>
+```
+
+**Main.xml**
+```
+<UIView backgroundColor="#0ff">
+	<V width="300" gravity="top left">
+		<FormRow titleLabel.text="Name:" valueLabel.text="George McFly" />
+		<FormRow titleLabel.text="Address:" valueLabel.text="Hill Valley, CA" />
+		<FormRow titleLabel.text="Phone:" valueLabel.text="+1 (604) 555-1234" />
+		<FormRow titleLabel.text="Email:" test.label.text="captain.stardust@gmail.com" />
+	</V>
+</UIView>
+```
+
+This is fully recursive too, so you can encapsulate as many levels deep as you want, and also access as deep as you want with multiple dots:
+
+```xml
+<ProfileView addressView.streetLabel.text="8 James St"/>
+```
 
 ##Benefits
 ###True Native UI (Fast!)
@@ -209,6 +233,13 @@ If you can't do what you need via the GravityElement protocol, chances are you w
 One key use of plugins is to handle element instantiation from a node where the default behavior is unsatisfactory. By default, Gravity uses the name of the element to identify a class and instantiate a default (parameterless) instance of that class, which can then be configured by handling the node's attributes in turn. However, if the element name does not correspond to a class name, or the class requires more complicated initialization (e.g. UICollectionView), you can create a Gravity plugin to accomplish this.
 
 Note that the same class can be at once both a GravityElement and a GravityPlugin when it makes sense to do so. For example, the UIStackView+Gravity extension provides attribute handling for UIStackView elements, but also registers itself as a GravityPlugin in order to explicitly handle the `<H>` and `<V>` shorthand tags.
+
+###Accessing Constraints
+You can programmatically get a reference to the native `NSLayoutConstraint` for any of a node's many different constraints by passing a string identifying the constraint, generally by the name of the attribute the constraint affects. This can be very handy for animations or if you need to programmatically adjust a layout in real time.
+
+For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can access the corresponding constraint by passing in "width", "minWidth", and so on.
+
+Note: There are only a handful of these implemented at the moment. More to come.
 
 ##Q&A
 **Q: Isn't a XIB file already XML? Why do I need another XML format?**

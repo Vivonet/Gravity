@@ -1,20 +1,21 @@
 //
 //  GravityViewController.swift
-//  Mobile
+//  Gravity
 //
 //  Created by Logan Murray on 2016-02-03.
-//  Copyright © 2016 The Little Software Company. All rights reserved.
+//  Copyright © 2016 Logan Murray. All rights reserved.
 //
 
 import Foundation
 
+/// A simple view controller designed to host a Gravity document. The supplied Gravity layout is made to fill the entire available screen space and adjusts automatically to support the keyboard.
 @available(iOS 9.0, *)
 @objc
 public class GravityViewController: UIViewController {
 
 	var bottomPin: NSLayoutConstraint?
 
-	public var gravityView: GravityView? = nil
+	public var document: GravityDocument? = nil
 //	public var keyboardView = UIView()
 //		get {
 //			return super.view as? GravityView
@@ -26,27 +27,32 @@ public class GravityViewController: UIViewController {
 
 	init(xml: String) {
 		super.init(nibName: nil, bundle: nil)
-		gravityView = GravityView(xml: xml)
+		document = GravityDocument(xml: xml)
 		setup()
 	}
 	
-	init(filename: String) {
+	init(name: String) {
 		super.init(nibName: nil, bundle: nil)
-		gravityView = GravityView(filename: filename)
+		document = GravityDocument(name: name)
 		setup()
 	}
 	
 	private func setup() {
 		view.backgroundColor = UIColor.whiteColor()
 //		gravityView?.translatesAutoresizingMaskIntoConstraints = false
-		gravityView?.controller = self
-		view.addSubview(gravityView!)
-//		gravityView?.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
-		gravityView?.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: ALEdge.Bottom)
+		document?.controller = self
 		
-		// read current keyboard frame?
+		if let rootNodeView = document?.rootNodeView {
+			view.addSubview(rootNodeView) // TODO: fix this
+	//		gravityView?.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
+			rootNodeView.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: ALEdge.Bottom)
+			
+			// read current keyboard frame?
+			
+			bottomPin = rootNodeView.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+		}
 		
-		bottomPin = (gravityView?.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)!)! // <- what the fuck is going on here?!
+		document?.postProcess()
 	}
 
 	required public init?(coder aDecoder: NSCoder) {

@@ -1,9 +1,9 @@
 //
 //  Gravity.swift
-//  Mobile
+//  Gravity
 //
 //  Created by Logan Murray on 2016-01-20.
-//  Copyright © 2016 The Little Software Company. All rights reserved.
+//  Copyright © 2016 Logan Murray. All rights reserved.
 //
 
 import Foundation
@@ -12,30 +12,35 @@ import UIKit
 
 // TODO: add identifiers for all added constraints
 
-struct GravityConstraintPriorities {
+// don't change these values unless you know what you are doing! ;)
+struct GravityPriorities {
 /**
 	The generic containment constraint of an auto-sizing UIView. These constraints ensure that the view will automatically size to fit its contents, but are low priority so as to be easily overridden.
 */
+
+	static let FillSizeHugging: UILayoutPriority = 99
 	static let ViewContainment: UILayoutPriority = 300
+	static let FillSize: UILayoutPriority = 800
+	static let ExplicitSize: UILayoutPriority = 800
 }
 
 // rename to GravityCore?
 @available(iOS 9.0, *)
 @objc public class Gravity: NSObject {
-	static var plugins = [AnyClass]() // plugins (currently) work statically as class methods, not on instances
+	static var plugins = [GravityPlugin.Type]() // plugins (currently) work statically as class methods, not on instances
 	static var converters = Dictionary<String, (String) -> AnyObject?>()
 	static var styles = Dictionary<String, (UIView) -> ()>() // styles by class name, e.g. "UIButton" TODO: add support for style classes too, e.g. style="styleClass"
 	// styles can also be used to do any post processing on an element after initialization; it doesn't have to be style related, though we should probably use plugins for that in general
 	// i wonder if we can use this or a similar concept to set up data binding/templating (we'd probably need to track changes somehow)
 	
 	var rootElement: UIView? = nil
-	var containerView = GravityView()
+//	var containerView = GravityView()
 	
 	// note: only works on @objc classes
 	public override class func initialize() {
 	
 		registerPlugin(GravityNode)
-		registerPlugin(GravityView)
+		registerPlugin(GravityDocument) // does this still make sense?
 		registerPlugin(UIStackView)
 		
 		// MARK: - BUILT-IN CONVERTERS -
@@ -108,22 +113,58 @@ struct GravityConstraintPriorities {
 //	
 //	}
 	
-	// returns Bool so it can be returned from applicationDidFinishLaunchingWithOptions
-	public class func start(filename: String) -> UIWindow {
+	// really wish there were a way to actually set the app's window property
+	public class func start(name: String) -> UIWindow {
 		let window = UIWindow(frame: UIScreen.mainScreen().bounds)
 //		let mainStoryboard: UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
 //		var exampleViewController: ExampleViewController = mainStoryboard.instantiateViewControllerWithIdentifier("ExampleController") as! ExampleViewController
 //		let vc = 
 //		UIApplication.sharedApplication().delegate.window = UIWindow(frame: UIScreen.mainScreen().bounds)
 
-		window.rootViewController = GravityViewController(filename: filename)
+		window.rootViewController = GravityViewController(name: name)
 
 		window.makeKeyAndVisible()
 
 		return window
 	}
 	
-	public class func registerPlugin(type: AnyClass) {
+	public class func new<T: UIView>(type: T.Type) -> T? {
+		return self.new("\(type)") as! T? // verify
+	}
+	
+	public class func new<T: UIView>(name: String) -> T? {
+		if let document = GravityDocument(name: name) {
+			return document.view as! T? // verify
+		}
+		
+		return nil
+	}
+	
+	// is this good here?
+	public class func instantiateView(node: GravityNode) -> UIView? {
+		var view: UIView? = nil
+		
+		for plugin in plugins {
+			if let view = plugin.instantiateElement?(node) {
+				return view
+			}
+		}
+		
+		if let type = NSClassFromString(node.nodeName) as! UIView.Type? {
+			tryBlock {
+				view = type.init()
+				view?.translatesAutoresizingMaskIntoConstraints = false // do we need this??
+			}
+			
+			// TODO: determine if the instance is an instance of UIView or UIViewController and handle the latter by embedding a view controller
+			
+			// TODO: should we set clipsToBounds for views by default?
+		}
+		
+		return view
+	}
+	
+	public class func registerPlugin(type: GravityPlugin.Type) {
 		// add to registered plugins
 		plugins.append(type)
 	}
@@ -137,17 +178,17 @@ struct GravityConstraintPriorities {
 	}
 	
 	// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time
-	public class func constructFromFile(filename: String) -> GravityView? {
-		let gravityView = GravityView()
-		gravityView.filename = filename
-		return gravityView
-	}
+//	public class func constructFromFile(filename: String) -> GravityView? {
+//		let gravityView = GravityView(name: filename)
+////		gravityView.filename = filename
+//		return gravityView
+//	}
 	
-	public class func constructFromXML(xml: String) -> GravityView? {
-		let gravityView = GravityView()
-		gravityView.xml = xml
-		return gravityView
-	}
+//	public class func constructFromXML(xml: String) -> GravityView? {
+//		let gravityView = GravityView(xml: xml)
+//		gravityView.xml = xml
+//		return gravityView
+//	}
 	
 //////		let fitSize = rootElement?.systemLayoutSizeFittingSize(CGSize(width: 400, height: 400));
 	
@@ -164,571 +205,29 @@ struct GravityConstraintPriorities {
 	}
 }
 
-// MARK: -
-
-@available(iOS 9.0, *) // TODO: should we derive from NSTreeNode? that could handle all the traversal itself
-@objc public class GravityNode: NSObject, GravityPlugin, CustomDebugStringConvertible {
-	public weak var parentNode: GravityNode?
-	public weak var gravityView: GravityView?
-	public var nodeName: String
-	public var depth: Int // the number of nodes deep this node is in the tree
-	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed table
-	public var attributes: [String: String]
-	public var constraints: [String: NSLayoutConstraint] // TODO: store constraints here based on their attribute name (width, minHeight, etc.)
-	public var childNodes = [GravityNode]()
-	public var ids: [String: UIView] // should we move this to GravityView? it would avoid us having to copy this between all nodes, and we can already access the gravityView from a node anyway
-	
-	subscript(attribute: String) -> String? {
-		get {
-			return attributes[attribute]
-		}
-	}
-	// add Int-indexed subscript for child nodes too? or is that supported by SequenceType? probably we need CollectionType or something for that
-	
-//	subscript(attribute: String) -> T? {
-//		get {
-//			return Gravity.convert(attribute) as T?
+//// MARK: -
+//
+//@available(iOS 9.0, *)
+//@objc public class GravityDocument: NSObject {
+//	private var nodeStack = [GravityNode]()
+//	private var widthIdentifiers = [String: [GravityNode]]()
+//	public var rootNode: GravityNode?
+//	public var ids: [String : UIView] = [:]
+//	
+//	public var controller: NSObject? = nil {
+//		didSet {
+//			controllerChanged()
 //		}
 //	}
-	
-	private var _view: UIView?
-	public var view: UIView {
-		get {
-			if _view == nil {
-				processNode()
-				if _view == nil {
-					_view = UIView() // probably want to think of something better here
-				}
-			}
-			return _view!
-		}
-		set(value) {
-			_view = value
-		}
-	}
-	
-	// MARK: Attribute Helpers
-	
-	public var gravity: GravityDirection {
-		get {
-			return GravityDirection(getScopedAttribute("gravity") ?? "top left")
-		}
-	}
-	
-	public var color: UIColor {
-		get {
-			return Gravity.convert(getScopedAttribute("color") ?? "#000")!
-		}
-	}
-	
-	public var zIndex: Int {
-		get {
-			return Int(attributes["zIndex"] ?? "0")!
-		}
-	}
-	
-	public init(gravityView: GravityView, parentNode: GravityNode?, nodeName: String, attributes: [String: String]) {
-		self.gravityView = gravityView
-		self.parentNode = parentNode
-		self.nodeName = nodeName
-		self.depth = (parentNode?.depth ?? 0) + 1
-		self.attributes = attributes
-		self.constraints = [String: NSLayoutConstraint]()
-		self.ids = self.parentNode?.ids ?? [String: UIView]() // make sure this is copied by ref
-	}
-	
-	public func isViewInstantiated() -> Bool {
-		return _view != nil
-	}
-	
-	public func isFilledAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
-		switch axis {
-			case UILayoutConstraintAxis.Horizontal:
-				let width = attributes["width"]?.lowercaseString
-				if width == "fill" {
-					return true
-				} else if width != nil && width != "auto" { // "auto" is the default and is the same as not specifying
-					return false
-				}
-				
-				for childNode in childNodes {
-					if childNode.isFilledAlongAxis(axis) {
-						return true
-					}
-				}
-				
-				return false
-			
-			case UILayoutConstraintAxis.Vertical:
-				let height = attributes["height"]?.lowercaseString
-				if height == "fill" {
-					return true
-				} else if height != nil && height != "auto" { // "auto" is the default and is the same as not specifying
-					return false
-				}
-				
-				for childNode in childNodes {
-					if childNode.isFilledAlongAxis(axis) {
-						return true
-					}
-				}
-				
-				return false
-		}
-	}
-	
-	public func getScopedAttribute(attribute: String) -> String? {
-		var currentNode: GravityNode? = self
-		while currentNode != nil {
-			if let value = currentNode!.attributes[attribute] {
-				return value
-			}
-			currentNode = currentNode?.parentNode
-		}
-		return nil
-	}
-	
-	public override var description: String {
-		get {
-			var attributeStrings = [String]()
-			for (key, var value) in attributes {
-				// TODO: proper escaping for XML attribute value
-				value = value.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
-				attributeStrings.append("\(key)=\"\(value)\"")
-			}
-			
-			if childNodes.count > 0 {
-				var childNodeStrings = [String]()
-				for childNode in childNodes {
-					childNodeStrings.append(childNode.description)
-				}
-				
-				return "<\(nodeName)\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
-			} else {
-				return "<\(nodeName) \(attributeStrings.joinWithSeparator(" "))/>"
-			}
-		}
-	}
-	
-	public override var debugDescription: String {
-		get {
-			var attributeStrings = [String]()
-			for (key, var value) in attributes {
-				// TODO: proper escaping for XML attribute value
-				value = value.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
-				attributeStrings.append("\(key)=\"\(value)\"")
-			}
-			
-			if childNodes.count > 0 {
-				var childNodeStrings = [String]()
-				for childNode in childNodes {
-					childNodeStrings.append(childNode.debugDescription)
-				}
-				
-				return "<\(nodeName)(\(unsafeAddressOf(view)))\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
-			} else {
-				return "<\(nodeName) \(attributeStrings.joinWithSeparator(" "))/>"
-			}
-		}
-	}
-	
-	// do we need to return if our job is to set view? what about return Bool if the node was fully handled (children and all)
-	public func processNode() {
-		// TODO: check registered element name index and see if there is an associated class
-//		var element: UIView?
-		var className = nodeName
-		
-		for plugin in Gravity.plugins {
-			_view = plugin.instantiateElement?(self)
-			if _view != nil {
-				// TODO: either set className here or change it to figure it out from the instance (better)
-				break
-			}
-		}
-		
-//		switch nodeName {
-//			// move this to a plugin or something
-//			case "H", "V":
-//				view = UIStackView()
-////				self.addElement(element)
-//				if let stackView = view as? UIStackView {
-//					switch nodeName {
-//						case "H":
-//							className = "UIStackView" // maybe change this to 
-//							stackView.axis = UILayoutConstraintAxis.Horizontal
-//						
-//						case "V":
-//							className = "UIStackView"
-//							stackView.axis = UILayoutConstraintAxis.Vertical
-//						
-//						default:
-//							break // change to throw when i learn how to do that
-//					}
-////					stackView.layoutMarginsRelativeArrangement = true//test
 //
-//					// if the stackView is contained in a button it needs to be interaction-disabled in order for the button to accept clicks. i'm not sure why this is.
-////					stackView.userInteractionEnabled = true
-//				}
-//			
-//			case "XIB":
-//				className = "UIView"
-//				// TODO
-//			
-//			default:
-//				break
+//	@IBInspectable public var xml: String = "" {
+//		didSet {
+//			parseXML()
 //		}
-		
-		if _view == nil {
-			if let classType = NSClassFromString(className) as! UIView.Type? {
-				view = classType.init()
-				view.translatesAutoresizingMaskIntoConstraints = false // do we need this??
-				
-				// TODO: determine if the instance is an instance of UIView or UIViewController and handle the latter by embedding a view controller
-				
-				// TODO: should we set clipsToBounds for views by default?
-			}
-		}
-		
-		// MARK: - ATTRIBUTES -
-		
-		if _view == nil {
-			NSLog("Error: Could not instantiate class ‘\(className)’.")
-			return
-		}
-		
-		for (key, attributeValue) in attributes {
-			switch key { // special override cases (these pseudo-attributes take precedence over any class-specific attributes)
-				case "id":
-					self.ids[attributeValue] = view
-					// TODO: add these to a controller object
-					continue
-				
-				default:
-					break
-			}
-			
-			// TODO: add plugin hook
-			
-			var propertyName = key
-			var propertyType: String?
-			var currentContext: NSObject? = view
-			var value: AnyObject? = attributeValue
-			
-			// if elementName contains a '.', treat everything following the dot as a propertyAccessor and instantiate its contents (or should we just pass this as keyPath?)
-			if key.containsString(".") {
-				let keyParts = key.componentsSeparatedByString(".")
-				
-				for var i = 0; i < keyParts.count; i++ {
-					let part = keyParts[i]
-					NSLog("part: %@", part)
-					if i < keyParts.count - 1 {
-						currentContext = currentContext?.valueForKey(part) as? NSObject
-					} else {
-//							currentContext?.setValue(value, forKey: part)
-						propertyName = part
-					}
-				}
-//					continue
-			}
-			
-			// moved this up above gravity element because plugins should always have a chance to handle things first
-			var handled = false
-			for plugin in Gravity.plugins {
-				if plugin.processAttribute?(self, attribute: propertyName, value: attributeValue) ?? false {
-					handled = true
-				}
-			}
-			if handled {
-				continue
-			}
-
-			if let gravityElement = currentContext as? GravityElement {
-				// TODO: can we explicitly search the class chain by calling super.processAttribute, or at the very least call the UIView specific implementation?
-				if gravityElement.processAttribute(self, attribute: propertyName, value: attributeValue) {
-					continue // handled
-				}
-			}
-			
-			// this is string.endsWith in swift. :| lovely.
-			if propertyName.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == propertyName.endIndex {
-//					if range.endIndex {
-					propertyType = "UIColor" // bit of a hack because UIButton.backgroundColor doesn't seem to know its property class via inspection :/
-//					}
-			}
-
-			// can we change this to just get the class name from the instance?
-			let property = class_getProperty(NSClassFromString(className), propertyName)
-			if property != nil {
-				if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
-					if components.count >= 2 {
-						propertyType = components[1]
-//							NSLog("propertyType: %@", propertyType!)
-					}
-				}
-			}
-			if propertyType != nil {
-				if let converter = Gravity.converters[propertyType!] {
-					value = converter(attributeValue)
-				}
-			}
-			
-			switch propertyName {
-				// TODO: may want to set these with higher priority than default to avoid view/container bindings conflicting
-				// we should also capture these priorities as constants and put them all in one place for easier tweaking and balancing
-				case "width":
-//							NSLog("set width to %@", value)
-					if attributeValue.lowercaseString != "fill" {
-						constraints[propertyName] = view.autoSetDimension(ALDimension.Width, toSize: CGFloat((attributeValue as NSString).floatValue))
-//							if let view = currentContext as? UIView {
-////								UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
-//									view.autoSetDimension(ALDimension.Width, toSize: CGFloat((value as NSString).floatValue))
-////								})
-//							}
-					}
-				case "minWidth":
-						constraints[propertyName] = view.autoSetDimension(ALDimension.Width, toSize: CGFloat((attributeValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
-				case "maxWidth":
-					UIView.autoSetPriority(800) { // TODO: these have to be higher priority than the normal and fill binding to parent edges
-						self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((attributeValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
-					}
-				
-				case "height":
-					if attributeValue.lowercaseString != "fill" {
-						constraints[propertyName] = view.autoSetDimension(ALDimension.Height, toSize: CGFloat((attributeValue as NSString).floatValue))
-					}
-				case "minHeight":
-					constraints[propertyName] = view.autoSetDimension(ALDimension.Height, toSize: CGFloat((attributeValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
-				case "maxHeight":
-					constraints[propertyName] = view.autoSetDimension(ALDimension.Height, toSize: CGFloat((attributeValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
-				
-				case "cornerRadius":
-					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
-					view.layer.cornerRadius = CGFloat((attributeValue as NSString).floatValue)
-					view.clipsToBounds = true // assume this is still needed
-					break
-						
-						
-				default:
-					if tryBlock({
-						currentContext?.setValue(value, forKey: propertyName)
-					}) != nil {
-						NSLog("Warning: Property '\(propertyName)' not found on object \(currentContext!).")
-					}
-			}
-		}
-		
-		// TODO: set a flag and disallow access to the "controller" property? can it even be accessed from processElement anyway? presumably only from GravityView, so it's probably not a big deal
-		
-		if let gravityElement = view as? GravityElement {
-			if gravityElement.processElement?(self) == true {
-				return //view // handled
-			}
-		}
-		
-		// we have to do a manual fucking insertion sort here, jesus gawd what the fuck swift?!! no stable sort in version 2.0 of a language??? how is that even remotely acceptable??
-		// because, you know, i enjoy wasting my time writing sort algorithms!
-		var sortedChildren = [GravityNode]()
-		for childNode in childNodes {
-//			let childNode = childNodes[i]
-//			let zIndex = Int(childNode["zIndex"] ?? "0")! // really fucking awesome that swift can't fucking propagate nils. god fucking damnit why do i put up with this shit??
-			// seriously though, what is the point of having all this optional shit without even taking advantage of what it can offer???
-//			var lastChild: GravityNode = nil
-			var handled = false
-			for var i = 0; i < sortedChildren.count; i++ {
-				if sortedChildren[i].zIndex > childNode.zIndex {
-					sortedChildren.insert(childNode, atIndex: i)
-					handled = true
-					break
-				}
-			}
-			if !handled {
-				sortedChildren.append(childNode)
-			}
-		}
-		
-//		var zIndexes = [Int: GravityNode]()
-//		for childNode in childNodes {
-//			let zIndex = Int(childNode["zIndex"] ?? "0")! // Really fucking stupid that Swift can't fucking propagate nils. God fucking damnit why do I put up with this shit??
-//			zIndexes[zIndex] = childNode
-//		}
-//		let sortedChildren = childNodes.sort { (a, b) -> Bool in
-//			return Int(a["zIndex"] ?? "0") < Int(b["zIndex"] ?? "0")
-//		}
-
-		// MARK: Default Child Handling
-		
-		for childNode in sortedChildren {
-			view.addSubview(childNode.view)
-			
-			UIView.autoSetPriority(GravityConstraintPriorities.ViewContainment + Float(childNode.depth)) {
-				// TODO: come up with better constraint identifiers than this
-				// experimental: only apply these implicit constraints if the parent is not filled
-				if childNode.parentNode?.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) != true {
-					childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-					childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-				}
-				
-				if childNode.parentNode?.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) != true {
-					childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-					childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-				}
-			}
-						
-			// TODO: we need to size a view to its contents by default (running into an issue where views are 0 sized)
-			
-//			 TODO: add support for margins via a margin and/or padding attribute
-
-//			childNode.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
-			// TODO: unlock this when things are working:
-			
-			switch childNode.gravity.horizontal {
-				case GravityDirection.Left:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-					break
-				
-				case GravityDirection.Center:
-					childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
-					break
-				
-				case GravityDirection.Right:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-					break
-					
-//				case GravityDirection.Wide:
-//					// what priority should we use here?? does it matter?
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-//					break
-				
-				default:
-					break
-			}
-			
-			switch childNode.gravity.vertical {
-				case GravityDirection.Top:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-					break
-				
-				case GravityDirection.Middle:
-					childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Horizontal)
-					break
-				
-				case GravityDirection.Bottom:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-					break
-					
-//				case GravityDirection.Tall:
-//					// what priority should we use here?? does it matter?
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-//					break
-				
-				default:
-					break
-			}
-		}
-		
-//		return view
-	}
-	
-	internal func connectController(controller: NSObject) {
-		if isViewInstantiated() {
-			(view as? GravityElement)?.connectController?(self, controller: controller)
-		}
-		for childNode in childNodes {
-			childNode.connectController(controller)
-		}
-	}
-	
-	// MARK: GravityPlugin
-	
-	public static func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
-		switch attribute {
-			case "gravity":
-				return true
-			
-			default:
-				return false
-		}
-	}
-	
-	public static func processElement(node: GravityNode) {
-		// TODO: minWidth, etc. should probably be higher priority than these so they can override fill size
-		let priority = Float(99)//99 - Float(node.depth)
-		if node.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
-			NSLog("Priority: \(priority)")
-			node.view.setContentHuggingPriority(priority, forAxis: UILayoutConstraintAxis.Horizontal)
-			if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != UILayoutConstraintAxis.Horizontal {
-				if node.view.superview is UIStackView {
-					NSLog("Superview must be a vertical stack view")
-				}
-				UIView.autoSetPriority(800 - Float(node.depth)) {
-//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Leading)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Trailing)
-				}
-			}
-		}
-		
-		if node.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) {
-			node.view.setContentHuggingPriority(priority, forAxis: UILayoutConstraintAxis.Vertical)
-			if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != UILayoutConstraintAxis.Vertical {
-				if node.view.superview is UIStackView {
-					NSLog("Superview must be a horizontal stack view")
-				}
-				UIView.autoSetPriority(800 - Float(node.depth)) {
-//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-				}
-			}
-		}
-	}
-}
-	
-//extension GravityNode: SequenceType { // MARK: SequenceType
-//	// http://stackoverflow.com/a/35279383/238948
-//    public func generate() -> AnyGenerator<GravityNode> {
-//        var stack : [GravityNode] = [self]
-//        return anyGenerator {
-//            if let next = stack.first {
-//                stack.removeAtIndex(0)
-////				stack.appendContentsOf(next.childNodes) // breadth-first
-//                stack.insertContentsOf(next.childNodes, at: 0) // depth-first
-//                return next
-//            }
-//            return nil
-//        }
-//    }
+//	}
+//	
+//	
 //}
-
-@available(iOS 9.0, *)
-extension GravityNode: SequenceType {
-	public func generate() -> AnyGenerator<GravityNode> {
-		var childGenerator = childNodes.generate()
-		var subGenerator : AnyGenerator<GravityNode>?
-		var returnedSelf = false
-
-		return anyGenerator {
-			if let subGenerator = subGenerator,
-				let next = subGenerator.next() {
-					return next
-			}
-
-			if let child = childGenerator.next() {
-				subGenerator = child.generate()
-				return subGenerator!.next()
-			}
-			if !returnedSelf {
-				returnedSelf = true
-				return self
-			}
-
-
-			return nil
-		}
-	}
-}
 
 //	public func generate() -> AnyGenerator<GravityNode> {
 //		var childrenGenerator = childNodes.generate()
@@ -775,6 +274,7 @@ extension GravityNode: SequenceType {
 	func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool
 	optional func processElement(node: GravityNode) -> Bool // return true if you handled your own child nodes, otherwise false to handle them automatically
 	optional func connectController(node: GravityNode, controller: NSObject) // return?
+	// add a method to bind an id? or just use processAttribute?
 }
 
 // MARK: -

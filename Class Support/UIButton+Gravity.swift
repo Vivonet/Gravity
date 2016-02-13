@@ -1,9 +1,9 @@
 //
 //  UIButton+Gravity.swift
-//  Mobile
+//  Gravity
 //
 //  Created by Logan Murray on 2016-01-27.
-//  Copyright © 2016 The Little Software Company. All rights reserved.
+//  Copyright © 2016 Logan Murray. All rights reserved.
 //
 
 import Foundation

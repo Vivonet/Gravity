@@ -1,9 +1,9 @@
 //
 //  UIStackView+Gravity.swift
-//  Mobile
+//  Gravity
 //
 //  Created by Logan Murray on 2016-01-27.
-//  Copyright © 2016 The Little Software Company. All rights reserved.
+//  Copyright © 2016 Logan Murray. All rights reserved.
 //
 
 import Foundation
@@ -20,12 +20,12 @@ extension UIStackView: GravityElement, GravityPlugin {
 		switch node.nodeName {
 			case "H":
 				let stackView = UIStackView()
-				stackView.axis = UILayoutConstraintAxis.Horizontal
+				stackView.axis = .Horizontal
 				return stackView
 			
 			case "V":
 				let stackView = UIStackView()
-				stackView.axis = UILayoutConstraintAxis.Vertical
+				stackView.axis = .Vertical
 				return stackView
 			
 			default:
@@ -39,11 +39,11 @@ extension UIStackView: GravityElement, GravityPlugin {
 			case "axis":
 				switch value.lowercaseString {
 					case "horizontal", "h":
-						self.axis = UILayoutConstraintAxis.Horizontal
+						self.axis = .Horizontal
 						return true
 					
 					case "vertical", "v":
-						self.axis = UILayoutConstraintAxis.Vertical
+						self.axis = .Vertical
 						return true
 					
 					default:
@@ -53,19 +53,19 @@ extension UIStackView: GravityElement, GravityPlugin {
 			case "alignment":
 				switch value.lowercaseString {
 					case "center":
-						self.alignment = UIStackViewAlignment.Center
+						self.alignment = .Center
 						return true
 					
 					case "fill":
-						self.alignment = UIStackViewAlignment.Fill
+						self.alignment = .Fill
 						return true
 					
 					case "top":
-						self.alignment = UIStackViewAlignment.Top
+						self.alignment = .Top
 						return true
 					
 					case "trailing":
-						self.alignment = UIStackViewAlignment.Trailing
+						self.alignment = .Trailing
 						return true
 					
 					default:
@@ -84,13 +84,13 @@ extension UIStackView: GravityElement, GravityPlugin {
 			if self.axis == UILayoutConstraintAxis.Horizontal {
 				switch node.gravity.vertical {
 					case GravityDirection.Top:
-						self.alignment = UIStackViewAlignment.Top
+						self.alignment = .Top
 						break
 					case GravityDirection.Middle:
-						self.alignment = UIStackViewAlignment.Center
+						self.alignment = .Center
 						break
 					case GravityDirection.Bottom:
-						self.alignment = UIStackViewAlignment.Bottom
+						self.alignment = .Bottom
 						break
 //					case GravityDirection.Tall:
 //						self.alignment = UIStackViewAlignment.Fill
@@ -101,13 +101,13 @@ extension UIStackView: GravityElement, GravityPlugin {
 			} else {
 				switch node.gravity.horizontal {
 					case GravityDirection.Left:
-						self.alignment = UIStackViewAlignment.Leading
+						self.alignment = .Leading
 						break
 					case GravityDirection.Center:
-						self.alignment = UIStackViewAlignment.Center
+						self.alignment = .Center
 						break
 					case GravityDirection.Right:
-						self.alignment = UIStackViewAlignment.Trailing
+						self.alignment = .Trailing
 						break
 //					case GravityDirection.Tall:
 //						self.alignment = UIStackViewAlignment.Fill
@@ -124,13 +124,19 @@ extension UIStackView: GravityElement, GravityPlugin {
 			addArrangedSubview(childNode.view)
 			if childNode.isFilledAlongAxis(axis) {
 				if fillChild != nil {
-					NSLog("Warning: Only one child of a stack view may be filled along the axis of the stack view, due to limitations of the stack view. Gravity will arbitrarily choose the first child tree to fill.")
+					NSLog("Warning: Only one child of a stack view may be filled along the axis of the stack view due to current limitations of the stack view. Gravity will arbitrarily choose the first child to fill.")
 				} else {
 					fillChild = childNode
 				}
 			}
 //			childNode.view.setContentHuggingPriority(750 /*- Float(elementStack.count)*/, forAxis: self.axis) // TODO: do we need to implement node.depth?
 		}
+		
+		// actually i think this is handled already by the gravitynode plugin
+//		if let fillChild = fillChild {
+//			fillChild.view.setContentHuggingPriority(GravityConstraintPriorities.FillSize, forAxis: self.axis)
+//			// anything else?
+//		}
 		
 		// TODO: abstract this into a method (maybe not anymore)
 		// MARK: Content Compression Resistance
@@ -210,5 +216,10 @@ extension UIStackView: GravityElement, GravityPlugin {
 		}
 		
 		return true
+	}
+	
+	public static func processElement(node: GravityNode) {
+		// if the node's parent is a stack view, and its grandparent is a stackview of the *opposite* axis and that grandparent's isTable is true
+		// it's important that this work for embedded views as well (should we look deeper?)
 	}
 }
