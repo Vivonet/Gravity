@@ -8,44 +8,34 @@ Suppose you wanted to construct the following simple layout (everything inside t
 
 ![Sample](img/Sample.png)
 
-With Gravity, your job is to break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stacks views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is clearly our first division and it is horizontal. Everything else is stacked vertically, with the two directions buttons stacked horizontally at the bottom.
+With Gravity, your job is to break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stacks views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is clearly our first division and it is horizontal. Everything to the left of it is stacked vertically, with the two directions buttons at the bottom stacked horizontally.
 
-Taking all this into account (and adding appropriate styling and margins), here is the actual Gravity code that produced the above layout (assuming the images are present in the project):
+Here's how you say that in gravity:
 
 ```xml
 <H gravity="middle" color="#fff">
 	<V gravity="top left">
 		<UILabel id="titleLabel" text="1188 W Georgia St" maxWidth="200" font="System Semibold 16" textColor="#ffffff" wrap="true"/>
 		<UILabel id="hoursLabel" text="Open today: 6am - 11pm" font="System 14.0" textColor="#ffffff7f"/>
-		<UIView height="6"/>
 		<H gravity="middle" spacing="0" height="28" color="#ffffff">
 			<UIButton id="carButton" action="carButtonPressed:" backgroundColor="#0076FF" cornerRadius="4" minWidth="80">
 				<H alignment="center" userInteractionEnabled="false">
-					<UIView width="4"/>
 					<UIImageView width="22" height="22" image="Directions-Car"/>
-					<UIView width="2"/>
 					<UILabel text="12 mins" font="System Bold 16.0"/>
-					<UIView width="4"/>
 				</H>
 			</UIButton>
-			<UIView width="6"/>
 			<UIButton id="walkButton" backgroundColor="#0076FF" cornerRadius="4">
 				<H alignment="center" userInteractionEnabled="false">
-					<UIView width="4"/>
 					<UIImageView width="22" height="22" image="Directions-Walk"/>
-					<UIView width="2"/>
 					<UILabel text="22 mins" font="System Bold 16.0"/>
-					<UIView width="4"/>
 				</H>
 			</UIButton>
 		</H>
 	</V>
-	<UIView width="8"/>
 	<UIView>
 		<UIButton width="64" gravity="center" backgroundColor="#ffffff00">
 			<V>
 				<UIImageView image="chevron-right-bold"/>
-				<UIView height="6"/>
 				<UILabel text="Order" color="#fff"/>
 			</V>
 		</UIButton>
@@ -53,9 +43,9 @@ Taking all this into account (and adding appropriate styling and margins), here 
 </H>
 ```
 
-Gravity aims to reduce the mental burden of going from a layout you have *in mind* to an actual functioning application in code. It accomplishes this by representing your layout in a much more natural and intuitive manner, as illustrated above.
+Gravity aims to reduce the mental burden of going from a layout you have *in mind* to an actual functioning application in code. It accomplishes this by representing your layout in a much more natural and intuitive manner than pure Auto Layout, as illustrated above.
 
-The best part of Gravity is that everything is relative and dynamic. If you change the size or style of any of the labels, the entire layout will adjust itself naturally to suit it. You don't have to "correct" the rest of your layout because you changed one thing.
+The best part of Gravity is that everything is relative and dynamic. If you change the size or style of any of the labels, the entire layout will adjust itself naturally to suit it. Layouts just naturally fit together like pieces of a puzzle. And you don't have to "correct" the rest of your layout because you changed one thing.
 
 ##Introduction
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
@@ -67,17 +57,17 @@ Auto layout tends to work well in two scenarios:
 1. Extremely simple layouts, and
 2. Extremely complex layouts.
 
-It fails though, utterly in my opinion, at handling 99% of the layouts typical in modern software: those that need slightly more power than the absolute basic defaults, but which are not so mind-numbingly complex as to require the type of prioritized constraint engine Auto Layout is based upon (especially when 99% of its use is to resize a view from one screen size to a subtly different screen size).
+It fails though, utterly in my opinion, at handling 99% of the layouts typical in modern software: those that need slightly more power than the absolute basic defaults, but which are not so mind-numbingly complex as to require the type of prioritized constraint engine Auto Layout is based upon.
 
-Here's my background: I've always been a Mac guy, but I dabbled with .NET for a while in the mid 2000's. During this time I discovered (and eventually fell quite in love with) WPF, a.k.a. Windows Presentation Foundation. WPF represented a quantum leap forward in the natural expressibility of visual layouts using a simple hierarchical structure it called XAML. Horrible, horrible names. Apparently WPF was called by the codename of Avalon. And they changed it to WPF. Like WPF were they thinking. I digress.
+Here's my background: I've always been a Mac guy, but I dabbled with .NET for a while in the mid 2000's. During this time I discovered (and eventually fell quite in love with) WPF, a.k.a. Windows Presentation Foundation. To me, WPF represented a quantum leap forward in the natural expressibility of the very *language* of expressing visual layouts, using a simple hierarchical structure based on XML they called XAML. (Horrible, horrible names. Apparently WPF was called by the codename of Avalon. And they changed it to WPF. Like WPF were they thinking. I digress.)
 
-After leaving the Windows world and coming back to Apple by means of the iOS platform, I was utterly dismayed at the mediocre layout tools available to me: at first it was Interface Builder with springs and struts. While the springs and struts model was a breeze to understand and worked fairly well for very simple interfaces, it was ultimately very limited in what it could express. But it wasn't until Apple released their "next big thing" in layout that things got truly bad.
+After leaving the Windows world and coming back to Apple by means of the iOS platform, I was utterly dismayed at the mediocre layout tools available to me: at first it was Interface Builder with springs and struts, which was familiar to me from my classic Mac OS programming days. While the springs and struts model was a breeze to understand and worked fairly well for very simple interfaces, it was ultimately very limited in what it could express. It wasn't until Apple released their "next big thing" in layout, though, that things got truly bad.
 
-"Auto Layout," they called it, as if it were some tongue-in-cheek sarcastic jab. Truly there is nothing "auto" about it. It is in fact painstakingly manual. Now, instead of simply telling the computer which edges of an element should flow and which should be fixed in place, you have to tie individual edges of elements to each other, and chain these bindings together in precisely the right arrangement, for fear of not supplying all the required constraints, or supplying too many and having ambiguous or conflicting constraints, all the while having many more things to have to worry about: (constraint priorities, content hugging, compression resistance, user constraints, system constraints, implicitly generated constraints, placeholder constraints, etc., etc.). Things went from simple but limited to insanely complex overnight.
+"Auto Layout," they called it. Ha! As if there is anything auto about it! It is in fact painstakingly manual. Now, instead of simply telling the computer which edges of an element should flow and which should be fixed in place, you have to tie individual edges of elements to each other, and chain these bindings together in a balancing act of constraints and priorities, arranged in precisely the right manner, for fear of not supplying all the required constraints, or supplying too many and having ambiguous or conflicting constraints, all the while having many more things to worry about: (constraint priorities, content hugging, compression resistance, user constraints, system constraints, implicitly generated constraints, placeholder constraints, etc., etc.). Things went from simple but limited to insanely complex overnight.
 
 Anyway if you've made it this far I'm probably preaching to the choir.
 
-The *good* news is that Auto Layout is now sufficiently powerful enough to act as the foundation for another much-simpler layer built on top of it. Enter: Gravity.
+The *good* news is that Auto Layout is quite powerful enough to act as the foundation for another much-simpler layer built on top of it. Enter: Gravity.
 
 Why "Gravity"?
 
@@ -85,7 +75,7 @@ Well, gravity is simple. It's a law: things attract. Gravity is the universe's w
 
 Go ahead, sketch out a simple UI on a piece of paper or your favourite app. Looking at it, you already have a good idea of which elements should expand or shrink, and which elements should collapse before other elements. It's usually pretty obvious. Gravity aims to turn that intuitive knowledge into a functioning UI with as little work as possible.
 
-Gravity is inspired on the surface by WPF, but is a much simpler take on it. You define an interface as a tree: everything has its place in the hierarchy and the resultant interface is generated deterministically with all of the proper layout constraints in place, so you get all the power of auto layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
+Gravity is inspired on the surface by WPF, but is a much simplified take on it. You design your layout as a tree: everything has its place in the hierarchy, so you don't need to worry about binding things together, and the resultant interface is generated deterministically with all of the proper layout constraints in place, so you get all the benefits of Auto Layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
 
 Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you build and tweak your interface *textually*, just like editing source code. It's mathematically precise and has far fewer points of potential failure than Auto Layout. Gravity aims to be a solid mathematical foundation for your app's interface.
 
@@ -137,7 +127,7 @@ Perhaps you want the label to shrink, but only to a point. If you set a minWidth
 Unfortunately, I haven't figured out how to get UIStackView to grow or shrink multiple elements equally together. This was really the intended design, but unfortunately doesn't appear to be possible just yet and the stack view seems to always just choose the last element.
 
 ###Gravity
-Aligning things in Gravity is done with… gravity! Not just a cool name, it's also a key concept in the framework. Gravity is a scoped property that determines the direction elements are attracted to in an interface.
+Aligning things in Gravity is done with… gravity! Not just a cool name, it's also a key concept in the framework. Gravity is a scoped property that determines the direction elements are attracted to in a layout.
 
 Gravity does not have a corresponding concept in Auto Layout because it comes about from the fact that Gravity is hierarchical (in fact much of the framework's power comes from this fact). Elements inherit their gravity from their parent element in the tree. Thus, changing the gravity for an element affects that element and all elements inside it. You can change the direction of gravity at any point in the tree.
 
@@ -178,9 +168,37 @@ This is fully recursive too, so you can encapsulate as many levels deep as you w
 <ProfileView addressView.streetLabel.text="8 James St"/>
 ```
 
+However, a much better way to do something like an encapsulated profile view is with…
+
+###Data Contexts
+With a data context you are truly offloading the work of displaying a property in an object-oriented fashion.
+
+###Controllers
+The controller is there to do anything that you can't do in your gravity file itself. Generally speaking, it does the "thinking"—any logic that you need to do in code, and generally corresponds one-to-one with the view file. You supply this and it can be any object at all, however there will typically be exactly one class that will naturally represent the controller, depending on the purpose of the layout. In most cases it will be a descendent of UIView or UIViewController in some capacity.
+
+How the controller is treated is really up to each plugin or supported class. For example, the UIButton's class support will bind action:"" attributes to selectors in your controller, whatever it may be.
+
 ##Benefits
 ###True Native UI (Fast!)
 Gravity is purely an Auto Layout framework. It doesn't make compromises when it comes to supporting different platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
+
+###Real MVC
+Gravity is a true realization of the Model-View-Controller paradigm. There are few who would argue in favour of Apple's implementation (many jokingly refer to it as "Massive View Controller"). This is because of a few mistakes Apple made, in my opinion:
+
+1. They made encapsulation too hard (tedious)
+2. They didn't split the view from the controller properly (UIViewController does both view and controller related things)
+3. Use of the delegate pattern instead of a publisher-subscriber model for events
+4. Generally failing to follow object-oriented tenets (UITableView, UICollectionView)
+
+All of these contribute to the ViewController in Apple's implementation becoming a monolithic "catch-all" class that essentially does the work of many things.
+
+An example: If I want to add a sub-element to my interface to display information in a table, I would drag a UITableView into my XIB or Storyboard, bind its delegate to my controller, and implement a handful of UITableView *delegate* methods on my controller. The methods we are adding to our view controller do not pertain to the objective role of that class, they pertain to the function of a *child* of that class. This means that the more children you have in your class, the bigger that class is itself going to get, managing all of those children's delegate methods. Not a good design.
+
+In Gravity, your XML file represents your view. The model, as always, is isolated and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be consumed by the view, by means of property dot-notation and data binding.
+
+This establishes the view's connection to the model. Notice the controller isn't even involved yet. In many cases in Gravity a controller is actually not needed, believe it or not. Unlike Apple's model, where the controller is foundational, in Gravity it's the least important citizen. In Gravity, the controller is there to essentially do anything that Gravity can't itself. So any arbitrary logic (i.e. code) goes into the controller. The controller is the thinking part. The model and the view are just data and display respectively.
+
+In Gravity, to add a table to your view you simply add a UITableView node to your layout and provide it with a *row template*, which is itself a view that is either written directly into the parent document, or a reference to a child document. Each instantiation of a row from the template will have a different data context for each element of the table's data source, and will render itself accordingly. We *still* don't need a controller for any of this.
 
 ###Rapid Prototyping
 Gravity is so simple, you can actually use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.

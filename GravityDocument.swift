@@ -16,6 +16,7 @@ import Foundation
 	private var widthIdentifiers = [String: [GravityNode]]()
 	public var rootNode: GravityNode?
 	public var ids: [String : GravityNode] = [:]
+	public weak var parentNode: GravityNode? = nil // if this document is an embedded node
 	
 	public var controller: NSObject? = nil {
 		didSet {
@@ -77,7 +78,7 @@ import Foundation
 		}
 	}
 	
-	public init?(name: String) {
+	public init?(name: String, model: AnyObject? = nil) {
 		super.init()
 //		defer { self.filename = filename } // defer allows didSet to be called
 
@@ -89,6 +90,7 @@ import Foundation
 		do {
 			self.xml = try String(contentsOfURL: url, encoding: NSUTF8StringEncoding)
 			parseXML()
+			rootNode?.model = model
 		} catch {
 			return nil
 		}

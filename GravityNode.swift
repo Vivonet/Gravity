@@ -34,6 +34,21 @@ import Foundation
 //			return Gravity.convert(attribute) as T?
 //		}
 //	}
+
+//	public weak var _parentNode: GravityNode?
+//	public var parentNode: GravityNode? {
+//		get {
+////			if _parentNode != nil {
+//				return _parentNode
+////			} else { // i've decided that we actually don't generally want attributes crossing document boundaries, so this doesn't make sense here
+////				return document.parentNode // the embedding parent, if there is one
+////			}
+//		}
+//		set(value) {
+//			_parentNode = value
+//		}
+//	}
+
 	
 	private var _view: UIView?
 	public var view: UIView {
@@ -52,6 +67,20 @@ import Foundation
 	}
 	
 	// MARK: Attribute Helpers
+	
+	public var _model: AnyObject? // the data context; i prefer just "context" over "dataContext" as it's simple and it truly is what it means: the context to which the view applies; ooh but what about "model"? that fits much more perfectly into the MVC paradigm!
+	public var model: AnyObject? {
+		get {
+			let value = _model ?? parentNode?.model // recursion is beautiful.
+			if value == nil && parentNode == nil {
+				return document.parentNode?.model // up a document (models pass through document barriers)
+			}
+			return value
+		}
+		set(value) {
+			_model = value
+		}
+	}
 	
 	public var gravity: GravityDirection {
 		get {
@@ -75,11 +104,12 @@ import Foundation
 	
 	public init(document: GravityDocument, parentNode: GravityNode?, nodeName: String, attributes: [String: String]) {
 		self.document = document
-		self.parentNode = parentNode
 		self.nodeName = nodeName
 		self.depth = (parentNode?.depth ?? 0) + 1
 		self.attributes = attributes
 		self.constraints = [String: NSLayoutConstraint]()
+		super.init()
+		self.parentNode = parentNode
 //		self.ids = self.parentNode?.ids ?? [String: GravityNode]() // make sure this is copied by ref
 	}
 	
@@ -123,13 +153,21 @@ import Foundation
 		}
 	}
 	
+	// TODO: shit, i'm not actually sure we want things like gravity and color to be scoped across documents... that actually seems wrong
+	// i think *just* model.
 	public func getScopedAttribute(attribute: String) -> String? {
+		// why isn't this recursive? :/
 		var currentNode: GravityNode? = self
 		while currentNode != nil {
 			if let value = currentNode!.attributes[attribute] {
 				return value
 			}
+			
 			currentNode = currentNode?.parentNode
+			
+//			if currentNode == nil {
+//				currentNode = document.parentNode
+//			}
 		}
 		return nil
 	}
@@ -584,6 +622,7 @@ extension GravityNode: SequenceType {
 
 		return anyGenerator {
 			if !returnedSelf {
+				// TODO: should we look to see if self is a recursive document and include its children in the traversal as well?? i think we might!
 				returnedSelf = true
 				return self
 			}

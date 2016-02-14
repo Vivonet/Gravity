@@ -128,16 +128,20 @@ struct GravityPriorities {
 		return window
 	}
 	
-	public class func new<T: UIView>(type: T.Type) -> T? {
+	public class func new<T: UIView>(type: T.Type, model: AnyObject? = nil) -> T? {
 		return self.new("\(type)") as! T? // verify
 	}
 	
-	public class func new<T: UIView>(name: String) -> T? {
-		if let document = GravityDocument(name: name) {
+	public class func new<T: UIView>(name: String, model: AnyObject? = nil) -> T? {
+		if let document = GravityDocument(name: name, model: model) {
 			return document.view as! T? // verify
 		}
 		
 		return nil
+	}
+	
+	public class func instantiate(name: String) -> UIView? {
+		return new(name)
 	}
 	
 	// is this good here?
@@ -279,7 +283,7 @@ struct GravityPriorities {
 
 // MARK: -
 
-// plugins will eventually let behavior at key points to be overridden/customized
+// plugins let behavior at key points be overridden/customized
 @available(iOS 9.0, *)
 @objc public protocol GravityPlugin { // MARK: GravityPlugin
 	// TODO: we should use a different method name from GravityElement; even though this one is static, it is confusing
