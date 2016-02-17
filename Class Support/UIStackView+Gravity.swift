@@ -9,64 +9,58 @@
 import Foundation
 
 @available(iOS 9.0, *)
-extension UIStackView: GravityElement, GravityPlugin {
-
-	// unfortunately this doesn't seem to want to work:
-//	override public class func initialize() {
-//		Gravity.registerPlugin(self)
+extension UIStackView: GravityElement {
+//	public static func instantiateElement(node: GravityNode) -> UIView? {
+//		switch node.nodeName {
+//			case "H":
+//				let stackView = UIStackView()
+//				stackView.axis = .Horizontal
+//				return stackView
+//			
+//			case "V":
+//				let stackView = UIStackView()
+//				stackView.axis = .Vertical
+//				return stackView
+//			
+//			default:
+//				return nil
+//		}
 //	}
-	
-	public static func instantiateElement(node: GravityNode) -> UIView? {
-		switch node.nodeName {
-			case "H":
-				let stackView = UIStackView()
-				stackView.axis = .Horizontal
-				return stackView
-			
-			case "V":
-				let stackView = UIStackView()
-				stackView.axis = .Vertical
-				return stackView
-			
-			default:
-				return nil
-		}
-	}
 
 	// reorder to attribute, value, node?
-	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
+	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
 		switch attribute {
 			case "axis":
-				switch value.lowercaseString {
+				switch stringValue.lowercaseString {
 					case "horizontal", "h":
 						self.axis = .Horizontal
-						return true
+						return .Handled
 					
 					case "vertical", "v":
 						self.axis = .Vertical
-						return true
+						return .Handled
 					
 					default:
 						break
 				}
 			
 			case "alignment":
-				switch value.lowercaseString {
+				switch stringValue.lowercaseString {
 					case "center":
 						self.alignment = .Center
-						return true
+						return .Handled
 					
 					case "fill":
 						self.alignment = .Fill
-						return true
+						return .Handled
 					
 					case "top":
 						self.alignment = .Top
-						return true
+						return .Handled
 					
 					case "trailing":
 						self.alignment = .Trailing
-						return true
+						return .Handled
 					
 					default:
 						break
@@ -76,10 +70,10 @@ extension UIStackView: GravityElement, GravityPlugin {
 				break
 		}
 		
-		return false//super.processAttribute(gravity, attribute: attribute, value: value)
+		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
 	}
 	
-	public func processElement(node: GravityNode) -> Bool {
+	public func processElement(node: GravityNode) -> GravityResult {
 		if node.attributes["alignment"] == nil { // only if alignment is not explicitly set
 			if self.axis == UILayoutConstraintAxis.Horizontal {
 				switch node.gravity.vertical {
@@ -215,9 +209,10 @@ extension UIStackView: GravityElement, GravityPlugin {
 			self.addArrangedSubview(spacer) // add an empty view to act as a space filler
 		}
 		
-		return true
+		return .Handled
 	}
 	
+	// FIXME: implement this somehow (plugin?)
 	public static func processElement(node: GravityNode) {
 		// if the node's parent is a stack view, and its grandparent is a stackview of the *opposite* axis and that grandparent's isTable is true
 		// it's important that this work for embedded views as well (should we look deeper?)

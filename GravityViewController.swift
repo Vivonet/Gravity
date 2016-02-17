@@ -12,28 +12,19 @@ import Foundation
 @available(iOS 9.0, *)
 @objc
 public class GravityViewController: UIViewController {
+	public var document: GravityDocument? = nil
 
 	var bottomPin: NSLayoutConstraint?
 
-	public var document: GravityDocument? = nil
-//	public var keyboardView = UIView()
-//		get {
-//			return super.view as? GravityView
-//		}
-//		set(value) {
-//			super.view = value
-//		}
+//	init(xml: String, model: AnyObject? = nil) {
+//		super.init(nibName: nil, bundle: nil)
+//		document = GravityDocument(xml: xml, model: model)
+//		setup()
 //	}
-
-	init(xml: String) {
-		super.init(nibName: nil, bundle: nil)
-		document = GravityDocument(xml: xml)
-		setup()
-	}
 	
-	init(name: String) {
+	init(name: String, model: AnyObject? = nil) {
 		super.init(nibName: nil, bundle: nil)
-		document = GravityDocument(name: name)
+		document = GravityDocument(name: name, model: model)
 		setup()
 	}
 	
@@ -59,10 +50,8 @@ public class GravityViewController: UIViewController {
 		fatalError("init(coder:) has not been implemented")
 	}
 	
-//	public override var view: GravityView
 	public override func viewDidLoad() {
 		NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("keyboardWillChangeFrame:"), name: UIKeyboardWillChangeFrameNotification, object: nil)
-//		NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("keyboardFrameChanged:"), name: UIKeyboardDidChangeFrameNotification, object: nil)
 	}
 	
 	@objc private func keyboardWillChangeFrame(notification: NSNotification) {

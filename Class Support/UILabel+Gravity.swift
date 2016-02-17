@@ -10,22 +10,22 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UILabel: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
+	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
 		switch attribute {
 			case "wrap":
-				if (value as NSString).boolValue {
+				if (stringValue as NSString).boolValue { // or do we want to write a converter to Bool? can we even do that? i'd rather that if we could
 					self.numberOfLines = 0
 				}
-				return true
+				return .Handled
 			
 			default:
 				break
 		}
 		
-		return false//super.processAttribute(gravity, attribute: attribute, value: value)
+		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
 	}
 	
-	public func processElement(node: GravityNode) -> Bool {
+	public func processElement(node: GravityNode) -> GravityResult {
 		switch node.gravity.horizontal { // TODO: should improve this, possibly by splitting into horizontalGravity and verticalGravity properties
 			case GravityDirection.Left:
 				self.textAlignment = NSTextAlignment.Left
@@ -48,6 +48,6 @@ extension UILabel: GravityElement {
 			self.textColor = node.color
 		}
 //						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
-		return false
+		return .NotHandled
 	}
 }

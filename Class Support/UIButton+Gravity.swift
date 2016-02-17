@@ -24,35 +24,35 @@ private func imageWithColor(color: UIColor) -> UIImage {
 
 @available(iOS 9.0, *)
 extension UIButton: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
+	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
 		switch attribute {
 			case "title":
 				// TODO: we should replace this with css-style styles, with styles for different button states
-				self.setTitle(value, forState: UIControlState.Normal)
-				return true
+				self.setTitle(stringValue, forState: UIControlState.Normal)
+				return .Handled
 			
 			case "action":
-				return true // return true because we are handling this attribute in connectController()
+				return .Handled // return handled because we are handling this attribute in connectController()
 			
 			case "backgroundColor":
-				if let color = Gravity.convert(value) as UIColor? {
+				if let color = Gravity.Conversion.convert(stringValue) as UIColor? { // won't conversion take care of this?
 					self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Normal)
 					
 					self.adjustsImageWhenHighlighted = (node["highlightColor"] == nil)
 					self.adjustsImageWhenDisabled = (node["disabledColor"] == nil)
 					
-					return true
+					return .Handled
 				}
 				break
 			
 			case "highlightColor":
-				if let color = Gravity.convert(value) as UIColor? {
+				if let color = Gravity.Conversion.convert(stringValue) as UIColor? {
 					self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Highlighted)
 				}
 				break
 			
 			case "disabledColor":
-				if let color = Gravity.convert(value) as UIColor? {
+				if let color = Gravity.Conversion.convert(stringValue) as UIColor? {
 					self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Disabled)
 				}
 				break
@@ -61,16 +61,16 @@ extension UIButton: GravityElement {
 				break
 		}
 		
-		return false
+		return .NotHandled
 	}
 	
-	public func processElement(node: GravityNode) -> Bool {
+	public func processElement(node: GravityNode) -> GravityResult {
 		self.adjustsImageWhenHighlighted = true
 //		self.setContentCompressionResistancePriority(1000, forAxis: UILayoutConstraintAxis.Horizontal)
 
 		// it seems for some reason, UIButtons have an intrinsic height of 34; i need to figure out where that is coming from and kill it with fire
 		
-		return false
+		return .NotHandled
 	}
 	
 	public func connectController(node: GravityNode, controller: NSObject) {
@@ -85,5 +85,4 @@ extension UIButton: GravityElement {
 			}
 		}
 	}
-	
 }

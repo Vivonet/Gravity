@@ -1,7 +1,7 @@
 #Gravity
 An easy to learn XML-based layout description language for iOS powered by Auto Layout.
 
-**tl;dr** It's kinda like HTML for apps and is *infinitely* easier to use than Auto Layout.
+**tl;dr** It's kinda like HTML for apps and is an order of magnitude easier to use than Auto Layout.
 
 ##Sample
 Suppose you wanted to construct the following simple layout (everything inside the bubble):
@@ -81,7 +81,7 @@ Gravity is really a layout engine for programmers who prefer the precision and c
 
 Gravity is more than just a layout language. Gravity is a metaphor. For the way we picture and convey the information we want to display to our users. It is minimalism and efficiency.
 
-Calling Gravity an "engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. It's really just an interpretive layer that converts an XML document into a fully-constructed interface. Gravity is the curtain that hides the great and powerful Oz.
+Calling Gravity an "engine" may be a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. It's really just an interpretive layer that converts an XML document into a fully-constructed interface. Gravity is the curtain that hides the great and powerful Oz.
 
 Coming soon.
 
@@ -173,6 +173,19 @@ However, a much better way to do something like an encapsulated profile view is 
 ###Data Contexts
 With a data context you are truly offloading the work of displaying a property in an object-oriented fashion.
 
+Important: If you are using Gravity with Swift, data binding currently only works with `dynamic` NSObject properties. To ensure that your model objects can be read and observed by Gravity properly, make sure your model class derives from NSObject at some point and mark all observable properties with the `dynamic` keyword:
+
+```swift
+class MyObjectToObserve: NSObject {
+    dynamic var myDate = NSDate()
+    func updateDate() {
+        myDate = NSDate()
+    }
+}
+```
+
+Unfortunately, and until Swift introduces some form of native support for property observation, you are stuck with this requirement. If you're using Gravity from Objective-C, all of your objects are already NSObjects, so luckily this doesn't affect you.
+
 ###Controllers
 The controller is there to do anything that you can't do in your gravity file itself. Generally speaking, it does the "thinking"—any logic that you need to do in code, and generally corresponds one-to-one with the view file. You supply this and it can be any object at all, however there will typically be exactly one class that will naturally represent the controller, depending on the purpose of the layout. In most cases it will be a descendent of UIView or UIViewController in some capacity.
 
@@ -194,7 +207,7 @@ All of these contribute to the ViewController in Apple's implementation becoming
 
 An example: If I want to add a sub-element to my interface to display information in a table, I would drag a UITableView into my XIB or Storyboard, bind its delegate to my controller, and implement a handful of UITableView *delegate* methods on my controller. The methods we are adding to our view controller do not pertain to the objective role of that class, they pertain to the function of a *child* of that class. This means that the more children you have in your class, the bigger that class is itself going to get, managing all of those children's delegate methods. Not a good design.
 
-In Gravity, your XML file represents your view. The model, as always, is isolated and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be consumed by the view, by means of property dot-notation and data binding.
+In Gravity, the view talks directly to the model. There's often no controller even involved. Your XML file represents your view. The model, as always, is isolated and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be consumed by the view, by means of property dot-notation and data binding.
 
 This establishes the view's connection to the model. Notice the controller isn't even involved yet. In many cases in Gravity a controller is actually not needed, believe it or not. Unlike Apple's model, where the controller is foundational, in Gravity it's the least important citizen. In Gravity, the controller is there to essentially do anything that Gravity can't itself. So any arbitrary logic (i.e. code) goes into the controller. The controller is the thinking part. The model and the view are just data and display respectively.
 
@@ -250,6 +263,8 @@ If you can't do what you need via the GravityElement protocol, chances are you w
 
 One key use of plugins is to handle element instantiation from a node where the default behavior is unsatisfactory. By default, Gravity uses the name of the element to identify a class and instantiate a default (parameterless) instance of that class, which can then be configured by handling the node's attributes in turn. However, if the element name does not correspond to a class name, or the class requires more complicated initialization (e.g. UICollectionView), you can create a Gravity plugin to accomplish this.
 
+A gravity plugin is any class that derives from GravityPlugin and is registered with the framework as a plugin. It must have a parameterless initializer. You pass the *class* into Gravity.registerPlugin(). Gravity will instantiate your plugin class once per document, so you can keep any necessary state inside the plugin instance.
+
 Note that the same class can be at once both a GravityElement and a GravityPlugin when it makes sense to do so. For example, the UIStackView+Gravity extension provides attribute handling for UIStackView elements, but also registers itself as a GravityPlugin in order to explicitly handle the `<H>` and `<V>` shorthand tags.
 
 ###Accessing Constraints
@@ -259,6 +274,11 @@ For example, if you've explicitly set a width, minWidth, maxWidth, etc., you can
 
 Note: There are only a handful of these implemented at the moment. More to come.
 
+###Using Custom Scoped Attributes
+It is actually quite easy to use your own scoped attributes within gravity. The only real concern is telling gravity not to try to handle that attribute on its own. To do that you'll have to create a GravityPlugin that simply returns `.Handled` from the `processAttribute()` function when passed your custom attribute. Gravity will then consider that attribute handled and will stop trying to process it anymore.
+
+Now you can add your custom attribute anywhere in your layout, and use the `getScopedAttribute()` function of GravityNode to check its inherited value from any node.
+
 ##Q&A
 **Q: Isn't a XIB file already XML? Why do I need another XML format?**
 
@@ -266,7 +286,7 @@ Note: There are only a handful of these implemented at the moment. More to come.
 
 **Q: Doesn't the strictness of the hierarchy restrict the interfaces you can create?**
 
-**A:** Yes, to a degree. This is a natural result of what Gravity is. But you'd be surprised how well it works out in most cases, and when you start to think like Gravity, you start to design like Gravity. Interfaces build themselves from the inside-out. Like I said, it's a philosophy too.
+**A:** Yes, to a degree. This is a natural result of what Gravity is. But you'd be surprised how powerful nested stack views can be, and there's always layering when that fails you. When you start to design with Gravity, you start to think like Gravity. Interfaces tend to just build themselves.
 
 **Q: Is there design-time support for Gravity?**
 

@@ -1,5 +1,5 @@
 //
-//  GravityView.swift
+//  GravityDocument.swift
 //  Gravity
 //
 //  Created by Logan Murray on 2016-01-28.
@@ -8,15 +8,16 @@
 
 import Foundation
 
-/// The ‘D’ in DOM.
+/// The ‘D’ in DOM. This class represents a single instance of a gravity layout file.
 @available(iOS 9.0, *)
-@objc public class GravityDocument: NSObject, NSXMLParserDelegate, GravityPlugin, CustomDebugStringConvertible {
+@objc public class GravityDocument: NSObject, NSXMLParserDelegate, CustomDebugStringConvertible {
+	private var nodeStack = [GravityNode]() // for parsing
+	
 	public var name: String? = nil
-	private var nodeStack = [GravityNode]()
-	private var widthIdentifiers = [String: [GravityNode]]()
 	public var rootNode: GravityNode?
-	public var ids: [String : GravityNode] = [:]
 	public weak var parentNode: GravityNode? = nil // if this document is an embedded node
+	public var ids = [String : GravityNode]()
+	public var plugins = [GravityPlugin]() // the instantiated plugins for this document
 	
 	public var controller: NSObject? = nil {
 		didSet {
@@ -29,19 +30,6 @@ import Foundation
 			parseXML()
 		}
 	}
-
-//	@IBInspectable public var filename: String = "" {
-//		didSet {
-//			// append ".xml" if the filename doesn't end with it
-//			// TODO: we should improve this to check for the given name first
-//			let effectiveName = filename.rangeOfString(".xml", options: NSStringCompareOptions.BackwardsSearch, range: nil, locale: nil) == nil ? "\(filename).xml" : filename
-//			let url = NSURL(fileURLWithPath: NSBundle.mainBundle().resourcePath!).URLByAppendingPathComponent(effectiveName, isDirectory: false)
-//			do {
-//				xml = try String(contentsOfURL: url, encoding: NSUTF8StringEncoding)
-//			} catch {
-//			}
-//		}
-//	}
 
 	// TODO: this feels kinda gross, improve
 	public var rootNodeView: UIView? {
@@ -63,7 +51,7 @@ import Foundation
 						// TODO: handle the case where the root node is already a "self node"
 						let outerNode = GravityNode(document: self, parentNode: nil, nodeName: name, attributes: [:])
 						outerNode.childNodes.append(rootNode!)
-						rootNode!.parentNode = outerNode // this is experimental
+//						rootNode!.parentNode = outerNode // this is experimental
 						
 //						_view = Gravity.instantiateView(outerNode)
 //						_view?.addSubview(rootNodeView)
@@ -76,6 +64,10 @@ import Foundation
 			
 			return _view
 		}
+	}
+	
+	public override init() {
+		
 	}
 	
 	public init?(name: String, model: AnyObject? = nil) {
@@ -98,43 +90,54 @@ import Foundation
 
 	public init(xml: String) {
 		super.init()
-//		self.init()
-		self.xml = xml
+		self.xml = xml // really annoying that didSet doesn't work from initializers :(
 		parseXML()
 	}
-	
-
-
-//	required public init?(coder aDecoder: NSCoder) {
-//	    super.init(coder: aDecoder)
-//	}
 
 	private func parseXML() {
 		guard let data = self.xml.dataUsingEncoding(NSUTF8StringEncoding) else {
 			return // TODO: print message or something
 		}
 		
-		Gravity.load() // make sure all of our plugins etc. have been loaded (is this safe to call multiple times?) i think so
+//		Gravity.load() // make sure all of our plugins have been loaded (this is actually probably not necessary since we're accessing Gravity immediately after this)
+		
+		for pluginClass in Gravity.plugins {
+			let pluginInstance = pluginClass.init()
+			plugins.append(pluginInstance)
+		}
 		
 		let parser = NSXMLParser(data: data)
 		parser.delegate = self
-		parser.parse() // PARSE PHASE
-//		NSLog("100%% reconsituted xml!\n" + (rootNode?.description ?? ""))
+		parser.parse()
 
 		if rootNode == nil {
 			NSLog("Error: Could not parse Gravity XML.")
 			return
 		}
-		
-//		_ = rootNode!.view // make sure the view hierarchy is fully constructed
-		
-		// should we do this in a plugin? can we maintain state via begin and end events? or should we instantiate plugins for each parse?
-		
-		// this is probably broken now too; we should defer this to later
 
 		preProcess()
-
-////		let fitSize = rootElement?.systemLayoutSizeFittingSize(CGSize(width: 400, height: 400));
+	}
+	
+	public func instantiateView(node: GravityNode) -> UIView? {
+		var view: UIView? = nil
+		
+		for plugin in plugins {
+			if let view = plugin.instantiateElement(node) {
+				return view
+			}
+		}
+		
+		if let type = NSClassFromString(node.nodeName) as! UIView.Type? {
+			tryBlock {
+				view = type.init()
+				view?.translatesAutoresizingMaskIntoConstraints = false // do we need this??
+				// TODO: should we set clipsToBounds for views by default?
+			}
+			
+			// TODO: determine if the instance is an instance of UIView or UIViewController and handle the latter by embedding a view controller
+		}
+		
+		return view
 	}
 	
 	// MARK: PRE-PROCESSING PHASE
@@ -149,9 +152,9 @@ import Foundation
 				ids[identifier] = node
 			}
 			
-			if let subDocument = GravityDocument(name: node.nodeName) {
-				node.subDocument = subDocument
-				node.subDocument?.preProcess()
+			if let childDocument = GravityDocument(name: node.nodeName) {
+				node.childDocument = childDocument // strong
+				childDocument.parentNode = node // weak
 			}
 		}
 	}
@@ -159,46 +162,33 @@ import Foundation
 	// MARK: POST-PROCESSING PHASE
 	internal func postProcess() { // post-process view hierarchy
 		for node in rootNode! { // FIXME: should we start with outerNode?
-			NSLog("Post-processing node: \(node.nodeName)")
-			for plugin in Gravity.plugins {
-				plugin.processElement?(node) // post-process
+//			NSLog("Post-processing node: \(node.nodeName)")
+			for plugin in plugins {
+				plugin.postprocessElement(node)
 			}
 		}
 		
-//				rootNode!.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-//				rootNode!.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-		
-//				autoSize()
 		controllerChanged()
-		
-		// is this ok here?
-		for (identifier, nodes) in widthIdentifiers {
-			if ["fill", "auto"].contains(identifier) { // special keywords
-				continue
-			}
-			
-			let first = nodes[0]
-			for var i = 1; i < nodes.count; i++ {
-				nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
-			}
-		}
 	}
 	
 	// TODO: this function is temporary until i figure out how to do this properly
-	public func autoSize() {
-//		containerView.updateConstraints() // need this?
-		if let view = view {
-			view.layoutIfNeeded()
-			
-			// should these be constraints?
-			view.frame.size.width = view.subviews[0].frame.size.width
-			view.frame.size.height = view.subviews[0].frame.size.height
-		}
-	}
+//	public func autoSize() {
+////		containerView.updateConstraints() // need this?
+//		if let view = view {
+//			view.layoutIfNeeded()
+//			
+//			// should these be constraints?
+//			view.frame.size.width = view.subviews[0].frame.size.width
+//			view.frame.size.height = view.subviews[0].frame.size.height
+//		}
+//	}
 	
 	private func controllerChanged() {
 		if controller != nil {
 			for (identifier, node) in ids {
+//				if !node.isViewInstantiated() {
+//					continue
+//				}
 				tryBlock {
 					self.controller?.setValue(node.view, forKey: identifier)
 				}
@@ -216,41 +206,6 @@ import Foundation
 	public override var debugDescription: String {
 		get {
 			return rootNode?.debugDescription ?? description // super works here?
-		}
-	}
-	
-	// MARK: GravityElement
-	
-//	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
-//		return false
-//	}
-	
-//	public func processElement(node: GravityNode) -> Bool {
-//		self.translatesAutoresizingMaskIntoConstraints = false
-//		return false
-//	}
-	
-	// MARK: GravityPlugin
-	
-	public static func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
-	
-		// does this still make sense here?
-	
-		switch attribute {
-			case "width":
-				let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
-				if value.rangeOfCharacterFromSet(charset) != nil {
-					if node.document.widthIdentifiers[value] == nil {
-						node.document.widthIdentifiers[value] = [GravityNode]()
-					}
-					node.document.widthIdentifiers[value]?.append(node)
-//				if "\((value as NSString).floatValue)" != value {
-					return true
-				}
-				return false
-				
-			default:
-				return false
 		}
 	}
 	

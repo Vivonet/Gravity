@@ -11,20 +11,20 @@ import Foundation
 @available(iOS 9.0, *)
 extension UIImageView: GravityElement {
 	// do we really need this at all?
-	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
+	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
 		switch attribute {
 			case "image":
-				self.image = UIImage(named: value)?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate)
-				return true
+				self.image = UIImage(named: stringValue)?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate)
+				return .Handled
 				
 			default:
 				break
 		}
 		
-		return false
+		return .NotHandled
 	}
 	
-	public func processElement(node: GravityNode) -> Bool {
+	public func processElement(node: GravityNode) -> GravityResult {
 		self.contentMode = UIViewContentMode.ScaleAspectFit
 		self.layer.minificationFilter = kCAFilterTrilinear // improves UIImageView rendering
 		self.tintColor = node.color
@@ -38,6 +38,6 @@ extension UIImageView: GravityElement {
 //////    [myImageView autoSetContentHuggingPriorityForAxis:ALAxisHorizontal];
 //////}];
 
-		return false
+		return .NotHandled
 	}
 }

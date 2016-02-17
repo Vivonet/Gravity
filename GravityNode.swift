@@ -8,19 +8,18 @@
 
 import Foundation
 
-@available(iOS 9.0, *) // TODO: should we derive from NSTreeNode? that could handle all the traversal itself
+@available(iOS 9.0, *)
 // TODO: split these protocols into extensions to follow Swift conventions
-@objc public class GravityNode: NSObject, GravityPlugin, CustomDebugStringConvertible {
+@objc public class GravityNode: NSObject, CustomDebugStringConvertible {
 	public var document: GravityDocument! // should this be weak?
 	public weak var parentNode: GravityNode?
 	public var nodeName: String
 	public var depth: Int // the number of nodes deep this node is in the tree
-	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed table
+	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed tree
 	public var attributes: [String: String]
-	public var constraints: [String: NSLayoutConstraint] // TODO: store constraints here based on their attribute name (width, minHeight, etc.)
+	public var constraints: [String: NSLayoutConstraint] // store constraints here based on their attribute name (width, minHeight, etc.) -- we should move this to a plugin, but only if we can put all or most of the constraint registering in there as well
 	public var childNodes = [GravityNode]()
-	public var subDocument: GravityDocument? = nil // if this node represents an external layout
-//	public var ids: [String: GravityNode] // should we move this to GravityView? it would avoid us having to copy this between all nodes, and we can already access the gravityView from a node anyway
+	public var childDocument: GravityDocument? = nil // if this node represents an external document
 	
 	subscript(attribute: String) -> String? {
 		get {
@@ -29,35 +28,19 @@ import Foundation
 	}
 	// add Int-indexed subscript for child nodes too? or is that supported by SequenceType? probably we need CollectionType or something for that
 	
-//	subscript(attribute: String) -> T? {
+	// oh but it would be sweet if we could do this!
+//	subscript<T>(attribute: String) -> T? {
 //		get {
 //			return Gravity.convert(attribute) as T?
 //		}
 //	}
-
-//	public weak var _parentNode: GravityNode?
-//	public var parentNode: GravityNode? {
-//		get {
-////			if _parentNode != nil {
-//				return _parentNode
-////			} else { // i've decided that we actually don't generally want attributes crossing document boundaries, so this doesn't make sense here
-////				return document.parentNode // the embedding parent, if there is one
-////			}
-//		}
-//		set(value) {
-//			_parentNode = value
-//		}
-//	}
-
 	
 	private var _view: UIView?
 	public var view: UIView {
 		get {
 			if _view == nil {
 				processNode()
-//				if _view == nil {
-//					_view = UIView()
-//				}
+				// arch: we could move a bit of the outer conditionals up here and split processNode() into phases, just to split up the logic a bit and keep function bodies small
 			}
 			return _view ?? UIView() // probably want to think of something better here
 		}
@@ -90,7 +73,7 @@ import Foundation
 	
 	public var color: UIColor {
 		get {
-			return Gravity.convert(getScopedAttribute("color") ?? "#000")!
+			return Gravity.Conversion.convert(getScopedAttribute("color") ?? "#000")!
 		}
 	}
 	
@@ -156,20 +139,20 @@ import Foundation
 	// TODO: shit, i'm not actually sure we want things like gravity and color to be scoped across documents... that actually seems wrong
 	// i think *just* model.
 	public func getScopedAttribute(attribute: String) -> String? {
-		// why isn't this recursive? :/
-		var currentNode: GravityNode? = self
-		while currentNode != nil {
-			if let value = currentNode!.attributes[attribute] {
-				return value
-			}
-			
-			currentNode = currentNode?.parentNode
-			
-//			if currentNode == nil {
-//				currentNode = document.parentNode
+		// why isn't this recursive? :/ i must have been tired. here you go:
+		return attributes[attribute] ?? parentNode?.getScopedAttribute(attribute)
+//		var currentNode: GravityNode? = self
+//		while currentNode != nil {
+//			if let value = currentNode!.attributes[attribute] {
+//				return value
 //			}
-		}
-		return nil
+//			
+//			currentNode = currentNode?.parentNode
+//			
+////			if currentNode == nil {
+////				currentNode = document.parentNode
+////			}
+//		}
 	}
 	
 	public override var description: String {
@@ -217,29 +200,16 @@ import Foundation
 		}
 	}
 	
+	// this is unfrotunately a very monolithic function right now
 	public func processNode() {
 		let className = self.nodeName
-		
-		// first check to see if the node is an externed document
-		if let subDoc = GravityDocument(name: self.nodeName) {
-			for (attribute, rawValue) in attributes {
-				if attribute.containsString(".") {
-					let attributeParts = attribute.componentsSeparatedByString(".")
-					let identifier = attributeParts.first!
-					let property = attributeParts.last!
-					
-					if let subNode = subDoc.ids[identifier] {
-						subNode.attributes[property] = rawValue
-					}
-					
-					continue
-				}
-			}
-			
-			_view = subDoc.view // ok?
+
+		// childDocument is set in the pre-processing phase
+		if let childDocument = childDocument {
+			_view = childDocument.view // this will recursively load the child's view hierarchy
 		}
 		
-		_view = _view ?? Gravity.instantiateView(self)
+		_view = _view ?? document.instantiateView(self)
 		
 		if _view == nil {
 			if self.nodeName.containsString(".") {
@@ -254,41 +224,6 @@ import Foundation
 			}
 		}
 		
-		// moving to pre-processing
-		if let subDoc = GravityDocument(name: self.nodeName) {
-			self.subDocument = subDoc
-			
-			NSLog("FOUND SUBDOCUMENT for note \(self.nodeName)")
-			
-			for (attribute, rawValue) in attributes {
-				if attribute.containsString(".") {
-					setAttribute(attribute, value: rawValue)
-//					let attributeParts = attribute.componentsSeparatedByString(".")
-//					let identifier = attributeParts.first!
-//					let property = attributeParts.last!
-//					
-//					// what we actually need here is to split the first part off and call some recursive setAttribute function on the remainer parts
-//					// so that it can dig more than one level deeper.
-//					
-//					if let subNode = subDoc.ids[identifier] {
-//						subNode.attributes[property] = rawValue
-//					}
-//					
-//					continue
-				}
-			}
-			
-			if let subView = subDoc.view {
-				if _view == nil {
-					_view = subView // ok??
-				} else {
-					view.addSubview(subView)
-					
-					// bind edges or anything??
-				}
-			}
-		}
-		
 		// MARK: - ATTRIBUTES -
 		
 		if _view == nil {
@@ -298,115 +233,16 @@ import Foundation
 		
 		view.gravityNode = self
 		
-		for (attribute, rawValue) in attributes {
-			// moved this up above gravity element because plugins should always have a chance to handle things first
-			var handled = false
-			for plugin in Gravity.plugins {
-				if plugin.processAttribute?(self, attribute: attribute, value: rawValue) ?? false {
-					handled = true
-				}
-			}
-			if handled {
-				continue
-			}
-			
-			var propertyName = attribute
-			var propertyType: String?
-//			var currentContext: NSObject? = view
-			var value: AnyObject? = rawValue
-
-			if let gravityElement = view as? GravityElement {
-				// TODO: can we explicitly search the class chain by calling super.processAttribute, or at the very least call the UIView specific implementation?
-				if gravityElement.processAttribute(self, attribute: attribute, value: rawValue) {
-					continue // handled
-				}
-			}
-			
-			// this is string.endsWith in swift. :| lovely.
-			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
-//					if range.endIndex {
-					propertyType = "UIColor" // bit of a hack because UIButton.backgroundColor doesn't seem to know its property class via inspection :/
-//					}
-			}
-
-			// can we change this to just get the class name from the instance?
-			let property = class_getProperty(NSClassFromString(className), attribute)
-			if property != nil {
-				if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
-					if components.count >= 2 {
-						propertyType = components[1]
-//							NSLog("propertyType: %@", propertyType!)
-					}
-				}
-			}
-			if propertyType != nil {
-				if let converter = Gravity.converters[propertyType!] {
-					value = converter(rawValue)
-				}
-			}
-			
-			let sizeKeywords = ["fill", "auto"]
-			
-			// this might best be moved entirely into plugins, perhaps a core plugin
-			switch propertyName {
-				// TODO: may want to set these with higher priority than default to avoid view/container bindings conflicting
-				// we should also capture these priorities as constants and put them all in one place for easier tweaking and balancing
-				case "width":
-//							NSLog("set width to %@", value)
-					if !sizeKeywords.contains(rawValue) {
-						UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-							self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((rawValue as NSString).floatValue))
-//							if let view = currentContext as? UIView {
-////								UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
-//									view.autoSetDimension(ALDimension.Width, toSize: CGFloat((value as NSString).floatValue))
-////								})
-//							}
-						}
-					}
-				case "minWidth":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((rawValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
-					}
-				case "maxWidth":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
-						self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((rawValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
-					}
-				
-				case "height":
-					if !sizeKeywords.contains(rawValue) {
-						UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-							self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((rawValue as NSString).floatValue))
-						}
-					}
-				case "minHeight":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((rawValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
-					}
-				case "maxHeight":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						self.constraints[propertyName] = self.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((rawValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
-					}
-				
-				case "cornerRadius":
-					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
-					view.layer.cornerRadius = CGFloat((rawValue as NSString).floatValue)
-					view.clipsToBounds = true // assume this is still needed
-					break
-						
-						
-				default:
-					if tryBlock({
-						self.view.setValue(value, forKey: propertyName)
-					}) != nil {
-						NSLog("Warning: Property '\(propertyName)' not found on object \(view).")
-					}
-			}
+		// should this part be moved to post-processing?
+		
+		for (attribute, _) in attributes {
+			processAttribute(attribute)
 		}
 		
 		// TODO: set a flag and disallow access to the "controller" property? can it even be accessed from processElement anyway? presumably only from GravityView, so it's probably not a big deal
 		
 		if let gravityElement = view as? GravityElement {
-			if gravityElement.processElement?(self) == true {
+			if gravityElement.processElement?(self) == .Handled {
 				return //view // handled
 			}
 		}
@@ -433,15 +269,6 @@ import Foundation
 				sortedChildren.append(childNode)
 			}
 		}
-		
-//		var zIndexes = [Int: GravityNode]()
-//		for childNode in childNodes {
-//			let zIndex = Int(childNode["zIndex"] ?? "0")! // Really fucking stupid that Swift can't fucking propagate nils. God fucking damnit why do I put up with this shit??
-//			zIndexes[zIndex] = childNode
-//		}
-//		let sortedChildren = childNodes.sort { (a, b) -> Bool in
-//			return Int(a["zIndex"] ?? "0") < Int(b["zIndex"] ?? "0")
-//		}
 
 		// MARK: Default Child Handling
 		
@@ -484,12 +311,6 @@ import Foundation
 				case GravityDirection.Right:
 					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
 					break
-					
-//				case GravityDirection.Wide:
-//					// what priority should we use here?? does it matter?
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-//					break
 				
 				default:
 					break
@@ -507,33 +328,76 @@ import Foundation
 				case GravityDirection.Bottom:
 					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
 					break
-					
-//				case GravityDirection.Tall:
-//					// what priority should we use here?? does it matter?
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-//					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-//					break
 				
 				default:
 					break
 			}
 		}
+	}
+	
+	public func processAttribute(attribute: String) {
+		guard let rawValue = attributes[attribute] else {
+			return
+		}
 		
-//		return view
+		var stringValue: String = rawValue
+		var handled = false
+		
+		// 1. First-chance handling by plugins
+		for plugin in document.plugins {
+			var newValue = stringValue // value must be a String here
+			// TODO: make sure the order here is correct!!
+			if plugin.preprocessAttribute(self, attribute: attribute, value: &newValue) == .Handled {
+				handled = true
+			}
+			stringValue = newValue // do this regardless of whether the call returns Handled or not
+		}
+		
+		if handled {
+			return
+		}
+		
+		var value: AnyObject = stringValue
+		
+		// 2. Value transformation by plugins
+		for plugin in document.plugins {
+			var newValue: AnyObject = value
+			if plugin.transformValue(self, attribute: attribute, input: stringValue, output: &newValue) == .Handled {
+				value = newValue
+				break
+			}
+		}
+		
+		if handled {
+			return
+		}
+		
+		// 3. GravityElement handling
+		if let gravityElement = view as? GravityElement {
+			// TODO: can we explicitly search the class chain by calling super.processAttribute, or at the very least call the UIView specific implementation?
+			if gravityElement.processAttribute(self, attribute: attribute, value: value, stringValue: stringValue) == .Handled {
+				return
+			}
+		}
+		
+		// 4. Post-process handling by plugins
+		for plugin in document.plugins {
+			plugin.postprocessAttribute(self, attribute: attribute, value: value)
+		}
 	}
 	
 	public func setAttribute(attribute: String, value: String) {
 		let attributeParts = attribute.componentsSeparatedByString(".")
 		
 		if attributeParts.count > 1 {
-			if let subDoc = self.subDocument {
+			if let subDoc = self.childDocument {
 				let identifier = attributeParts.first!
 				let remainder = attributeParts.suffixFrom(1).joinWithSeparator(".")
 				if let child = subDoc.ids[identifier] {
 					child.setAttribute(remainder, value: value)
 				}
 			} else {
-				NSLog("Error: Cannot use dot notation for an attribute on a node that is not an externed Gravity file.")
+				NSLog("Error: Cannot use dot notation for an attribute on a node that is not an external gravity file.")
 			}
 		} else {
 			attributes[attribute] = value
@@ -548,70 +412,7 @@ import Foundation
 			childNode.connectController(controller)
 		}
 	}
-	
-	// MARK: GravityPlugin
-	
-	public static func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
-		let keywords = ["id", "zIndex", "gravity"]
-		
-		if keywords.contains(attribute) {
-			return true
-		}
-		
-		switch attribute {
-			default:
-				return false
-		}
-	}
-	
-	public static func processElement(node: GravityNode) {
-		// TODO: minWidth, etc. should probably be higher priority than these so they can override fill size
-//		let priority = Float(99)//99 - Float(node.depth)
-		if node.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
-			node.view.setContentHuggingPriority(GravityPriorities.FillSizeHugging, forAxis: UILayoutConstraintAxis.Horizontal)
-			if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != UILayoutConstraintAxis.Horizontal {
-				if node.view.superview is UIStackView {
-					NSLog("Superview must be a vertical stack view")
-				}
-				UIView.autoSetPriority(GravityPriorities.FillSize - Float(node.depth)) {
-//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left) // leading?
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right) // trailing?
-				}
-			}
-		}
-		
-		if node.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) {
-			node.view.setContentHuggingPriority(GravityPriorities.FillSizeHugging, forAxis: UILayoutConstraintAxis.Vertical)
-			if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != UILayoutConstraintAxis.Vertical {
-				if node.view.superview is UIStackView {
-					NSLog("Superview must be a horizontal stack view")
-				}
-				UIView.autoSetPriority(GravityPriorities.FillSize - Float(node.depth)) {
-//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-					node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-				}
-			}
-		}
-	}
 }
-	
-//extension GravityNode: SequenceType { // MARK: SequenceType
-//	// http://stackoverflow.com/a/35279383/238948
-//    public func generate() -> AnyGenerator<GravityNode> {
-//        var stack : [GravityNode] = [self]
-//        return anyGenerator {
-//            if let next = stack.first {
-//                stack.removeAtIndex(0)
-////				stack.appendContentsOf(next.childNodes) // breadth-first
-//                stack.insertContentsOf(next.childNodes, at: 0) // depth-first
-//                return next
-//            }
-//            return nil
-//        }
-//    }
-//}
 
 @available(iOS 9.0, *)
 extension GravityNode: SequenceType {
@@ -622,7 +423,6 @@ extension GravityNode: SequenceType {
 
 		return anyGenerator {
 			if !returnedSelf {
-				// TODO: should we look to see if self is a recursive document and include its children in the traversal as well?? i think we might!
 				returnedSelf = true
 				return self
 			}

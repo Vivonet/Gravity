@@ -10,13 +10,13 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UITextView: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: String) -> Bool {
-		return false
+	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
+		return .NotHandled
 	}
 	
-	public func processElement(node: GravityNode) -> Bool {
+	public func processElement(node: GravityNode) -> GravityResult {
 		self.scrollEnabled = false
 		
-		return false
+		return .NotHandled
 	}
 }
