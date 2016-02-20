@@ -24,42 +24,44 @@ private func imageWithColor(color: UIColor) -> UIImage {
 
 @available(iOS 9.0, *)
 extension UIButton: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
-		switch attribute {
-			case "title":
-				// TODO: we should replace this with css-style styles, with styles for different button states
-				self.setTitle(stringValue, forState: UIControlState.Normal)
-				return .Handled
-			
-			case "action":
-				return .Handled // return handled because we are handling this attribute in connectController()
-			
-			case "backgroundColor":
-				if let color = Gravity.Conversion.convert(stringValue) as UIColor? { // won't conversion take care of this?
-					self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Normal)
-					
-					self.adjustsImageWhenHighlighted = (node["highlightColor"] == nil)
-					self.adjustsImageWhenDisabled = (node["disabledColor"] == nil)
-					
+	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+//		if let stringValue = value.textValue as? String {
+			switch attribute {
+				case "title":
+					// TODO: we should replace this with css-style styles, with styles for different button states
+					self.setTitle(value.textValue, forState: UIControlState.Normal)
 					return .Handled
-				}
-				break
-			
-			case "highlightColor":
-				if let color = Gravity.Conversion.convert(stringValue) as UIColor? {
-					self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Highlighted)
-				}
-				break
-			
-			case "disabledColor":
-				if let color = Gravity.Conversion.convert(stringValue) as UIColor? {
-					self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Disabled)
-				}
-				break
 				
-			default:
-				break
-		}
+				case "action":
+					return .Handled // return handled because we are handling this attribute in connectController()
+				
+				case "backgroundColor":
+					if let color = value.convert() as UIColor? { // won't conversion take care of this?
+						self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Normal)
+						
+						self.adjustsImageWhenHighlighted = (node["highlightColor"] == nil)
+						self.adjustsImageWhenDisabled = (node["disabledColor"] == nil)
+						
+						return .Handled
+					}
+					break
+				
+				case "highlightColor":
+					if let color = value.convert() as UIColor? {
+						self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Highlighted)
+					}
+					break
+				
+				case "disabledColor":
+					if let color = value.convert() as UIColor? {
+						self.setBackgroundImage(imageWithColor(color), forState: UIControlState.Disabled)
+					}
+					break
+					
+				default:
+					break
+			}
+//		}
 		
 		return .NotHandled
 	}
@@ -73,8 +75,9 @@ extension UIButton: GravityElement {
 		return .NotHandled
 	}
 	
+	// do we want
 	public func connectController(node: GravityNode, controller: NSObject) {
-		if let action = node["action"] {
+		if let action = node["action"]?.textValue {
 			removeTarget(nil, action: nil, forControlEvents: UIControlEvents.TouchUpInside) // unverified
 			// unfortunately this doesn't work because it doesn't give an exception on adding, but only when it tries to actually call it
 			let exception = tryBlock {

@@ -10,10 +10,14 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UILabel: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
+	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+		guard let textValue = value.textValue else {
+			return .NotHandled
+		}
+		
 		switch attribute {
 			case "wrap":
-				if (stringValue as NSString).boolValue { // or do we want to write a converter to Bool? can we even do that? i'd rather that if we could
+				if (textValue as NSString).boolValue { // or do we want to write a converter to Bool? can we even do that? i'd rather that if we could
 					self.numberOfLines = 0
 				}
 				return .Handled

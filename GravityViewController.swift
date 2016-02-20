@@ -43,7 +43,7 @@ public class GravityViewController: UIViewController {
 			bottomPin = rootNodeView.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
 		}
 		
-		document?.postProcess()
+		document?.postprocess() // FIXME: we really ought to reconsider postprocess if it's just to support GravityViewController
 	}
 
 	required public init?(coder aDecoder: NSCoder) {

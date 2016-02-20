@@ -14,19 +14,39 @@ import Foundation
 	public var document: GravityDocument! // should this be weak?
 	public weak var parentNode: GravityNode?
 	public var nodeName: String
-	public var depth: Int // the number of nodes deep this node is in the tree
-	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed tree
-	public var attributes: [String: String]
-	public var constraints: [String: NSLayoutConstraint] // store constraints here based on their attribute name (width, minHeight, etc.) -- we should move this to a plugin, but only if we can put all or most of the constraint registering in there as well
+	// FIXME: i think depth is broken for attribute nodes; does that matter? (should fix anyway if it's not a huge effort)
+	/// The number of nodes deep this node is in the immediate document.
+	public var depth = 0
+	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed tree; this must be the FULL depth of the tree, including all embedded subdocuments, and should happen in the preprocess phase.
+	public var attributes = [String: GravityNode]()
+//	public var stringValues: [String: String]
+//	public var nodeValues: [String: GravityNode]
+	public var constraints = [String: NSLayoutConstraint]() // store constraints here based on their attribute name (width, minHeight, etc.) -- we should move this to a plugin, but only if we can put all or most of the constraint registering in there as well
 	public var childNodes = [GravityNode]()
 	public var childDocument: GravityDocument? = nil // if this node represents an external document
+	/// The textual value of the node as a `String`, if the node is a text node (e.g. an inline attribute). Returns `nil` if the current node does not have a textual value.
+	public var textValue: String?
 	
-	subscript(attribute: String) -> String? {
+//	public var attributes: [String: AnyObject] {
+//		get {
+//			return Dictionary<String, AnyObject>(stringValues) + Dictionary<String, AnyObject>(nodeValues)
+//		}
+//	}
+	
+	public var controller: NSObject? = nil {
+		didSet {
+			if let controller = controller {
+				connectController(controller)
+			}
+		}
+	}
+	
+	/// An attribute’s value will always be either a `String` or a `GravityNode`.
+	subscript(attribute: String) -> GravityNode? {
 		get {
 			return attributes[attribute]
 		}
 	}
-	// add Int-indexed subscript for child nodes too? or is that supported by SequenceType? probably we need CollectionType or something for that
 	
 	// oh but it would be sweet if we could do this!
 //	subscript<T>(attribute: String) -> T? {
@@ -35,14 +55,16 @@ import Foundation
 //		}
 //	}
 	
+	// i think view should actually be UIView? because not all nodes are views
+	// either we throw an exception or we just make this optional
 	private var _view: UIView?
 	public var view: UIView {
 		get {
 			if _view == nil {
 				processNode()
-				// arch: we could move a bit of the outer conditionals up here and split processNode() into phases, just to split up the logic a bit and keep function bodies small
+				// layoutIfNeeded()?
 			}
-			return _view ?? UIView() // probably want to think of something better here
+			return _view ?? UIView() // change to UIView?
 		}
 //		set(value) {
 //			_view = value
@@ -51,8 +73,9 @@ import Foundation
 	
 	// MARK: Attribute Helpers
 	
-	public var _model: AnyObject? // the data context; i prefer just "context" over "dataContext" as it's simple and it truly is what it means: the context to which the view applies; ooh but what about "model"? that fits much more perfectly into the MVC paradigm!
-	public var model: AnyObject? {
+	public var _model: AnyObject?
+	/// The model object that this node is viewing. Also called a data context.
+	public var model: AnyObject? { // should we force this to be NSObject?
 		get {
 			let value = _model ?? parentNode?.model // recursion is beautiful.
 			if value == nil && parentNode == nil {
@@ -65,45 +88,64 @@ import Foundation
 		}
 	}
 	
-	public var gravity: GravityDirection {
-		get {
-			return GravityDirection(getScopedAttribute("gravity") ?? "top left")
-		}
-	}
-	
-	public var color: UIColor {
-		get {
-			return Gravity.Conversion.convert(getScopedAttribute("color") ?? "#000")!
-		}
-	}
+	// TODO: these need to be offloaded to plugins, ideally as extensions on GravityNode
+	// this one either Styling or Appearance
+//	public var color: UIColor {
+//		get {
+//			return Gravity.Conversion.convert(getScopedAttribute("color") ?? "#000")!
+//		}
+//	}
 	
 	// TODO: font should totally be a scoped parameter as well
 	
-	public var zIndex: Int {
-		get {
-			return Int(attributes["zIndex"] ?? "0")!
-		}
-	}
+//	public var zIndex: Int {
+//		get {
+//			return Int(attributes["zIndex"] ?? "0")!
+//		}
+//	}
 	
 	public init(document: GravityDocument, parentNode: GravityNode?, nodeName: String, attributes: [String: String]) {
 		self.document = document
 		self.nodeName = nodeName
-		self.depth = (parentNode?.depth ?? 0) + 1
-		self.attributes = attributes
-		self.constraints = [String: NSLayoutConstraint]()
 		super.init()
+		for (attribute, textValue) in attributes {
+			self.attributes[attribute] = GravityNode(document: document, parentNode: self, nodeName: self.nodeName + "." + attribute, textValue: textValue)
+		}
+//		self.attributes = attributes
+//		self.constraints = [String: NSLayoutConstraint]()
 		self.parentNode = parentNode
+		setup()
 //		self.ids = self.parentNode?.ids ?? [String: GravityNode]() // make sure this is copied by ref
+	}
+	
+	// string nodes must have a parent (?)
+	public init(document: GravityDocument, parentNode: GravityNode, nodeName: String, textValue: String) {
+		self.document = document
+		self.nodeName = nodeName
+		self.textValue = textValue
+		super.init()
+		setup()
+	}
+	
+	private func setup() {
+		self.depth = (parentNode?.depth ?? 0) + 1
+		self.attributes = self.attributes ?? [String: GravityNode]()
+	}
+	
+	public func instantiate() -> GravityNode {
+		// TODO: return an instantiated document (or possibly view); to be used for row/item templating
+		preconditionFailure()
 	}
 	
 	public func isViewInstantiated() -> Bool {
 		return _view != nil
 	}
 	
+	// move to Layout if we can
 	public func isFilledAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
 		switch axis {
 			case UILayoutConstraintAxis.Horizontal:
-				let width = attributes["width"]?.lowercaseString
+				let width = attributes["width"]?.textValue?.lowercaseString
 				if width == "fill" {
 					return true
 				} else if width != nil && width != "auto" { // "auto" is the default and is the same as not specifying
@@ -119,7 +161,7 @@ import Foundation
 				return false
 			
 			case UILayoutConstraintAxis.Vertical:
-				let height = attributes["height"]?.lowercaseString
+				let height = attributes["height"]?.textValue?.lowercaseString
 				if height == "fill" {
 					return true
 				} else if height != nil && height != "auto" { // "auto" is the default and is the same as not specifying
@@ -136,67 +178,81 @@ import Foundation
 		}
 	}
 	
-	// TODO: shit, i'm not actually sure we want things like gravity and color to be scoped across documents... that actually seems wrong
-	// i think *just* model.
-	public func getScopedAttribute(attribute: String) -> String? {
-		// why isn't this recursive? :/ i must have been tired. here you go:
+	/// Returns the value of the given scoped attribute, if it is a `String`.
+	///
+	/// *Note:* Scoped attributes do not pass through document boundaries.
+	public func getScopedAttribute(attribute: String) -> GravityNode? {
 		return attributes[attribute] ?? parentNode?.getScopedAttribute(attribute)
-//		var currentNode: GravityNode? = self
-//		while currentNode != nil {
-//			if let value = currentNode!.attributes[attribute] {
-//				return value
-//			}
-//			
-//			currentNode = currentNode?.parentNode
-//			
-////			if currentNode == nil {
-////				currentNode = document.parentNode
-////			}
-//		}
 	}
 	
 	public override var description: String {
 		get {
-			var attributeStrings = [String]()
-			for (key, var value) in attributes {
-				// TODO: proper escaping for XML attribute value
-				value = value.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
-				attributeStrings.append("\(key)=\"\(value)\"")
-			}
-			
-			if childNodes.count > 0 {
-				var childNodeStrings = [String]()
-				for childNode in childNodes {
-					childNodeStrings.append(childNode.description)
-				}
-				
-				return "<\(nodeName)\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
-			} else {
-				return "<\(nodeName) \(attributeStrings.joinWithSeparator(" "))/>"
-			}
+			return getDescription(false)
 		}
 	}
 	
 	public override var debugDescription: String {
 		get {
-			var attributeStrings = [String]()
-			for (key, var value) in attributes {
-				// TODO: proper escaping for XML attribute value
-				value = value.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
-				attributeStrings.append("\(key)=\"\(value)\"")
+			return getDescription(true)
+//			var attributeStrings = [String]()
+//			for (key, var value) in attributes {
+//				// TODO: proper escaping for XML attribute value
+//				value = value.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
+//				attributeStrings.append("\(key)=\"\(value)\"")
+//			}
+//			
+//			if childNodes.count > 0 {
+//				var childNodeStrings = [String]()
+//				for childNode in childNodes {
+//					childNodeStrings.append(childNode.debugDescription)
+//				}
+//				
+//				let address = self.isViewInstantiated() ? "(\(unsafeAddressOf(view)))" : ""
+//				return "<\(nodeName)\(address)\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
+//			} else {
+//				return "<\(nodeName) \(attributeStrings.joinWithSeparator(" "))/>"
+//			}
+		}
+	}
+	
+	private func getDescription(debug: Bool = false) -> String {
+//		if textValue != nil { // TODO: should we only do this if the node is a leaf?
+//			return
+//		}
+		
+		var attributeStrings = [String]()
+		var attributeNodes = [GravityNode]()
+		for (key, value) in attributes {
+			if let textValue = value.textValue {
+				// FIXME: add proper escaping for XML attribute value
+				let escapedValue = textValue.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
+				attributeStrings.append("\(key)=\"\(escapedValue)\"")
+			} else {
+				attributeNodes.append(value)
+			}
+		}
+		
+		let address = debug && self.isViewInstantiated() ? "(\(unsafeAddressOf(view)))" : ""
+		
+		// TODO: this is changing; we should now check to see if node.stringValue is nil or not above and sort them appropriately
+		let childNodes = self.childNodes + attributeNodes // verify
+		
+		if childNodes.count > 0 {
+			var childNodeStrings = [String]()
+			// TODO: add attributeNodes?
+			for childNode in childNodes {
+				childNodeStrings.append(childNode.description)
 			}
 			
-			if childNodes.count > 0 {
-				var childNodeStrings = [String]()
-				for childNode in childNodes {
-					childNodeStrings.append(childNode.debugDescription)
-				}
-				
-				let address = self.isViewInstantiated() ? "(\(unsafeAddressOf(view)))" : ""
-				return "<\(nodeName)\(address)\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
-			} else {
-				return "<\(nodeName) \(attributeStrings.joinWithSeparator(" "))/>"
+			if let textValue = textValue {
+				childNodeStrings.append(textValue)
 			}
+			
+			return "<\(nodeName)\(address)\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
+		} else if textValue != nil {
+			return "<\(nodeName)\(address)>\(textValue!)</\(nodeName)>"
+		} else {
+			return "<\(nodeName)\(address) \(attributeStrings.joinWithSeparator(" "))/>"
 		}
 	}
 	
@@ -209,34 +265,32 @@ import Foundation
 			_view = childDocument.view // this will recursively load the child's view hierarchy
 		}
 		
-		_view = _view ?? document.instantiateView(self)
-		
-		if _view == nil {
-			if self.nodeName.containsString(".") {
-			
-				// This is a <Class.property> style node
-				
-				let attributeName = self.nodeName.componentsSeparatedByString(".").last // we actually only care about the last component; the first part is just by convention the class name
-				if let parent = self.parentNode {
-					// TODO: implement me
-					// do we want a whole parent.setValueForAttribute method?
-				}
-			}
-		}
-		
-		// MARK: - ATTRIBUTES -
+		_view = _view ?? document.instantiateView(self) // this lets plugins have a chance to see every node, in some capacity
 		
 		if _view == nil {
 			NSLog("Error: Could not instantiate class ‘\(className)’.")
+			// we may not actually want to return here (think UITableView.rowTemplate, gestures, etc.)
+			// or will those nodes be handled by the parent handler? perhaps we should never even get here unless they attempt to access `.view` on the node?
 			return
 		}
 		
 		view.gravityNode = self
 		
+//		var computedAttributes = [String: GravityNode]()
+//		computedAttributes = attributes // work???
+		
+		// TODO: verify that we can use an attribute node to set a sub-document's attribute. e.g. <FormRow.titleLabel.text>
+		
+//		var valueIndex = [String: AnyObject]
+//		for childNode in childNodes {
+//			
+//		}
+		// check attributeNodes if we have to
+		
 		// should this part be moved to post-processing?
 		
-		for (attribute, _) in attributes {
-			processAttribute(attribute)
+		for attribute in attributes.keys {
+			processAttribute(attribute) // look up the value in an index
 		}
 		
 		// TODO: set a flag and disallow access to the "controller" property? can it even be accessed from processElement anyway? presumably only from GravityView, so it's probably not a big deal
@@ -246,6 +300,15 @@ import Foundation
 				return //view // handled
 			}
 		}
+		
+//		for plugin in document.plugins {
+//			if plugin.postprocessElement(self) == .Handled {
+////				return // ?
+//			}
+//		}
+		
+		// MARK: Default Child Handling
+		// TODO: move this to Layout (or Default?) plugin
 		
 		// TODO: we may be better off actually setting a z-index on the views; this needs to be computed
 		
@@ -270,8 +333,6 @@ import Foundation
 			}
 		}
 
-		// MARK: Default Child Handling
-		
 		for childNode in sortedChildren {
 			view.addSubview(childNode.view)
 			
@@ -336,57 +397,67 @@ import Foundation
 	}
 	
 	public func processAttribute(attribute: String) {
-		guard let rawValue = attributes[attribute] else {
+		// FIXME: make sure this works for node values
+		guard let rawValue = attributes[attribute] else { // do we need rawValue if this can be an object now?
 			return
 		}
 		
-		var stringValue: String = rawValue
+		var value: GravityNode = rawValue
+//		var stringValue: String = rawValue ?? "\(value)" // if value is a node, this will represent the xml of the node
 		var handled = false
+		
+		for plugin in value.document.plugins { // ooh, a *value*-based plugin hook!
+			plugin.preprocessValue(self, attribute: attribute, value: value)
+		}
 		
 		// 1. First-chance handling by plugins
 		for plugin in document.plugins {
-			var newValue = stringValue // value must be a String here
+			var newValue = value // value must be a String here
 			// TODO: make sure the order here is correct!!
 			if plugin.preprocessAttribute(self, attribute: attribute, value: &newValue) == .Handled {
 				handled = true
 			}
-			stringValue = newValue // do this regardless of whether the call returns Handled or not
+			value = newValue // do this regardless of whether the call returns Handled or not
 		}
 		
 		if handled {
 			return
 		}
 		
-		var value: AnyObject = stringValue
+//		var value: AnyObject = stringValue
+//		value = stringValue
+//		var value: AnyObject = nodeValue
 		
 		// 2. Value transformation by plugins
-		for plugin in document.plugins {
-			var newValue: AnyObject = value
-			if plugin.transformValue(self, attribute: attribute, input: stringValue, output: &newValue) == .Handled {
-				value = newValue
-				break
-			}
-		}
-		
-		if handled {
-			return
-		}
+		// DEPRECATED--we no longer want to perform a transformation pass here (only on demand from GravityNode)
+//		for plugin in document.plugins {
+//			var newValue: AnyObject = value
+//			if plugin.transformValue(self, attribute: attribute, input: rawValue, output: &newValue) == .Handled {
+//				value = newValue
+//				break
+//			}
+//		}
+//		if handled {
+//			return
+//		}
 		
 		// 3. GravityElement handling
 		if let gravityElement = view as? GravityElement {
 			// TODO: can we explicitly search the class chain by calling super.processAttribute, or at the very least call the UIView specific implementation?
-			if gravityElement.processAttribute(self, attribute: attribute, value: value, stringValue: stringValue) == .Handled {
+			if gravityElement.processAttribute(self, attribute: attribute, value: value) == .Handled {
 				return
 			}
 		}
 		
 		// 4. Post-process handling by plugins
+		// this is really just a last-chance handler, we should rename it; postprocess is stupid
 		for plugin in document.plugins {
 			plugin.postprocessAttribute(self, attribute: attribute, value: value)
 		}
 	}
 	
-	public func setAttribute(attribute: String, value: String) {
+	// TODO: figure out what to do about this (i say move to preprocess)
+	public func setAttribute(attribute: String, value: GravityNode) {
 		let attributeParts = attribute.componentsSeparatedByString(".")
 		
 		if attributeParts.count > 1 {
@@ -400,7 +471,8 @@ import Foundation
 				NSLog("Error: Cannot use dot notation for an attribute on a node that is not an external gravity file.")
 			}
 		} else {
-			attributes[attribute] = value
+			attributes[attribute] = value // we may need to record some information about the document this attribute came from (wait, that's in the value node!)
+//			processAttribute(attribute) // this may be a bad idea
 		}
 	}
 	

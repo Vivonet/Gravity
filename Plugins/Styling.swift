@@ -10,7 +10,10 @@ import Foundation
 
 // Gravity.Styling.registerStyle(...)
 
-extension Gravity { // or perhaps GravityPlugins??
+// should i move this into Appearance?
+
+@available(iOS 9.0, *)
+extension Gravity {
 	@objc public class Styling: GravityPlugin {
 		static var styles = Dictionary<String, (UIView) -> ()>() // styles by class name, e.g. "UIButton" TODO: add support for style classes too, e.g. style="styleClass"
 		// styles can also be used to do any post processing on an element after initialization; it doesn't have to be style related, though we should probably use plugins for that in general

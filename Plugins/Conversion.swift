@@ -11,8 +11,9 @@ import Foundation
 // Gravity.Conversion.registerConverter(...)
 // Gravity.Conversion.convert(object) as Type
 
+@available(iOS 9.0, *)
 extension Gravity {
-	public typealias GravityConverterBlock = (input: String, inout output: AnyObject?) -> GravityResult
+	public typealias GravityConverterBlock = (input: GravityNode, inout output: AnyObject?) -> GravityResult
 	
 	@available(iOS 9.0, *)
 	@objc public class Conversion: GravityPlugin {
@@ -26,55 +27,60 @@ extension Gravity {
 			converters["\(type)"] = converter
 		}
 		
-		public class func convert<T: AnyObject>(input: String) -> T? {
-			if let converter = converters["\(T.self)"] {
-				var output: AnyObject?
-				if converter(input: input, output: &output) == .Handled {
-					return output as? T
-				}
-			}
-			return nil
-		}
+//		public class func convert<T: AnyObject>(input: String) -> T? {
+//			if "\(T.self)" == "String" { // there's got to be a better way to do this
+//				return input as? T // verify
+//			}
+//			if let converter = converters["\(T.self)"] {
+//				var output: AnyObject?
+//				if converter(input: input, output: &output) == .Handled {
+//					return output as? T
+//				}
+//			}
+//			return nil
+//		}
 		
-		public override func transformValue(node: GravityNode, attribute: String, input: String, inout output: AnyObject) -> GravityResult {
-			var propertyType: String? = nil
-			
-			// this is string.endsWith in swift. :| lovely.
-			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
-				propertyType = "UIColor" // bit of a hack because UIView.backgroundColor doesn't seem to know its property class via inspection :/
-			}
-			
-			if propertyType == nil {
-//				NSLog("Looking up property for \(node.view.dynamicType) . \(attribute)")
-				// is there a better/safer way to do this reliably?
-				let property = class_getProperty(NSClassFromString("\(node.view.dynamicType)"), attribute)
-				if property != nil {
-					if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
-						if components.count >= 2 {
-							propertyType = components[1]
-//							NSLog("propertyType: \(propertyType!)")
-						}
-					}
-				}
-			}
-			
-			if propertyType != nil {
-				if let converter = Conversion.converters[propertyType!] {
-					var newOutput: AnyObject? = output
-					if converter(input: input, output: &newOutput) == .Handled {
-						output = newOutput! // this feels ugly
-						return .Handled
-					}
-				}
-			}
-			
-			return .NotHandled
-		}
+//		public override func transformValue(node: GravityNode, attribute: String, input: GravityNode, inout output: AnyObject) -> GravityResult {
+//			var propertyType: String? = nil
+//			
+//			// this is string.endsWith in swift. :| lovely.
+//			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
+//				propertyType = "UIColor" // bit of a hack because UIView.backgroundColor doesn't seem to know its property class via inspection :/
+//			}
+//			
+//			if propertyType == nil {
+////				NSLog("Looking up property for \(node.view.dynamicType) . \(attribute)")
+//				// is there a better/safer way to do this reliably?
+//				let property = class_getProperty(NSClassFromString("\(node.view.dynamicType)"), attribute)
+//				if property != nil {
+//					if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
+//						if components.count >= 2 {
+//							propertyType = components[1]
+////							NSLog("propertyType: \(propertyType!)")
+//						}
+//					}
+//				}
+//			}
+//			
+//			if propertyType != nil {
+//				if let converter = Conversion.converters[propertyType!] {
+//					var newOutput: AnyObject? = output
+//					if converter(input: input, output: &newOutput) == .Handled {
+//						output = newOutput! // this feels ugly
+//						return .Handled
+//					}
+//				}
+//			}
+//			
+//			return .NotHandled
+//		}
 		
 		private class func loadDefaultConverters() {
 			// UIColor
 			registerConverterForClass(UIColor.self) { (input, output) -> GravityResult in
-				let value = input.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet)
+				guard let value = input.textValue?.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet) else {
+					return .NotHandled
+				}
 				var int = UInt32()
 				NSScanner(string: value).scanHexInt(&int)
 				let r, g, b, a: UInt32
@@ -94,7 +100,9 @@ extension Gravity {
 			
 			// UIFont
 			registerConverterForClass(UIFont.self) { (input, output) -> GravityResult in
-				let parts = input.componentsSeparatedByString(" ")
+				guard let parts = input.textValue?.componentsSeparatedByString(" ") else {
+					return .NotHandled
+				}
 				var font: UIFont?
 				let size = CGFloat((parts.last! as NSString).floatValue)
 				if parts.count >= 2 {
@@ -138,5 +146,30 @@ extension Gravity {
 				return output != nil ? .Handled : .NotHandled
 			}
 		}
+	}
+}
+
+@available(iOS 9.0, *)
+extension GravityNode {
+	public func convert(type: String) -> AnyObject? {
+//		return Gravity.Conversion.convert(textValue) as? T?
+		if type == "String" || type == "NSString" { // there's got to be a better way to do this
+			return textValue// as? T // verify
+		}
+		if #available(iOS 9.0, *) {
+		    if let converter = Gravity.Conversion.converters[type] {
+    			var output: AnyObject?
+    			if converter(input: self, output: &output) == .Handled {
+    				return output// as? T
+    			}
+    		}
+		} else {
+		    // Fallback on earlier versions
+		}
+		return nil
+	}
+	
+	public func convert<T>() -> T? {
+		return convert("\(T.self)") as? T
 	}
 }

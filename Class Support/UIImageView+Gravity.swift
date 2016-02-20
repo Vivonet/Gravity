@@ -11,10 +11,14 @@ import Foundation
 @available(iOS 9.0, *)
 extension UIImageView: GravityElement {
 	// do we really need this at all?
-	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
+	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+		guard let textValue = value.textValue else {
+			return .NotHandled
+		}
+		
 		switch attribute {
 			case "image":
-				self.image = UIImage(named: stringValue)?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate)
+				self.image = UIImage(named: textValue)?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate) // for now; make this configurable
 				return .Handled
 				
 			default:

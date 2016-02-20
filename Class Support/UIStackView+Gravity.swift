@@ -28,10 +28,14 @@ extension UIStackView: GravityElement {
 //	}
 
 	// reorder to attribute, value, node?
-	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
+	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+		guard let textValue = value.textValue else {
+			return .NotHandled
+		}
+//		if let stringValue = value as? String {
 		switch attribute {
 			case "axis":
-				switch stringValue.lowercaseString {
+				switch textValue.lowercaseString {
 					case "horizontal", "h":
 						self.axis = .Horizontal
 						return .Handled
@@ -45,7 +49,7 @@ extension UIStackView: GravityElement {
 				}
 			
 			case "alignment":
-				switch stringValue.lowercaseString {
+				switch textValue.lowercaseString {
 					case "center":
 						self.alignment = .Center
 						return .Handled
@@ -69,6 +73,7 @@ extension UIStackView: GravityElement {
 			default:
 				break
 		}
+//		}
 		
 		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
 	}
@@ -138,7 +143,7 @@ extension UIStackView: GravityElement {
 		var shrinkIndex = [Int: GravityNode]()
 		for childNode in node.childNodes {
 			// no idea why i need the ! here:
-			let rank = Int(childNode.attributes["shrinks"] ?? "0")! //gravity.elementMetadata[subview]!.shrinks
+			let rank = Int(childNode["shrinks"]?.textValue ?? "0")! //gravity.elementMetadata[subview]!.shrinks
 			let adjustedIndex = rank == 0 ? 0 : (1000 - abs(rank)) * (rank > 0 ? -1 : 1)
 //			NSLog("rank %d adjusted to %d", rank, adjustedIndex)
 			shrinkIndex[adjustedIndex] = childNode

@@ -10,7 +10,7 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UITextView: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: AnyObject?, stringValue: String) -> GravityResult {
+	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
 		return .NotHandled
 	}
 	

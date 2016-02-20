@@ -8,6 +8,7 @@
 
 import Foundation
 
+@available(iOS 9.0, *)
 extension Gravity {
 	@objc public class Layout: GravityPlugin {
 		private static let keywords = ["fill", "auto"]
@@ -31,21 +32,50 @@ extension Gravity {
 			}
 		}
 		
-		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: String) -> GravityResult {
+		public override func preprocessValue(node: GravityNode, attribute: String, value: GravityNode) {
+			guard let textValue = value.textValue else {
+				return
+			}
+			
+			switch attribute {
+				case "width":
+					if !Layout.keywords.contains(textValue) {
+						let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+						if textValue.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
+							if widthIdentifiers[textValue] == nil {
+								widthIdentifiers[textValue] = [GravityNode]()
+							}
+							widthIdentifiers[textValue]?.append(node)
+						}
+					}
+					break
+				
+				default:
+					break
+			}
+		}
+		
+		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult {
+			NSLog(attribute)
+			// TODO: can we do anything with node values here?
+			guard let textValue = value.textValue else {
+				return .NotHandled
+			}
+			
 			switch attribute {
 				// TODO: may want to set these with higher priority than default to avoid view/container bindings conflicting
 				// we should also capture these priorities as constants and put them all in one place for easier tweaking and balancing
 				case "width":
-					if !Layout.keywords.contains(value) {
+					if !Layout.keywords.contains(textValue) {
 						let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
-						if value.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
-							if widthIdentifiers[value] == nil {
-								widthIdentifiers[value] = [GravityNode]()
-							}
-							widthIdentifiers[value]?.append(node)
+						if textValue.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
+//							if widthIdentifiers[textValue] == nil {
+//								widthIdentifiers[textValue] = [GravityNode]()
+//							}
+//							widthIdentifiers[textValue]?.append(node)
 						} else {
 							UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-								node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((value as NSString).floatValue))
+								node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue))
 							}
 						}
 					}
@@ -53,42 +83,46 @@ extension Gravity {
 				
 				case "minWidth":
 					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((value as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
+						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
 					}
 					return .Handled
 				
 				case "maxWidth":
 					UIView.autoSetPriority(GravityPriorities.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((value as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
+						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
 					}
 					return .Handled
 				
 				case "height":
-					if !Layout.keywords.contains(value) {
+					if !Layout.keywords.contains(textValue) {
 						UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-							node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((value as NSString).floatValue))
+							node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((textValue as NSString).floatValue))
 						}
 					}
 					return .Handled
 				
 				case "minHeight":
 					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((value as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
+						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
 					}
 					return .Handled
 				
 				case "maxHeight":
 					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((value as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
+						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
 					}
 					return .Handled
 				
 				// move to styling??
 				case "cornerRadius":
 					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
-					node.view.layer.cornerRadius = CGFloat((value as NSString).floatValue)
+					node.view.layer.cornerRadius = CGFloat((textValue as NSString).floatValue)
 					node.view.clipsToBounds = true // assume this is still needed
 					return .Handled
+				
+				case "shrinks":
+					return .Handled
+				
 				
 				default:
 					return .NotHandled
@@ -133,6 +167,21 @@ extension Gravity {
 					}
 				}
 			}
+		}
+	}
+}
+
+@available(iOS 9.0, *)
+extension GravityNode {
+	public var gravity: GravityDirection {
+		get {
+			return GravityDirection(getScopedAttribute("gravity")?.textValue ?? "top left")
+		}
+	}
+	
+	public var zIndex: Int {
+		get {
+			return Int(attributes["zIndex"]?.textValue ?? "0")!
 		}
 	}
 }

@@ -1,7 +1,7 @@
 #Gravity
 An easy to learn XML-based layout description language for iOS powered by Auto Layout.
 
-**tl;dr** It's kinda like HTML for apps and is an order of magnitude easier to use than Auto Layout.
+**tl;dr** It's kind of like HTML for native layouts, and is an order of magnitude easier to use than Auto Layout.
 
 ##Sample
 Suppose you wanted to construct the following simple layout (everything inside the bubble):
@@ -59,7 +59,7 @@ Auto layout tends to work well in two scenarios:
 
 It fails though, utterly in my opinion, at handling 99% of the layouts typical in modern software: those that need slightly more power than the absolute basic defaults, but which are not so mind-numbingly complex as to require the type of prioritized constraint engine Auto Layout is based upon.
 
-Here's my background: I've always been a Mac guy, but I dabbled with .NET for a while in the mid 2000's. During this time I discovered (and eventually fell quite in love with) WPF, a.k.a. Windows Presentation Foundation. To me, WPF represented a quantum leap forward in the natural expressibility of the very *language* of expressing visual layouts, using a simple hierarchical structure based on XML they called XAML. (Horrible, horrible names. Apparently WPF was called by the codename of Avalon. And they changed it to WPF. Like WPF were they thinking. I digress.)
+Here's my background: I've always been a Mac guy, but I dabbled with .NET for a while in the mid 2000's. During this time I discovered (and eventually fell quite in love with) WPF, a.k.a. Windows Presentation Foundation. To me, WPF represented a quantum leap forward in the natural expressibility of the very *language* of expressing visual layouts, using a simple hierarchical structure based on XML they called XAML. (Horrible, horrible names. Apparently WPF was originally called Avalon. And they changed it to WPF. Like WPF were they thinking. I digress.)
 
 After leaving the Windows world and coming back to Apple by means of the iOS platform, I was utterly dismayed at the mediocre layout tools available to me: at first it was Interface Builder with springs and struts, which was familiar to me from my classic Mac OS programming days. While the springs and struts model was a breeze to understand and worked fairly well for very simple interfaces, it was ultimately very limited in what it could express. It wasn't until Apple released their "next big thing" in layout, though, that things got truly bad.
 
@@ -77,18 +77,16 @@ Go ahead, sketch out a simple UI on a piece of paper or your favourite app. Look
 
 Gravity is inspired on the surface by WPF, but is a much simplified take on it. You design your layout as a tree: everything has its place in the hierarchy, so you don't need to worry about binding things together, and the resultant interface is generated deterministically with all of the proper layout constraints in place, so you get all the benefits of Auto Layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
 
-Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you build and tweak your interface *textually*, just like editing source code. It's mathematically precise and has far fewer points of potential failure than Auto Layout. Gravity aims to be a solid mathematical foundation for your app's interface.
+Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you build and tweak your interface *textually*, just like editing source code. It is mathematically precise and because it manages all of the layout constraints for you, has far fewer points of potential failure than traditional Auto Layout. Gravity aims to be a solid mathematical foundation for your app's interface.
 
-Gravity is more than just a layout language. Gravity is a metaphor. For the way we picture and convey the information we want to display to our users. It is minimalism and efficiency.
-
-Calling Gravity an "engine" may be a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. It's really just an interpretive layer that converts an XML document into a fully-constructed interface. Gravity is the curtain that hides the great and powerful Oz.
+Calling Gravity a "layout engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. Gravity is the curtain that hides the great and powerful Oz.
 
 Coming soon.
 
 ##The Philosophy
 Constructing an interface is a way of communicating. It is a way for the developer of an application to communicate relevant contextual information to the user. It shouldn't be something that is hard or takes painstaking work. It should be as natural as language: as thoughts arranged in such a way as to be understood.
 
-Apple seems to treat interface development as a finely tuned work of art. A masterpiece of balancing cards. And while there's nothing wrong with a perfected UI, the order of magnitude longer time it takes to develop could easily be argued away in a great many cases.
+Gravity takes much of the *work* out of creating a layout, and makes it much more naturally expressible.
 
 ##The Basics
 Gravity is, at its heart, an XML representation of a native layout. Its elements are classes and its attributes are generally properties on those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond directly to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "label" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
@@ -104,18 +102,20 @@ Stacking can take place either horizontally or vertically and takes place in a *
 Layers in Gravity are analogous to layers in drawing and paint programs: unlike stack views which arrange their subviews in a line horizontally or vertically, layering arranges views *inwards* and *outwards*—that is, along the Z axis.
 
 ###Growing and Shrinking
-In regular Auto Layout, you control how elements expand and contract by a combination of **content hugging priority** and **content compression resistance priority**, each of which (being a priority) takes a value between 0 and 1000.
+In Auto Layout, you control how elements expand and contract by a combination of **content hugging priority** and **content compression resistance priority**, each of which (being a priority) takes a value between 0 and 1000.
 
-In Gravity, things are much simpler to wrap your head around. You simply specify the order in which elements in a container should collapse and which element should grow. Positive numbers mean first, negative numbers mean last. So if you want an element to be the first to grow* when there is extra space, set grows="1". If you want it to be the last to shrink when there is not enough room, shrinks="-1". You can order as many or as few as you want.
+In Gravity, things are much simpler to wrap your head around. By default, all views shrink to their smallest natural size that displays all of their content. If you want a view to grow to take up all of the available space, set its `width="fill"`. A view will only ever grow up to the next explicitly-sized view (width, maxWidth, etc.).
 
-* Technically only one element can ever grow, due to current limitations. Note also that the `grows` attribute only comes into effect when there is more space than needed for all items in the container. It does not affect the growth of elements when the container is already compressed. In that case, it simply follows the reverse of the shrinking order until all items are their natural sizes, at which point the `grows` attribute takes effect.
+To control shrinking, you simply set a shrinking order in which elements in a container should collapse in sequence. Usually you will only need to set a couple of these, because the rest can be inferred. Set the order in which the elements should shrink when there is not enough room for them all to fit. You can also use negative numbers to count from last place, so that `shrinks="-1"` would be the last element to shrink. You can number as many or as few views as you want and the rest will be inferred (potentially arbitrarily).
+
+Note that if there is a view set to fill and there is presently more space available than required to display all of the content, the over-sized filled view will take precedence in shrinking order, until it reaches its natural intrinsic size, at which point the shrinking order will come into effect.
 
 Like so:
 
 ```xml
 <H>
 	<UILabel text="I am just a label:" shrinks="1"/>
-	<UILabel text="I am important content." shrinks="-2" grows="1"/>
+	<UILabel text="I am important content." shrinks="-2"/>
 	<UIImage id="statusIcon" image="exclamation-22" shrinks="-1"/>
 </H>
 ```
@@ -151,7 +151,7 @@ But it gets even better. Give an element in your sub-layout an id, and you will 
 ```
 
 **Main.xml**
-```
+```xml
 <UIView backgroundColor="#0ff">
 	<V width="300" gravity="top left">
 		<FormRow titleLabel.text="Name:" valueLabel.text="George McFly" />
@@ -170,8 +170,8 @@ This is fully recursive too, so you can encapsulate as many levels deep as you w
 
 However, a much better way to do something like an encapsulated profile view is with…
 
-###Data Contexts
-With a data context you are truly offloading the work of displaying a property in an object-oriented fashion.
+###Models
+With models you are truly offloading the work of displaying  in an object-oriented fashion.
 
 Important: If you are using Gravity with Swift, data binding currently only works with `dynamic` NSObject properties. To ensure that your model objects can be read and observed by Gravity properly, make sure your model class derives from NSObject at some point and mark all observable properties with the `dynamic` keyword:
 
@@ -184,12 +184,28 @@ class MyObjectToObserve: NSObject {
 }
 ```
 
-Unfortunately, and until Swift introduces some form of native support for property observation, you are stuck with this requirement. If you're using Gravity from Objective-C, all of your objects are already NSObjects, so luckily this doesn't affect you.
+*Unfortunately, and until Swift introduces some form of native support for property observation, you are stuck with this requirement. This is truly the biggest limitation in Swift affecting Gravity. It's 2016. We need observable properties, Apple! If you're using Gravity from Objective-C, fortunately all of your objects are already NSObjects, so this doesn't affect you.*
+
+There is a certain symmetry between models and encapsulation, and in fact two distinct "directions" of control you can choose for your layout: parent-controlled or self-controlled. Think of a parent-controlled view as a general-purpose reusable control (its purpose is determined by its parent) whereas a self-controlled view knows exactly what it will be viewing and how to get that information from its associated model object (in this case, the only "control" the parent has is to actually assign the model). Think of a self-controlled view such as this as a black box, whereas a parent-controlled view is a white box (metaphorically speaking) whose internals are exposed.
+
+In general, you will use parent-controlled views for simpler, lower-level reusable components (such as a table row) while self-controlled views are viewers for specific data types, and therefore occupy a higher conceptual level. In many cases, your self-controlled views will be built up of lower-level parent-controlled views. Very rarely will it ever be the other way around.
 
 ###Controllers
-The controller is there to do anything that you can't do in your gravity file itself. Generally speaking, it does the "thinking"—any logic that you need to do in code, and generally corresponds one-to-one with the view file. You supply this and it can be any object at all, however there will typically be exactly one class that will naturally represent the controller, depending on the purpose of the layout. In most cases it will be a descendent of UIView or UIViewController in some capacity.
+The controller is there to do anything that you can't do in your gravity file itself. Generally speaking, it does the "thinking"—any logic that you need to do in code, and generally corresponds one-to-one with the view file. You supply this and it can be any NSObject, however there will typically be exactly one class that will naturally represent the controller, depending on the purpose of the layout. In most cases it will be a descendent of UIView or UIViewController.
 
-How the controller is treated is really up to each plugin or supported class. For example, the UIButton's class support will bind action:"" attributes to selectors in your controller, whatever it may be.
+How the controller is treated is really up to each plugin or supported class. For example, the UIButton's class support will bind action="selector:" attributes to selectors in your controller, whatever it may be.
+
+###Attribute Nodes
+Gravity supports a special syntax called **attribute notation** (property notation in WPF) which allows you to configure objective values as if they were being assigned to an attribute of the parent node.
+
+XML's syntax only allows string values for attributes, which works in a great many cases when you add conversion to the mix, but there are times when having a single string just isn't enough to represent the configuration of an object. For these situations, we have attribute nodes.
+
+Attribute nodes are specified using dot notation on the parent element's name. Everything following the first dot is treated as an attribute
+
+###Scoped Attributes
+A scoped attribute is an attribute that affects the node it is applied to and all child nodes of that node, until it is overridden. Note that scoped attributes do not traverse document boundaries, so if you embed another document inside your layout, attributes like gravity and color will not extend into that document.
+
+Instead, if you want to customize the appearance of elements within your embedded document, you want to use **styles**. [Not yet implemented]
 
 ##Benefits
 ###True Native UI (Fast!)
@@ -259,7 +275,7 @@ Gravity has a special meaning when applied to a UIView.
 Gravity makes it easy to add XML support to any existing class. If you have control of the class, simply add the `GravityElement` protocol and implement its one required method. If you don't control the class, you can create a class extension that adds support for the GravityElement protocol to any existing class. See the classes in the "Class Support" folder of Gravity for some examples.
 
 ###Plugins
-If you can't do what you need via the GravityElement protocol, chances are you will need to write a Gravity plugin. Gravity supports (or rather, will support) a simple plugin architecture allowing you to insert custom logic at key points and extend the framework to suit your needs. The intention is to make it as flexible as possible, providing the ability for plugins to override default behavior at all of the necessary key points such as element instantiation, attribute processing, and pre- and post-processing of elements.
+If you can't do what you need via the GravityElement protocol, chances are you will need to write a Gravity plugin. Gravity sports a powerful plugin architecture allowing you to insert custom logic at key points and extend the framework to suit your needs. The intention is to make it as flexible as possible, providing the ability for plugins to override default behavior at all of the necessary key points, such as element instantiation, attribute processing, and pre- and post-processing of elements.
 
 One key use of plugins is to handle element instantiation from a node where the default behavior is unsatisfactory. By default, Gravity uses the name of the element to identify a class and instantiate a default (parameterless) instance of that class, which can then be configured by handling the node's attributes in turn. However, if the element name does not correspond to a class name, or the class requires more complicated initialization (e.g. UICollectionView), you can create a Gravity plugin to accomplish this.
 
