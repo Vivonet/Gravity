@@ -86,7 +86,7 @@ extension Gravity {
 				let r, g, b, a: UInt32
 				switch value.characters.count {
 					case 3: // RGB (12-bit)
-						(r, g, b, a) = ((int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17, 255)
+						(r, g, b, a) = ((int >> 8) * 0x11, (int >> 4 & 0xF) * 0x11, (int & 0xF) * 0x11, 255)
 					case 6: // RGB (24-bit)
 						(r, g, b, a) = (int >> 16, int >> 8 & 0xFF, int & 0xFF, 255)
 					case 8: // RGBA (32-bit)
@@ -94,7 +94,7 @@ extension Gravity {
 					default:
 						return .NotHandled
 				}
-				output = UIColor(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: CGFloat(a) / 255)
+				output = UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: CGFloat(a) / 255.0)
 				return .Handled // TODO: error handling
 			}
 			
@@ -156,15 +156,11 @@ extension GravityNode {
 		if type == "String" || type == "NSString" { // there's got to be a better way to do this
 			return textValue// as? T // verify
 		}
-		if #available(iOS 9.0, *) {
-		    if let converter = Gravity.Conversion.converters[type] {
-    			var output: AnyObject?
-    			if converter(input: self, output: &output) == .Handled {
-    				return output// as? T
-    			}
-    		}
-		} else {
-		    // Fallback on earlier versions
+		if let converter = Gravity.Conversion.converters[type] {
+			var output: AnyObject?
+			if converter(input: self, output: &output) == .Handled {
+				return output// as? T
+			}
 		}
 		return nil
 	}

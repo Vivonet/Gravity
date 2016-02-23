@@ -19,7 +19,8 @@ extension UIView {
 			return objc_getAssociatedObject(self, &GravityNodeAssociatedObjectKey) as! GravityNode
 		}
 		set(value) {
-			objc_setAssociatedObject(self, &GravityNodeAssociatedObjectKey, value, .OBJC_ASSOCIATION_ASSIGN) // i believe this should be weak since the view is created and managed by the GravityNode
+			objc_setAssociatedObject(self, &GravityNodeAssociatedObjectKey, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) // i believe this should be weak since the view is created and managed by the GravityNode
+			// FIXME: actually it should probably be strong, and weak in the other direction, since the view object is really dominant.
 		}
 	}
 }

@@ -33,14 +33,15 @@ public class GravityViewController: UIViewController {
 //		gravityView?.translatesAutoresizingMaskIntoConstraints = false
 		document?.controller = self
 		
-		if let rootNodeView = document?.rootNodeView {
-			view.addSubview(rootNodeView) // TODO: fix this
+		if let document = document {
+//			var newView =
+			view.addSubview(document.view)
 	//		gravityView?.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
-			rootNodeView.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: ALEdge.Bottom)
+			document.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: ALEdge.Bottom)
 			
 			// read current keyboard frame?
 			
-			bottomPin = rootNodeView.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+			bottomPin = document.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
 		}
 		
 		document?.postprocess() // FIXME: we really ought to reconsider postprocess if it's just to support GravityViewController

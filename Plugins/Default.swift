@@ -39,51 +39,54 @@ extension Gravity {
 			return .NotHandled
 		}
 		
-		public override func postprocessAttribute(node: GravityNode, attribute: String, value: GravityNode) {
-			
-			// TODO: if value is a node, check property type on target and potentially convert into a view (view controller?)
-
-			var propertyType: String? = nil
-			
-			// this is string.endsWith in swift. :| lovely.
-			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
-				propertyType = "UIColor" // bit of a hack because UIView.backgroundColor doesn't seem to know its property class via inspection :/
-			}
-			
-			if propertyType == nil {
-//				NSLog("Looking up property for \(node.view.dynamicType) . \(attribute)")
-				// is there a better/safer way to do this reliably?
-				let property = class_getProperty(NSClassFromString("\(node.view.dynamicType)"), attribute)
-				if property != nil {
-					if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
-						if components.count >= 2 {
-							propertyType = components[1]
-//							NSLog("propertyType: \(propertyType!)")
-						}
-					}
-				}
-			}
-			
-			var convertedValue: AnyObject? = value.textValue
-			
-			if let propertyType = propertyType {
-				convertedValue = value.convert(propertyType)
-//				if let converter = Conversion.converters[propertyType!] {
-//					var newOutput: AnyObject? = output
-//					if converter(input: input, output: &newOutput) == .Handled {
-//						output = newOutput! // this feels ugly
-//						return .Handled
+//		public override func postprocessValue(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+		
+//			// TODO: if value is a node, check property type on target and potentially convert into a view (view controller?)
+//
+//			var propertyType: String? = nil
+//			
+//			// this is string.endsWith in swift. :| lovely.
+//			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
+//				propertyType = "UIColor" // bit of a hack because UIView.backgroundColor doesn't seem to know its property class via inspection :/
+//			}
+//			
+//			if propertyType == nil {
+////				NSLog("Looking up property for \(node.view.dynamicType) . \(attribute)")
+//				// is there a better/safer way to do this reliably?
+//				let property = class_getProperty(NSClassFromString("\(node.view.dynamicType)"), attribute)
+//				if property != nil {
+//					if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
+//						if components.count >= 2 {
+//							propertyType = components[1]
+////							NSLog("propertyType: \(propertyType!)")
+//						}
 //					}
 //				}
-			}
-			
-//			NSLog("KeyPath \(attribute) converted 
-			
-			if tryBlock({
-				node.view.setValue(convertedValue, forKeyPath: attribute)
-			}) != nil {
-				NSLog("Warning: Key path '\(attribute)' not found on object \(node.view).")
-			}
-		}
+//			}
+//			
+//			var convertedValue: AnyObject? = value.textValue
+//			
+//			if let propertyType = propertyType {
+//				convertedValue = value.convert(propertyType)
+////				if let converter = Conversion.converters[propertyType!] {
+////					var newOutput: AnyObject? = output
+////					if converter(input: input, output: &newOutput) == .Handled {
+////						output = newOutput! // this feels ugly
+////						return .Handled
+////					}
+////				}
+//			}
+//			
+////			NSLog("KeyPath \(attribute) converted 
+//			
+//			if tryBlock({
+//				node.view.setValue(convertedValue, forKeyPath: attribute)
+//			}) != nil {
+//				NSLog("Warning: Key path '\(attribute)' not found on object \(node.view).")
+//			}
+//		}
+
+//		public override func postprocessElement(node: GravityNode) -> GravityResult {
+//		}
 	}
 }

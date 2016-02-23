@@ -137,29 +137,28 @@ extension UIStackView: GravityElement {
 //			// anything else?
 //		}
 		
-		// TODO: abstract this into a method (maybe not anymore)
-		// MARK: Content Compression Resistance
-		let baseCompressionResistance = Float(750)
-		var shrinkIndex = [Int: GravityNode]()
+		// TODO: should this prioritize equal-valued nodes in the reverse order? the default is for the leftmost view of a H to collapse first whereas it feels like the last would would make the most sense.
+		var shrinks = [(Int, GravityNode)]()
 		for childNode in node.childNodes {
 			// no idea why i need the ! here:
 			let rank = Int(childNode["shrinks"]?.textValue ?? "0")! //gravity.elementMetadata[subview]!.shrinks
 			let adjustedIndex = rank == 0 ? 0 : (1000 - abs(rank)) * (rank > 0 ? -1 : 1)
-//			NSLog("rank %d adjusted to %d", rank, adjustedIndex)
-			shrinkIndex[adjustedIndex] = childNode
+			NSLog("rank %d adjusted to %d", rank, adjustedIndex)
+//			shrinkIndex[adjustedIndex] = childNode
+			shrinks.append((adjustedIndex, childNode))
 		}
-		let sortedShrinks = shrinkIndex.sort({ (first: (Int, GravityNode), second: (Int, GravityNode)) -> Bool in
-			return first.0 < second.0
-		})
+		let sortedShrinks = shrinks.sort {
+			return $0.0 < $1.0
+		}
 		for var i = 0; i < sortedShrinks.count; i++ {
 //				let shrinkTuple = sortedShrinks[i]
 //			guard let subview = 
 			var compressionResistance: Float
-			if i > 0 && sortedShrinks[i].0 == sortedShrinks[i-1].0 {
-				compressionResistance = sortedShrinks[i-1].1.view.contentCompressionResistancePriorityForAxis(self.axis)
-			} else {
-				compressionResistance = baseCompressionResistance + Float(i) / Float(sortedShrinks.count)
-			}
+//			if i > 0 && sortedShrinks[i].0 == sortedShrinks[i-1].0 {
+//				compressionResistance = sortedShrinks[i-1].1.view.contentCompressionResistancePriorityForAxis(self.axis)
+//			} else {
+				compressionResistance = GravityPriorities.BaseCompressionResistance + Float(i) / Float(sortedShrinks.count)
+//			}
 			sortedShrinks[i].1.view.setContentCompressionResistancePriority(compressionResistance, forAxis: self.axis)
 //			NSLog("%d: %f", sortedShrinks[i].0, compressionResistance)
 		}

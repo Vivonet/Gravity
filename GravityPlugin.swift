@@ -16,6 +16,7 @@ public enum GravityResult: Int {
 	/// Return this value to indicate that the operation was successfully handled, and that further attempts to handle it should stop. See the documentation for each plugin function to see how this value is interpreted for each case.
 	case Handled = 1
 }
+// consider changing the above to a different metaphor like "Claimed", which would mean that the plugin claims ownership of the handling of the attribute, and will continue to process it at all stages.
 
 @available(iOS 9.0, *)
 @objc public class GravityPlugin: NSObject {
@@ -47,9 +48,7 @@ public enum GravityResult: Int {
 		}
 	}
 	
-	public func preprocessElement(node: GravityNode) -> GravityResult {
-		return .NotHandled
-	}
+	// MARK: PROCESS PHASE
 	
 	// This might best be repurposed to a generic first-chance node handler. For example, if the node represents something a plugin can attach to another node, like a gesture, we need to be able to fully handle and process the node without ever actually turning it into a view.
 	
@@ -61,13 +60,16 @@ public enum GravityResult: Int {
 		return nil
 	}
 	
+//	public func preprocessElement(node: GravityNode) -> GravityResult {
+//		return .NotHandled
+//	}
 	
 	public func preprocessValue(node: GravityNode, attribute: String, value: GravityNode) {
 		// this is an experimental value-based function that is called on the plugin of the document wherein the value is defined, not the document that value ends up being used in
 	}
 	
 	// Actually I'm wondering whether we need this to return a GravityResult. It's potentially confusing/misleading to do this along with string transformation. Returning Handled means stop processing, so to change the value and have it work you have to return NotHandled, which seems wrong.
-	// But if we don't return a GravityResult, how will plugins be able to prevent attributes from being attempted? Do we really need that?
+	// But if we don't return a GravityResult, how will plugins be able to prevent attributes from being attempted? Do we really need that? Yes, we do need a way to break the chain.
 	
 	/// This is the first-chance handler. Returning `Handled` means no more processing will take place *after* the pre-process phase completes.
 	public func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult { // i don't think we need inout at all anymore since GravityNodes are object types and any changes to their textValue will be captured
@@ -79,14 +81,30 @@ public enum GravityResult: Int {
 //	public func transformValue(node: GravityNode, attribute: String, input: GravityNode, inout output: AnyObject) -> GravityResult {
 //		return .NotHandled
 //	}
+
+	// i wonder if we should rename this postprocessValue and make it a value-based call?
 	
-	// TODO: this should be renamed to something like lastChance
+	// TODO: this should be renamed to something like lastChance or attributeFallback or defaultHandler or something
+	// defaultHandler... what if we used blocks for plugins? would that be insane?
 	
-	/// This is the last-chance handler. This method will only be called if the attribute is not handled by any prior means.
-	public func postprocessAttribute(node: GravityNode, attribute: String, value: GravityNode) {
+	// i'm experimentally repurposing this to be the opposite of preprocessValue, and a value-based call
+	// This is a break-first call.
+	func postprocessValue(node: GravityNode, attribute: String, input: GravityNode, inout output: AnyObject) -> GravityResult {
+		return .NotHandled
 	}
 	
-	// this is the last-chance handler
+	func postprocessAttribute(node: GravityNode, attribute: String, value: AnyObject) -> GravityResult {
+		return .NotHandled
+	}
+	
+	// i'm still not convinced we need a plugin hook for this; it's really a singleton fallback, perhaps a block property?
+	public func handleChildNodes(node: GravityNode) -> GravityResult {
+		return .NotHandled
+	}
+	
+	// MARK: POST-PROCESS PHASE
+	
+	// this is a post-process wave that runs after everything ran through once during the initial attribute parsing phase. you can use this phase to check for identifiers that were registered and be sure that the tree has been fully parsed.
 	public func postprocessElement(node: GravityNode) { // maybe rename this to something like elementCreated or postProcessElement
 	}
 	

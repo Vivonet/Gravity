@@ -61,10 +61,11 @@ import Foundation
 	public var view: UIView {
 		get {
 			if _view == nil {
+				NSLog("_view == nil")
 				processNode()
 				// layoutIfNeeded()?
 			}
-			return _view ?? UIView() // change to UIView?
+			return _view!// ?? UIView() // change to UIView?
 		}
 //		set(value) {
 //			_view = value
@@ -77,7 +78,7 @@ import Foundation
 	/// The model object that this node is viewing. Also called a data context.
 	public var model: AnyObject? { // should we force this to be NSObject?
 		get {
-			let value = _model ?? parentNode?.model // recursion is beautiful.
+			let value = _model ?? parentNode?.model ?? document.model // recursion is beautiful.
 			if value == nil && parentNode == nil {
 				return document.parentNode?.model // up a document (models pass through document barriers)
 			}
@@ -119,9 +120,10 @@ import Foundation
 	}
 	
 	// string nodes must have a parent (?)
-	public init(document: GravityDocument, parentNode: GravityNode, nodeName: String, textValue: String) {
+	public init(document: GravityDocument, parentNode: GravityNode?, nodeName: String, textValue: String) {
 		self.document = document
 		self.nodeName = nodeName
+		self.parentNode = parentNode
 		self.textValue = textValue
 		super.init()
 		setup()
@@ -132,7 +134,7 @@ import Foundation
 		self.attributes = self.attributes ?? [String: GravityNode]()
 	}
 	
-	public func instantiate() -> GravityNode {
+	public func instantiate(model: AnyObject? = nil) -> GravityDocument {
 		// TODO: return an instantiated document (or possibly view); to be used for row/item templating
 		preconditionFailure()
 	}
@@ -241,7 +243,7 @@ import Foundation
 			var childNodeStrings = [String]()
 			// TODO: add attributeNodes?
 			for childNode in childNodes {
-				childNodeStrings.append(childNode.description)
+				childNodeStrings.append(childNode.getDescription(debug))
 			}
 			
 			if let textValue = textValue {
@@ -259,22 +261,23 @@ import Foundation
 	// this is unfrotunately a very monolithic function right now
 	public func processNode() {
 		let className = self.nodeName
+		
+		_view = _view ?? document.instantiateView(self) ?? UIView() // this lets plugins have a chance to see every node, in some capacity
 
-		// childDocument is set in the pre-processing phase
-		if let childDocument = childDocument {
-			_view = childDocument.view // this will recursively load the child's view hierarchy
-		}
-		
-		_view = _view ?? document.instantiateView(self) // this lets plugins have a chance to see every node, in some capacity
-		
-		if _view == nil {
-			NSLog("Error: Could not instantiate class ‘\(className)’.")
-			// we may not actually want to return here (think UITableView.rowTemplate, gestures, etc.)
-			// or will those nodes be handled by the parent handler? perhaps we should never even get here unless they attempt to access `.view` on the node?
-			return
-		}
+//		if _view == nil {
+//			NSLog("Error: Could not instantiate class ‘\(className)’.")
+//			// we may not actually want to return here (think UITableView.rowTemplate, gestures, etc.)
+//			// or will those nodes be handled by the parent handler? perhaps we should never even get here unless they attempt to access `.view` on the node?
+//			return
+//		}
 		
 		view.gravityNode = self
+		
+		// childDocument is set in the pre-processing phase
+		if let childDocument = childDocument {
+			childDocument.node._view = _view // perhaps there is a better place for this
+			childDocument.node.processNode() // recurse
+		}
 		
 //		var computedAttributes = [String: GravityNode]()
 //		computedAttributes = attributes // work???
@@ -296,102 +299,14 @@ import Foundation
 		// TODO: set a flag and disallow access to the "controller" property? can it even be accessed from processElement anyway? presumably only from GravityView, so it's probably not a big deal
 		
 		if let gravityElement = view as? GravityElement {
-			if gravityElement.processElement?(self) == .Handled {
+			if gravityElement.processElement?(self) == .Handled { // handled here means completely, child nodes included
 				return //view // handled
 			}
 		}
 		
-//		for plugin in document.plugins {
-//			if plugin.postprocessElement(self) == .Handled {
-////				return // ?
-//			}
-//		}
-		
-		// MARK: Default Child Handling
-		// TODO: move this to Layout (or Default?) plugin
-		
-		// TODO: we may be better off actually setting a z-index on the views; this needs to be computed
-		
-		// we have to do a manual fucking insertion sort here, jesus gawd what the fuck swift?!! no stable sort in version 2.0 of a language??? how is that even remotely acceptable??
-		// because, you know, i enjoy wasting my time writing sort algorithms!
-		var sortedChildren = [GravityNode]()
-		for childNode in childNodes {
-//			let childNode = childNodes[i]
-//			let zIndex = Int(childNode["zIndex"] ?? "0")! // really fucking awesome that swift can't fucking propagate nils. god fucking damnit why do i put up with this shit??
-			// seriously though, what is the point of having all this optional shit without even taking advantage of what it can offer???
-//			var lastChild: GravityNode = nil
-			var handled = false
-			for var i = 0; i < sortedChildren.count; i++ {
-				if sortedChildren[i].zIndex > childNode.zIndex {
-					sortedChildren.insert(childNode, atIndex: i)
-					handled = true
-					break
-				}
-			}
-			if !handled {
-				sortedChildren.append(childNode)
-			}
-		}
-
-		for childNode in sortedChildren {
-			view.addSubview(childNode.view)
-			
-			UIView.autoSetPriority(GravityPriorities.ViewContainment + Float(childNode.depth)) {
-				// TODO: come up with better constraint identifiers than this
-				// experimental: only apply these implicit constraints if the parent is not filled
-				
-				// i swear, childNode.parentNode should be self should it not???
-				
-				if !self.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
-					childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-					childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-				}
-				
-				if !self.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) {
-					childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-					childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-				}
-			}
-						
-			// TODO: we need to size a view to its contents by default (running into an issue where views are 0 sized)
-			
-//			 TODO: add support for margins via a margin and/or padding attribute
-
-//			childNode.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
-			// TODO: unlock this when things are working:
-			
-			switch childNode.gravity.horizontal {
-				case GravityDirection.Left:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-					break
-				
-				case GravityDirection.Center:
-					childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
-					break
-				
-				case GravityDirection.Right:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-					break
-				
-				default:
-					break
-			}
-			
-			switch childNode.gravity.vertical {
-				case GravityDirection.Top:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-					break
-				
-				case GravityDirection.Middle:
-					childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Horizontal)
-					break
-				
-				case GravityDirection.Bottom:
-					childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-					break
-				
-				default:
-					break
+		for plugin in document.plugins {
+			if plugin.handleChildNodes(self) == .Handled {
+				return // ?
 			}
 		}
 	}
@@ -451,8 +366,17 @@ import Foundation
 		
 		// 4. Post-process handling by plugins
 		// this is really just a last-chance handler, we should rename it; postprocess is stupid
+		var finalValue: AnyObject = value
+		for plugin in value.document.plugins { // experimental second value-based hook!!
+			if plugin.postprocessValue(self, attribute: attribute, input: value, output: &finalValue) == .Handled {
+				break
+			}
+		}
+		
 		for plugin in document.plugins {
-			plugin.postprocessAttribute(self, attribute: attribute, value: value)
+			if plugin.postprocessAttribute(self, attribute: attribute, value: finalValue) == .Handled {
+				return
+			}
 		}
 	}
 	

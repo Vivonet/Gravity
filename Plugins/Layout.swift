@@ -129,6 +129,91 @@ extension Gravity {
 			}
 		}
 		
+		public override func handleChildNodes(node: GravityNode) -> GravityResult {
+			// TODO: we may be better off actually setting a z-index on the views; this needs to be computed
+			
+			// we have to do a manual fucking insertion sort here, jesus gawd what the fuck swift?!! no stable sort in version 2.0 of a language??? how is that even remotely acceptable??
+			// because, you know, i enjoy wasting my time writing sort algorithms!
+			var sortedChildren = [GravityNode]()
+			for childNode in node.childNodes {
+				var handled = false
+				for var i = 0; i < sortedChildren.count; i++ {
+					if sortedChildren[i].zIndex > childNode.zIndex {
+						sortedChildren.insert(childNode, atIndex: i)
+						handled = true
+						break
+					}
+				}
+				if !handled {
+					sortedChildren.append(childNode)
+				}
+			}
+
+			for childNode in sortedChildren {
+				node.view.addSubview(childNode.view)
+				
+				UIView.autoSetPriority(GravityPriorities.ViewContainment + Float(childNode.depth)) {
+					// TODO: come up with better constraint identifiers than this
+					// experimental: only apply these implicit constraints if the parent is not filled
+					
+					// i swear, childNode.parentNode should be self should it not???
+					
+					if !node.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
+						childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+						childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+					}
+					
+					if !node.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) {
+						childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+						childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
+					}
+				}
+							
+				// TODO: we need to size a view to its contents by default (running into an issue where views are 0 sized)
+				
+	//			 TODO: add support for margins via a margin and/or padding attribute
+
+	//			childNode.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
+				// TODO: unlock this when things are working:
+				
+				switch childNode.gravity.horizontal {
+					case GravityDirection.Left:
+						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
+						break
+					
+					case GravityDirection.Center:
+						childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
+						break
+					
+					case GravityDirection.Right:
+						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
+						break
+					
+					default:
+						break
+				}
+				
+				switch childNode.gravity.vertical {
+					case GravityDirection.Top:
+						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
+						break
+					
+					case GravityDirection.Middle:
+						childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Horizontal)
+						break
+					
+					case GravityDirection.Bottom:
+						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+						break
+					
+					default:
+						break
+				}
+			}
+			
+			return .Handled
+		}
+		
 		public override func postprocessElement(node: GravityNode) {
 			// is this ok here?
 			for (identifier, nodes) in widthIdentifiers {

@@ -200,7 +200,7 @@ Gravity supports a special syntax called **attribute notation** (property notati
 
 XML's syntax only allows string values for attributes, which works in a great many cases when you add conversion to the mix, but there are times when having a single string just isn't enough to represent the configuration of an object. For these situations, we have attribute nodes.
 
-Attribute nodes are specified using dot notation on the parent element's name. Everything following the first dot is treated as an attribute
+Attribute nodes are specified using dot notation on the parent element's name. Everything following the parent element's name is treated as an attribute on the parent element. You can still access child document identifiers by appending further dot components.
 
 ###Scoped Attributes
 A scoped attribute is an attribute that affects the node it is applied to and all child nodes of that node, until it is overridden. Note that scoped attributes do not traverse document boundaries, so if you embed another document inside your layout, attributes like gravity and color will not extend into that document.
@@ -230,14 +230,14 @@ This establishes the view's connection to the model. Notice the controller isn't
 In Gravity, to add a table to your view you simply add a UITableView node to your layout and provide it with a *row template*, which is itself a view that is either written directly into the parent document, or a reference to a child document. Each instantiation of a row from the template will have a different data context for each element of the table's data source, and will render itself accordingly. We *still* don't need a controller for any of this.
 
 ###Rapid Prototyping
-Gravity is so simple, you can actually use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.
+Once you get the hang of it, Gravity is so simple you can often use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.
 
 Gravity uses all native types (except for the special GravityView), so migrating from a Gravity-based layout to a storyboard or XIB is also very natural. Just make your controller properties IBOutlets and bind them as usual.
 
 But why you would want to do that I have no idea, because…
 
 ###No More Interface Builder!
-One of the main motivations for Gravity was to break free of the horror known as Interface Builder. Now you can finally architect your interfaces simply and precisely in code. No need for scary wishy-washy mouse-driven interface design anymore. Take complete control of your layout and ditch less worthy paradigms and complex proprietary file formats. Interfaces should not be drawn with a mouse. That's really all there is to say about it.
+One of the main motivations for Gravity was to break free of the horror known as Interface Builder. Now you can finally architect your interfaces simply and precisely in code. No need for scary wishy-washy mouse-driven interface design anymore. Take complete control of your layout and ditch less worthy paradigms and complex proprietary file formats.
 
 ###No More Outlets!
 Outlets are a joke. Most frameworks would simply bind interface elements to their code-side counterparts automatically (as does Gravity), but for some reason Apple felt like burdening the user with this bizarre ritual of tying views to their properties manually by dragging lines from Interface Builder into your code file. Okay.

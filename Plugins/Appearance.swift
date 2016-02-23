@@ -11,7 +11,15 @@ import Foundation
 @available(iOS 9.0, *)
 extension Gravity {
 	@objc public class Appearance: GravityPlugin {
-	
+		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult {
+			switch attribute {
+				case "font":
+					return .Handled
+				
+				default:
+					return .NotHandled
+			}
+		}
 	}
 }
 
@@ -20,6 +28,12 @@ extension GravityNode {
 	public var color: UIColor {
 		get {
 			return getScopedAttribute("color")?.convert() as UIColor? ?? UIColor.blackColor()
+		}
+	}
+	
+	public var font: UIFont {
+		get {
+			return nil ?? UIFont() // TODO
 		}
 	}
 }

@@ -17,6 +17,7 @@ struct GravityPriorities {
 	static let FillSizeHugging: UILayoutPriority = 99
 	/// The generic containment constraint of an autosizing `UIView`. These constraints ensure that the view will automatically size to fit its contents, but are low priority so as to be easily overridden.
 	static let ViewContainment: UILayoutPriority = 300
+	static let BaseCompressionResistance: Float = 750
 	static let FillSize: UILayoutPriority = 800
 	static let ExplicitSize: UILayoutPriority = 850 // was 800
 }
@@ -32,6 +33,7 @@ struct GravityPriorities {
 	public override class func initialize() {
 		registerPlugin(Default) // these should ideally always run last
 		registerPlugin(Conversion)
+		// i'm actually not sure this is true anymore to be honest; conversion is now on-demand (it may not even need to be a plugin technically)
 		registerPlugin(Templating) // important: templating MUST be processed before type conversion (these are backwards because plugins are processed in reverse order)
 		registerPlugin(Layout)
 		registerPlugin(Styling)
@@ -58,7 +60,7 @@ struct GravityPriorities {
 	public class func new<T: UIView>(name: String, model: AnyObject? = nil) -> T? {
 		// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time.
 		if let document = GravityDocument(name: name, model: model) {
-			return document.view as! T? // verify
+			return document.view as? T // verify
 		}
 		
 		return nil
@@ -95,6 +97,7 @@ struct GravityPriorities {
 //	optional func processAttribute(node: GravityNode, attribute: String, stringValue: String) -> GravityResult
 //	optional func processAttribute(node: GravityNode, attribute: String, nodeValue: GravityNode) -> GravityResult
 	func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult
+	// should we consider renaming above parameters to viewNode and valueNode?
 	optional func processElement(node: GravityNode) -> GravityResult // return true if you handled your own child nodes, otherwise false to handle them automatically
 	optional func connectController(node: GravityNode, controller: NSObject) // return?
 	// add a method to bind an id? or just use processAttribute?
