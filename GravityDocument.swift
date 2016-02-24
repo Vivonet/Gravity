@@ -13,10 +13,10 @@ import Foundation
 @objc public class GravityDocument: NSObject, NSXMLParserDelegate, CustomDebugStringConvertible {
 	private var nodeStack = [GravityNode]() // for parsing
 	
-	public var node: GravityNode! // i'm assuming this will be filled in quickly
+	/// The `GravityNode` that represents this document in the child tree.
+	public var node: GravityNode!
 	public var name: String? = nil
-//	public lazy var childNodes = [GravityNode]()
-//	public var rootNode: GravityNode?
+	/// The `GravityNode` that represents this document in the parent tree.
 	public weak var parentNode: GravityNode? = nil // if this document is an embedded node
 	public lazy var ids = [String : GravityNode]()
 	public lazy var plugins = [GravityPlugin]() // the instantiated plugins for this document
@@ -33,22 +33,17 @@ import Foundation
 			parseXML()
 		}
 	}
-
-	// TODO: this feels kinda gross, improve
-//	public var rootNodeView: UIView? {
-//		get {
-//			if rootNode == nil {
-//				parseXML()
-//			}
-//			
-//			return rootNode?.view
-//		}
-//	}
 	
-//	private var _view: UIView? = nil
 	public var view: UIView {
 		get {
-			return node.view
+			if node.isViewInstantiated() {
+				return node.view
+			} else {
+				defer {
+					postprocess() // we could also just set a flag and call this each time
+				}
+				return node.view
+			}
 		}
 	}
 	
@@ -69,11 +64,8 @@ import Foundation
 	private init?(name: String, model: AnyObject? = nil, parentNode: GravityNode?) {
 		super.init()
 		
-		// TODO: if this is an embedded node, use the parent node
 		self.node = GravityNode(document: self, parentNode: parentNode, nodeName: name, attributes: [:])
 		self.nodeStack.append(self.node)
-
-//		defer { self.filename = filename } // defer allows didSet to be called
 
 		// append ".xml" if the name doesn't end with it
 		// TODO: we should improve this to check for the given name first
@@ -84,8 +76,6 @@ import Foundation
 		do {
 			self.xml = try String(contentsOfURL: url, encoding: NSUTF8StringEncoding)
 			parseXML()
-			// FIXME: instead of setting the root node's model, let's set the model at the document and simply inherit it from the node's perspective
-//			rootNode?.model = model
 		} catch {
 			return nil
 		}
@@ -96,10 +86,9 @@ import Foundation
 		self.xml = xml // really annoying that didSet doesn't work from initializers :(
 		self.model = model
 		parseXML()
-//		rootNode?.model = model // ok?
 	}
 	
-	/// Instantiates a new view using the current document as a template. The document associated with the returned view will be a clone of the current document. Instantiating a `GravityDocument` does *not* establish the receiver’s `view` property.
+	/// Instantiates a new document using the current document as a template. The returned document will be a clone of the current document. Instantiating a `GravityDocument` does *not* establish the receiver’s `view` property.
 	public func instantiate(model: AnyObject? = nil) -> GravityDocument {
 		// should this return a UIView or a GravityDocument?
 		return GravityDocument(xml: self.description, model: model)
@@ -109,8 +98,6 @@ import Foundation
 		guard let data = self.xml.dataUsingEncoding(NSUTF8StringEncoding) else {
 			return // TODO: print message or something
 		}
-		
-//		Gravity.load() // make sure all of our plugins have been loaded (this is actually probably not necessary since we're accessing Gravity immediately after this)
 		
 		for pluginClass in Gravity.plugins {
 			let plugin = pluginClass.init()
@@ -130,64 +117,63 @@ import Foundation
 	}
 	
 	// this may belong in GravityNode
-	public func instantiateView(node: GravityNode) -> UIView? {
-//		var view: UIView? = nil
-		
+	internal func instantiateView(node: GravityNode) -> UIView {
 		for plugin in plugins {
-			if let view = plugin.instantiateElement(node) {
+			if let view = plugin.instantiateView(node) {
 				return view
 			}
 		}
-		
-		return nil
+		return UIView()
 	}
 	
 	// MARK: PRE-PROCESSING PHASE
 	internal func preprocess() {
-		for node in self.node { // sloppy i know
-			if node == self.node { // skip self!
+		for childNode in self.node { // sloppy i know
+			if childNode == self.node { // skip self!
 				continue
 			}
 			
-			if let identifier = node["id"]?.textValue {
+			if let identifier = childNode["id"]?.textValue {
 				if ids[identifier] != nil {
 					preconditionFailure("Duplicate definition of identifier ‘\(identifier)’.")
 				}
-				ids[identifier] = node
+				ids[identifier] = childNode
 			}
 			
 			
-			if let childDocument = GravityDocument(name: node.nodeName, model: nil, parentNode: node) {
-				node.childDocument = childDocument // strong
-				childDocument.parentNode = node // weak
+			if let childDocument = GravityDocument(name: childNode.nodeName, model: nil, parentNode: childNode) {
+				childNode.childDocument = childDocument // strong
+				childDocument.parentNode = childNode // weak
 			}
 			
 			// identify and transform attribute nodes into actual attributes with node values
-			if node.nodeName.containsString(".") {
-				guard let parentNode = node.parentNode else {
+			if childNode.nodeName.containsString(".") {
+				guard let parentNode = childNode.parentNode else {
 					// apply to parent document? that breaks containment.
 					preconditionFailure("Attribute node found at top of document. Attribute nodes must have a parent.")
 				}
 				// TODO: allow _ shorthand?
-				let parentElementIndex = node.nodeName.startIndex.advancedBy(parentNode.nodeName.characters.count) // wow Swift, wow. :|
-				if node.nodeName.substringToIndex(parentElementIndex) == parentNode.nodeName && node.nodeName.characters[parentElementIndex] == "." {
-					let attributeName = node.nodeName.substringFromIndex(parentElementIndex.advancedBy(1))
-					NSLog("Valid attribute node found; attribute: '\(attributeName)'")
+				let parentElementIndex = childNode.nodeName.startIndex.advancedBy(parentNode.nodeName.characters.count) // wow Swift, wow. :|
+				if childNode.nodeName.substringToIndex(parentElementIndex) == parentNode.nodeName && childNode.nodeName.characters[parentElementIndex] == "." {
+					let attributeName = childNode.nodeName.substringFromIndex(parentElementIndex.advancedBy(1))
 					
 					// surprisingly this actually seems to work:
-					parentNode.childNodes = parentNode.childNodes.filter { $0 != node }
-					parentNode.attributes[attributeName] = node
+					parentNode.childNodes = parentNode.childNodes.filter { $0 != childNode }
+					parentNode.attributes[attributeName] = childNode
 				} else {
 					preconditionFailure("Invalid attribute node notation. Element name must start with parent element (expected ‘\(parentNode.nodeName)’).")
 				}
 				
 				// TODO: make sure this works recursively; i.e. we can have multiple levels of attribute nodes affecting each other
 			}
-			
-			for (attribute, value) in node.attributes {
+		}
+		
+		// this is done in a separate loop so all parent-referencing attribute nodes are handled first; this can be optimized later
+		for childNode in self.node {
+			for (attribute, value) in childNode.attributes {
 				if attribute.containsString(".") {
-					node.attributes.removeValueForKey(attribute) // verify
-					node.setAttribute(attribute, value: value)
+					childNode.attributes.removeValueForKey(attribute) // verify
+					childNode.setAttribute(attribute, value: value)
 				}
 			}
 		}
@@ -195,27 +181,16 @@ import Foundation
 	
 	// MARK: POST-PROCESSING PHASE
 	internal func postprocess() { // post-process view hierarchy
-		for node in self.node { // FIXME: should we start with outerNode?
-//			NSLog("Post-processing node: \(node.nodeName)")
+		// should we set some processed flag so we only do it once?
+		assert(node.isViewInstantiated())
+		for childNode in self.node {
 			for plugin in plugins {
-				plugin.postprocessElement(node)
+				plugin.postprocessElement(childNode)
 			}
 		}
 		
 		controllerChanged()
 	}
-	
-	// TODO: this function is temporary until i figure out how to do this properly
-//	public func autoSize() {
-////		containerView.updateConstraints() // need this?
-//		if let view = view {
-//			view.layoutIfNeeded()
-//			
-//			// should these be constraints?
-//			view.frame.size.width = view.subviews[0].frame.size.width
-//			view.frame.size.height = view.subviews[0].frame.size.height
-//		}
-//	}
 	
 	private func controllerChanged() {
 		if controller != nil {
@@ -248,12 +223,8 @@ import Foundation
 	@objc public func parser(parser: NSXMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String]) {
 		
 		let node = GravityNode(document: self, parentNode: nodeStack.last, nodeName: elementName, attributes: attributeDict)
-//		rootNode = rootNode ?? node
-//		if nodeStack.isEmpty {
-//			childNodes.append(node)
-//		} else {
+		
 		nodeStack.last?.childNodes.append(node)
-//		}
 		nodeStack.append(node)
 	}
 	
@@ -263,13 +234,14 @@ import Foundation
 	}
 	
 	public func parser(parser: NSXMLParser, var foundCharacters string: String) {
-		// trim string?
 		string = string.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
 		if string == "" {
 			return
 		}
 		// TODO: treat this as a text value if the parent is an attribute node
 		// or would it make more sense to do the implicit label thing, since really, why would you ever want to use an attribute node for a text value? (actually you might for a very large block of text, so it's reasonable)
+		// TODO: rather than set parent.textValue right away, set a temp string to see if there are any more sibling nodes; if not, set parent.textValue
+		// if so, treat all nodes (including the stored string) as child nodes/labels
 		if let parentNode = nodeStack.last {
 			if parentNode.nodeName.containsString(".") {
 				parentNode.textValue = string
@@ -280,9 +252,7 @@ import Foundation
 		// if the parent is not an attribute node, should we implicitly treat it as a UILabel with text set? that would be cool. it'll (eventually) inherit font, color, etc. already
 		// experimental:
 		let node = GravityNode(document: self, parentNode: nodeStack.last, nodeName: "UILabel", attributes: ["text": string])
-		// FIXME: maybe offload this to a private addNode function
-//		rootNode = rootNode ?? node
 		nodeStack.last?.childNodes.append(node)
-//		nodeStack.append(node) // don't append because it will never be popped
+		// don't append to nodeStack because it will never be popped
 	}
 }

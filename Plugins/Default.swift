@@ -16,7 +16,7 @@ extension Gravity {
 		private static let keywords = ["id", "zIndex", "gravity"] // add more? move?
 		// TODO: these should ideally be blocked at the same location they are used (e.g. zIndex and gravity in Layout, id should be blocked in the kernel.
 		
-		public override func instantiateElement(node: GravityNode) -> UIView? {
+		public override func instantiateView(node: GravityNode) -> UIView? {
 			if let type = NSClassFromString(node.nodeName) as! UIView.Type? {
 //				var view: UIView
 //				tryBlock {
@@ -37,6 +37,22 @@ extension Gravity {
 			}
 			
 			return .NotHandled
+		}
+		
+		// this is really a singleton; should we provide a better way for this to be overridden?
+		override func postprocessAttribute(node: GravityNode, attribute: String, value: AnyObject) -> GravityResult {
+
+			
+//			NSLog("KeyPath \(attribute) converted 
+			
+			if tryBlock({
+				node.view.setValue(value, forKeyPath: attribute)
+			}) != nil {
+				NSLog("Warning: Key path '\(attribute)' not found on object \(node.view).")
+				return .NotHandled
+			}
+			
+			return .Handled
 		}
 		
 //		public override func postprocessValue(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {

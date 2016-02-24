@@ -8,11 +8,11 @@
 
 import Foundation
 
-// placeholder for gestures, etc.
-
 @available(iOS 9.0, *)
 extension Gravity {
 	@objc public class Interaction: GravityPlugin {
+	
+		// placeholder for gestures, etc.
 	
 	}
 }

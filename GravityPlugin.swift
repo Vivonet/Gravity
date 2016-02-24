@@ -55,7 +55,7 @@ public enum GravityResult: Int {
 	/// Instantiate the view for a given node. The default behavior is to use the node name to look up a class and instantiate it with a parameterless initializer.
 	///
 	/// **Important:** You should not access the `view` property of the node at this stage, nor should you use the attributes of the node to set up the instance, *unless* you need the attribute for an initializer (e.g. UICollectionView). You can, however, configure the instance based on the node itself. E.g. `<H>` and `<V>` tags affect the `axis` of their instantiated `UIStackView`.
-	public func instantiateElement(node: GravityNode) -> UIView? {
+	public func instantiateView(node: GravityNode) -> UIView? {
 		// note: we should consider preventing access to the "view" property here
 		return nil
 	}
@@ -64,6 +64,9 @@ public enum GravityResult: Int {
 //		return .NotHandled
 //	}
 	
+	/// Pre-process value transformation. Overload this method if you want to transform the value of an attribute before it is handled, and are not changing the type of the value to something other than a `GravityNode`.
+	///
+	/// **Important:** This is a *value*-based plugin call. The plugin instance called will belong to the document where `value` is defined, not necessarily `node`.
 	public func preprocessValue(node: GravityNode, attribute: String, value: GravityNode) {
 		// this is an experimental value-based function that is called on the plugin of the document wherein the value is defined, not the document that value ends up being used in
 	}
@@ -87,8 +90,9 @@ public enum GravityResult: Int {
 	// TODO: this should be renamed to something like lastChance or attributeFallback or defaultHandler or something
 	// defaultHandler... what if we used blocks for plugins? would that be insane?
 	
-	// i'm experimentally repurposing this to be the opposite of preprocessValue, and a value-based call
-	// This is a break-first call.
+	/// Post-process value transformation. Overload this method if you want to transform the value of an attribute before it is passed to the default handler. You can change the value to any type.
+	///
+	/// **Important:** This is a *value*-based plugin call. The plugin instance called will belong to the document where `value` is defined, not necessarily `node`.
 	func postprocessValue(node: GravityNode, attribute: String, input: GravityNode, inout output: AnyObject) -> GravityResult {
 		return .NotHandled
 	}
@@ -105,7 +109,7 @@ public enum GravityResult: Int {
 	// MARK: POST-PROCESS PHASE
 	
 	// this is a post-process wave that runs after everything ran through once during the initial attribute parsing phase. you can use this phase to check for identifiers that were registered and be sure that the tree has been fully parsed.
-	public func postprocessElement(node: GravityNode) { // maybe rename this to something like elementCreated or postProcessElement
+	public func postprocessElement(node: GravityNode) {
 	}
 	
 	// add a hook for when the document is completely parsed?

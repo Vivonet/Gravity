@@ -30,13 +30,10 @@ public class GravityViewController: UIViewController {
 	
 	private func setup() {
 		view.backgroundColor = UIColor.whiteColor()
-//		gravityView?.translatesAutoresizingMaskIntoConstraints = false
-		document?.controller = self
+		document?.controller = self // does this make sense? if we subclass, yes
 		
 		if let document = document {
-//			var newView =
 			view.addSubview(document.view)
-	//		gravityView?.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
 			document.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: ALEdge.Bottom)
 			
 			// read current keyboard frame?
@@ -44,7 +41,7 @@ public class GravityViewController: UIViewController {
 			bottomPin = document.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
 		}
 		
-		document?.postprocess() // FIXME: we really ought to reconsider postprocess if it's just to support GravityViewController
+//		document?.postprocess()
 	}
 
 	required public init?(coder aDecoder: NSCoder) {
@@ -71,7 +68,7 @@ public class GravityViewController: UIViewController {
 		NSLog("Offset: \(bottomOffset)")
 		bottomPin!.constant = -bottomOffset
 		
-		UIView.beginAnimations("GravityView keyboard frame adjust", context: nil)
+		UIView.beginAnimations("GravityViewController keyboard frame adjust", context: nil)
 		UIView.setAnimationCurve(UIViewAnimationCurve(rawValue: curve) ?? UIViewAnimationCurve.EaseInOut)
 		UIView.setAnimationBeginsFromCurrentState(true)
 		UIView.setAnimationDuration(duration)

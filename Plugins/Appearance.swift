@@ -12,9 +12,19 @@ import Foundation
 extension Gravity {
 	@objc public class Appearance: GravityPlugin {
 		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult {
+			guard let textValue = value.textValue else {
+				return .NotHandled
+			}
+			
 			switch attribute {
-				case "font":
+				case "cornerRadius":
+					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
+					node.view.layer.cornerRadius = CGFloat((textValue as NSString).floatValue)
+					node.view.clipsToBounds = true // assume this is still needed
 					return .Handled
+				
+//				case "font":
+//					return .Handled
 				
 				default:
 					return .NotHandled

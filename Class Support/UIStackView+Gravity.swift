@@ -117,13 +117,13 @@ extension UIStackView: GravityElement {
 			}
 		}
 		
-		var fillChild: GravityNode? = nil
+		var fillChild: GravityNode? = nil // do we actually need this at all?
 		
 		for childNode in node.childNodes {
 			addArrangedSubview(childNode.view)
 			if childNode.isFilledAlongAxis(axis) {
 				if fillChild != nil {
-					NSLog("Warning: Only one child of a stack view may be filled along the axis of the stack view due to current limitations of the stack view. Gravity will arbitrarily choose the first child to fill.")
+					NSLog("Warning: Only one child of a stack view may be filled along the axis of the stack view due to current limitations of the stack view.")
 				} else {
 					fillChild = childNode
 				}

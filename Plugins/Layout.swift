@@ -12,9 +12,9 @@ import Foundation
 extension Gravity {
 	@objc public class Layout: GravityPlugin {
 		private static let keywords = ["fill", "auto"]
-		private var widthIdentifiers = [String: [GravityNode]]()
+		private var widthIdentifiers = [String: [GravityNode]]() // instead of storing a dictionary of arrays, can we store a dictionary that just points to the first-registered view, and then all subsequent views just add constraints back to that view?
 		
-		public override func instantiateElement(node: GravityNode) -> UIView? {
+		public override func instantiateView(node: GravityNode) -> UIView? {
 			// should this be handled in a stackview plugin?
 			switch node.nodeName {
 				case "H":
@@ -113,16 +113,8 @@ extension Gravity {
 					}
 					return .Handled
 				
-				// move to styling??
-				case "cornerRadius":
-					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
-					node.view.layer.cornerRadius = CGFloat((textValue as NSString).floatValue)
-					node.view.clipsToBounds = true // assume this is still needed
-					return .Handled
-				
 				case "shrinks":
 					return .Handled
-				
 				
 				default:
 					return .NotHandled
@@ -154,9 +146,7 @@ extension Gravity {
 				
 				UIView.autoSetPriority(GravityPriorities.ViewContainment + Float(childNode.depth)) {
 					// TODO: come up with better constraint identifiers than this
-					// experimental: only apply these implicit constraints if the parent is not filled
-					
-					// i swear, childNode.parentNode should be self should it not???
+					// only apply these implicit constraints if the parent is not filled
 					
 					if !node.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
 						childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
@@ -215,7 +205,6 @@ extension Gravity {
 		}
 		
 		public override func postprocessElement(node: GravityNode) {
-			// is this ok here?
 			for (identifier, nodes) in widthIdentifiers {
 				let first = nodes[0]
 				for var i = 1; i < nodes.count; i++ {
@@ -256,17 +245,205 @@ extension Gravity {
 	}
 }
 
+public struct GravityDirection {
+	var horizontal = Horizontal.Inherit
+	var vertical = Vertical.Inherit
+	
+	public enum Horizontal: Int {
+		case Inherit = 0
+		case Left
+		case Right
+		case Center
+	}
+	
+	public enum Vertical: Int {
+		case Inherit = 0
+		case Top
+		case Bottom
+		case Middle
+	}
+	
+	public static let Left = Horizontal.Left
+	public static let Right = Horizontal.Right
+	public static let Center = Horizontal.Center
+	
+	public static let Top = Vertical.Top
+	public static let Bottom = Vertical.Bottom
+	public static let Middle = Vertical.Middle
+	
+	init() {
+		self.horizontal = .Inherit
+		self.vertical = .Inherit
+	}
+	
+	init(horizontal: Horizontal, vertical: Vertical) {
+		self.horizontal = horizontal
+		self.vertical = vertical
+	}
+	
+	init?(_ textValue: String?) {
+		guard let textValue = textValue else { // boilerplate! ick
+			return nil
+		}
+		
+		let valueParts = textValue.lowercaseString.componentsSeparatedByString(" ")
+		
+		if valueParts.contains("left") {
+			horizontal = GravityDirection.Left
+		} else if valueParts.contains("center") {
+			horizontal = GravityDirection.Center
+		} else if valueParts.contains("right") {
+			horizontal = GravityDirection.Right
+		}
+		
+		if valueParts.contains("top") {
+			vertical = GravityDirection.Top
+		} else if valueParts.contains("mid") || valueParts.contains("middle") {
+			vertical = GravityDirection.Middle
+		} else if valueParts.contains("bottom") {
+			vertical = GravityDirection.Bottom
+		}
+	}
+}
+
+//public struct GravityDirection: OptionSetType {
+//	// we could also just do this with two separate member variables
+//	public var rawValue: Int = 0
+////	public var rawHorizontal: Int = 0
+////	public var rawVertical: Int = 0
+//	
+//	public init(rawValue: Int) {
+//		self.rawValue = rawValue
+//	}
+//	
+//	// TODO: can we use a converter for this??
+//	init(_ textValue: String) {
+//		let valueParts = textValue.lowercaseString.componentsSeparatedByString(" ")
+//		var gravity = GravityDirection()
+//		
+//		if valueParts.contains("left") {
+//			gravity.horizontal = GravityDirection.Left
+//		} else if valueParts.contains("center") {
+//			gravity.horizontal = GravityDirection.Center
+//		} else if valueParts.contains("right") {
+//			gravity.horizontal = GravityDirection.Right
+//		}
+//		
+//		if valueParts.contains("top") {
+//			gravity.vertical = GravityDirection.Top
+//		} else if valueParts.contains("mid") || valueParts.contains("middle") {
+//			gravity.vertical = GravityDirection.Middle
+//		} else if valueParts.contains("bottom") {
+//			gravity.vertical = GravityDirection.Bottom
+//		}
+//
+//		rawValue = gravity.rawValue
+//	}
+//	
+//	// horizontal gravity
+//	static let Left = GravityDirection(rawValue: 0b01)
+//	static let Right = GravityDirection(rawValue: 0b10)
+//	static let Center = GravityDirection(rawValue: 0b11)
+//	
+//	// vertical gravity
+//	static let Top = GravityDirection(rawValue: 0b01 << 3)
+//	static let Bottom = GravityDirection(rawValue: 0b10 << 3)
+//	static let Middle = GravityDirection(rawValue: 0b11 << 3)
+//	
+//	func hasHorizontal() -> Bool {
+//		return horizontal.rawValue > 0
+//	}
+//	var horizontal: GravityDirection {
+//		get {
+//			return GravityDirection(rawValue: rawValue & 0b111)
+//		}
+//		set(value) {
+//			rawValue = vertical.rawValue | (value.rawValue & 0b111)
+//		}
+//	}
+//	
+//	func hasVertical() -> Bool {
+//		return vertical.rawValue > 0
+//	}
+//	var vertical: GravityDirection {
+//		get {
+//			return GravityDirection(rawValue: rawValue & (0b111 << 3))
+//		}
+//		set(value) {
+//			rawValue = horizontal.rawValue | (value.rawValue & (0b111 << 3))
+//		}
+//	}
+//}
+
 @available(iOS 9.0, *)
 extension GravityNode {
 	public var gravity: GravityDirection {
 		get {
-			return GravityDirection(getScopedAttribute("gravity")?.textValue ?? "top left")
+			var gravity = GravityDirection(self["gravity"]?.textValue) ?? GravityDirection()
+			
+			if gravity.horizontal == .Inherit {
+				gravity.horizontal = parentNode?.gravity.horizontal ?? .Left
+			}
+			if gravity.vertical == .Inherit {
+				gravity.vertical = parentNode?.gravity.vertical ?? .Top
+			}
+			
+			return gravity
 		}
 	}
 	
 	public var zIndex: Int {
 		get {
 			return Int(attributes["zIndex"]?.textValue ?? "0")!
+		}
+	}
+	
+//	internal func isExplicitlySizedAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+//		switch axis {
+//			case .Horizontal:
+//		}
+//	}
+	
+	internal func isFilledAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+		switch axis {
+			case .Horizontal:
+//				if self["maxWidth"] != nil {
+//					return false // experimental
+//				}
+				if self["width"] == "fill" {
+					return true
+				}
+				let width = attributes["width"]?.textValue?.lowercaseString
+				if width == "fill" {
+					return true
+				} else if width != nil && width != "auto" { // "auto" is the default and is the same as not specifying
+					return false
+				}
+//				if
+				
+				for childNode in childNodes {
+					if childNode.isFilledAlongAxis(axis) && childNode["maxWidth"] == nil {
+						return true
+					}
+				}
+				
+				return false
+			
+			case .Vertical:
+				let height = attributes["height"]?.textValue?.lowercaseString
+				if height == "fill" {
+					return true
+				} else if height != nil && height != "auto" { // "auto" is the default and is the same as not specifying
+					return false
+				}
+				
+				for childNode in childNodes {
+					if childNode.isFilledAlongAxis(axis) {
+						return true
+					}
+				}
+				
+				return false
 		}
 	}
 }

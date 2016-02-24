@@ -127,23 +127,7 @@ extension Gravity {
 				}
 			}
 			
-			return .NotHandled // temp!
-		}
-		
-		// this is really a singleton; should we provide a better way for this to be overridden?
-		override func postprocessAttribute(node: GravityNode, attribute: String, value: AnyObject) -> GravityResult {
-
-			
-//			NSLog("KeyPath \(attribute) converted 
-			
-			if tryBlock({
-				node.view.setValue(value, forKeyPath: attribute)
-			}) != nil {
-				NSLog("Warning: Key path '\(attribute)' not found on object \(node.view).")
-				return .NotHandled
-			}
-			
-			return .Handled
+			return .NotHandled
 		}
 		
 		public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
