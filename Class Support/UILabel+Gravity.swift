@@ -20,6 +20,9 @@ extension UILabel: GravityElement {
 				if (textValue as NSString).boolValue { // or do we want to write a converter to Bool? can we even do that? i'd rather that if we could
 					self.numberOfLines = 0
 				}
+				
+				// TODO: we may want to set preferredMaxLayoutWidth to the label's maxWidth (possibly looking for a parental max?)
+				
 				return .Handled
 			
 			default:

@@ -21,6 +21,7 @@ import Foundation
 	public lazy var ids = [String : GravityNode]()
 	public lazy var plugins = [GravityPlugin]() // the instantiated plugins for this document
 	public var model: AnyObject? = nil
+	private var postprocessed = false
 	
 	public var controller: NSObject? = nil {
 		didSet {
@@ -36,14 +37,14 @@ import Foundation
 	
 	public var view: UIView {
 		get {
-			if node.isViewInstantiated() {
-				return node.view
-			} else {
+//			if node.isViewInstantiated() {
+//				return node.view
+//			} else {
 				defer {
 					postprocess() // we could also just set a flag and call this each time
 				}
 				return node.view
-			}
+//			}
 		}
 	}
 	
@@ -179,13 +180,34 @@ import Foundation
 		}
 	}
 	
+//	var processed = false
+	
 	// MARK: POST-PROCESSING PHASE
 	internal func postprocess() { // post-process view hierarchy
+		if postprocessed {
+//			NSLog("twice?!")
+			return
+		}
+		postprocessed = true
 		// should we set some processed flag so we only do it once?
 		assert(node.isViewInstantiated())
-		for childNode in self.node {
-			for plugin in plugins {
-				plugin.postprocessElement(childNode)
+		for childNode in self.node { // we weren't calling postprocess on sub-documents
+			if let childDocument = childNode.childDocument {
+				childDocument.postprocess() // verify
+			} else {
+	//			NSLog("postprocess: \(childNode)")
+				for plugin in plugins {
+					plugin.postprocessElement(childNode)
+				}
+			}
+			
+			if childNode.view.hasAmbiguousLayout() {
+				NSLog("WARNING: Node has ambiguous layout:\n\(childNode)")
+			}
+			
+			if childNode.view.translatesAutoresizingMaskIntoConstraints {
+				NSLog("WARNING: View has translatesAutoresizingMaskIntoConstraints set.")
+				childNode.view.translatesAutoresizingMaskIntoConstraints = false
 			}
 		}
 		
@@ -251,7 +273,7 @@ import Foundation
 		
 		// if the parent is not an attribute node, should we implicitly treat it as a UILabel with text set? that would be cool. it'll (eventually) inherit font, color, etc. already
 		// experimental:
-		let node = GravityNode(document: self, parentNode: nodeStack.last, nodeName: "UILabel", attributes: ["text": string])
+		let node = GravityNode(document: self, parentNode: nodeStack.last, nodeName: "UILabel", attributes: ["text": string, "wrap": string.containsString("\n") ? "true" : "false"])
 		nodeStack.last?.childNodes.append(node)
 		// don't append to nodeStack because it will never be popped
 	}

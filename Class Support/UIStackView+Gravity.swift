@@ -143,7 +143,7 @@ extension UIStackView: GravityElement {
 			// no idea why i need the ! here:
 			let rank = Int(childNode["shrinks"]?.textValue ?? "0")! //gravity.elementMetadata[subview]!.shrinks
 			let adjustedIndex = rank == 0 ? 0 : (1000 - abs(rank)) * (rank > 0 ? -1 : 1)
-			NSLog("rank %d adjusted to %d", rank, adjustedIndex)
+//			NSLog("rank %d adjusted to %d", rank, adjustedIndex)
 //			shrinkIndex[adjustedIndex] = childNode
 			shrinks.append((adjustedIndex, childNode))
 		}
@@ -157,7 +157,7 @@ extension UIStackView: GravityElement {
 //			if i > 0 && sortedShrinks[i].0 == sortedShrinks[i-1].0 {
 //				compressionResistance = sortedShrinks[i-1].1.view.contentCompressionResistancePriorityForAxis(self.axis)
 //			} else {
-				compressionResistance = GravityPriorities.BaseCompressionResistance + Float(i) / Float(sortedShrinks.count)
+				compressionResistance = GravityPriority.BaseCompressionResistance + Float(i) / Float(sortedShrinks.count)
 //			}
 			sortedShrinks[i].1.view.setContentCompressionResistancePriority(compressionResistance, forAxis: self.axis)
 //			NSLog("%d: %f", sortedShrinks[i].0, compressionResistance)
@@ -189,12 +189,14 @@ extension UIStackView: GravityElement {
 //		}
 		
 		// TODO: clean this code up
+		// FIXME: for some reason when this is a UIView other elements with intrinsic width trump it; it tends to actually work way better as a UILabel; we should investigate this and understand why so we can improve it
 		let spacer = UIView()
+//		spacer.autoSetDimensionsToSize(CGSize(width: 0, height: 0))
 //		spacer.text="?"
 //		spacer.backgroundColor = UIColor.magentaColor().colorWithAlphaComponent(0.5)
 //			spacer.text = "hi"
 		spacer.userInteractionEnabled = false
-		spacer.setContentHuggingPriority(100, forAxis: self.axis) // must be higher than fill size hugging priority
+		spacer.setContentHuggingPriority(GravityPriority.StackViewSpacerHugging, forAxis: self.axis)
 		
 //			spacer.autoSetDimension(stackView.axis == UILayoutConstraintAxis.Horizontal ? ALDimension.Width : ALDimension.Height, toSize: 100000)
 //			spacer.setContentCompressionResistancePriority(100 - Float(stack.count), forAxis: stackView.axis)

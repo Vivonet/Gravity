@@ -74,7 +74,7 @@ extension Gravity {
 //							}
 //							widthIdentifiers[textValue]?.append(node)
 						} else {
-							UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
+							UIView.autoSetPriority(GravityPriority.ExplicitSize) {
 								node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue))
 							}
 						}
@@ -82,34 +82,49 @@ extension Gravity {
 					return .Handled
 				
 				case "minWidth":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
+					UIView.autoSetPriority(GravityPriority.ExplicitSize) {
+						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: .GreaterThanOrEqual)
 					}
 					return .Handled
 				
 				case "maxWidth":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
+					UIView.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
+						if node.isOtherwiseFilledAlongAxis(.Horizontal) {
+							// a maxWidth that is filled is equal to an explicit width
+							NSLog("filled maxWidth found")
+							node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue))
+						} else {
+							node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: .LessThanOrEqual)
+						}
 					}
 					return .Handled
 				
 				case "height":
 					if !Layout.keywords.contains(textValue) {
-						UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-							node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((textValue as NSString).floatValue))
+						UIView.autoSetPriority(GravityPriority.ExplicitSize) {
+							node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue))
 						}
 					}
 					return .Handled
 				
 				case "minHeight":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.GreaterThanOrEqual)
+					UIView.autoSetPriority(GravityPriority.ExplicitSize) {
+						node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: .GreaterThanOrEqual)
+					}
+					UIView.autoSetPriority(50) {//test
+						node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue))
 					}
 					return .Handled
 				
 				case "maxHeight":
-					UIView.autoSetPriority(GravityPriorities.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: NSLayoutRelation.LessThanOrEqual)
+					UIView.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
+						if node.isOtherwiseFilledAlongAxis(.Vertical) {
+							// a maxWidth that is filled is equal to an explicit width
+							NSLog("filled maxHeight found")
+							node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue))
+						} else {
+							node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: .LessThanOrEqual)
+						}
 					}
 					return .Handled
 				
@@ -140,64 +155,65 @@ extension Gravity {
 					sortedChildren.append(childNode)
 				}
 			}
-
+			
+			// i'm actually thinking this might make the most sense all in one place in postprocess
 			for childNode in sortedChildren {
 				node.view.addSubview(childNode.view)
 				
-				UIView.autoSetPriority(GravityPriorities.ViewContainment + Float(childNode.depth)) {
-					// TODO: come up with better constraint identifiers than this
-					// only apply these implicit constraints if the parent is not filled
-					
-					if !node.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
-						childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-						childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-					}
-					
-					if !node.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) {
-						childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-						childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.GreaterThanOrEqual)
-					}
-				}
-							
-				// TODO: we need to size a view to its contents by default (running into an issue where views are 0 sized)
+//				UIView.autoSetPriority(GravityPriority.ViewContainment + Float(childNode.depth)) {
+//					// TODO: come up with better constraint identifiers than this
+//					// only apply these implicit constraints if we are not filled
+//					// if a parent view is not filled, it can still be larger than the child (e.g. via a min size)
+//					
+////					if !node.isFilledAlongAxis(.Horizontal) {
+//						childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
+//						childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
+////					}
+//					
+////					if !node.isFilledAlongAxis(.Vertical) {
+//						childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
+//						childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
+////					}
+//				}
 				
 	//			 TODO: add support for margins via a margin and/or padding attribute
 
 	//			childNode.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
-				// TODO: unlock this when things are working:
 				
-				switch childNode.gravity.horizontal {
-					case GravityDirection.Left:
-						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-						break
+				UIView.autoSetPriority(GravityPriority.Gravity) {
+					switch childNode.gravity.horizontal {
+						case .Left:
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
+							break
+						
+						case .Center:
+							childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
+							break
+						
+						case .Right:
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
+							break
+						
+						default:
+							break
+					}
 					
-					case GravityDirection.Center:
-						childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
-						break
-					
-					case GravityDirection.Right:
-						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-						break
-					
-					default:
-						break
-				}
-				
-				switch childNode.gravity.vertical {
-					case GravityDirection.Top:
-						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-						break
-					
-					case GravityDirection.Middle:
-						childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Horizontal)
-						break
-					
-					case GravityDirection.Bottom:
-						childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-						break
-					
-					default:
-						break
+					switch childNode.gravity.vertical {
+						case .Top:
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
+							break
+						
+						case .Middle:
+							childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Horizontal)
+							break
+						
+						case .Bottom:
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+							break
+						
+						default:
+							break
+					}
 				}
 			}
 			
@@ -205,39 +221,77 @@ extension Gravity {
 		}
 		
 		public override func postprocessElement(node: GravityNode) {
-			for (identifier, nodes) in widthIdentifiers {
-				let first = nodes[0]
-				for var i = 1; i < nodes.count; i++ {
-					// priority?? also we need to add a constraint (but what should its identifier be?)
-					nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
+			NSLog("Postprocess: \(unsafeAddressOf(node))")
+			// TEMP disabled; we're getting way too many constraints here
+//			for (identifier, nodes) in widthIdentifiers {
+//				let first = nodes[0]
+//				for var i = 1; i < nodes.count; i++ {
+//					// priority?? also we need to add a constraint (but what should its identifier be?)
+//					NSLog("Matching dimension of \(nodes[i]) to \(first).")
+//					nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
+//				}
+//			}
+
+
+			if node.view.superview != nil {
+				if !(node.view.superview is UIStackView) { // we are not inside a stack view
+					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
+					
+					if node.isDivergentAlongAxis(.Horizontal) {
+						priority = 200 - Float(node.recursiveDepth)
+					} else {
+					
+					UIView.autoSetPriority(priority) {
+						// if a parent view is not filled, it can still be larger than the child (e.g. via a min size)
+						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
+						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
+					}
+					}
+					
+					priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
+					
+					if node.isDivergentAlongAxis(.Vertical) {
+						priority = 200 - Float(node.recursiveDepth)
+					} else {
+					
+					UIView.autoSetPriority(priority) {
+						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
+						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
+					}
+					}
 				}
+				
+				
+			} else {
+				NSLog("superview nil")
 			}
 			
 			// minWidth, etc. should probably be higher priority than these so they can override fill size
-			if node.isFilledAlongAxis(UILayoutConstraintAxis.Horizontal) {
-				node.view.setContentHuggingPriority(GravityPriorities.FillSizeHugging, forAxis: UILayoutConstraintAxis.Horizontal)
-				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != UILayoutConstraintAxis.Horizontal {
+			if node.isFilledAlongAxis(.Horizontal) {
+				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
+				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Horizontal {
 //					if node.view.superview is UIStackView {
-//						NSLog("Superview must be a vertical stack view")
+						NSLog("Superview must be a vertical stack view")
 //					}
-					UIView.autoSetPriority(GravityPriorities.FillSize - Float(node.depth)) {
+					UIView.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 	//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
-						node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left) // leading?
-						node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right) // trailing?
+						node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left).autoIdentify("gravity-fill-left") // leading?
+						node.constraints["fill-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right).autoIdentify("gravity-fill-right") // trailing?
 					}
 				}
 			}
 			
-			if node.isFilledAlongAxis(UILayoutConstraintAxis.Vertical) {
-				node.view.setContentHuggingPriority(GravityPriorities.FillSizeHugging, forAxis: UILayoutConstraintAxis.Vertical)
-				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != UILayoutConstraintAxis.Vertical {
+			if node.isFilledAlongAxis(.Vertical) {
+				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Vertical)
+				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Vertical {
 //					if node.view.superview is UIStackView {
-//						NSLog("Superview must be a horizontal stack view")
+						NSLog("Superview must be a horizontal stack view")
 //					}
-					UIView.autoSetPriority(GravityPriorities.FillSize - Float(node.depth)) {
+					UIView.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 	//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
-						node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-						node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+						
+						node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top).autoIdentify("gravity-fill-top")
+						node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom).autoIdentify("gravity-fill-bottom")
 					}
 				}
 			}
@@ -263,6 +317,7 @@ public struct GravityDirection {
 		case Middle
 	}
 	
+	// these let you shortcut the Horizontal and Vertical enums and say e.g. GravityDirection.Center
 	public static let Left = Horizontal.Left
 	public static let Right = Horizontal.Right
 	public static let Center = Horizontal.Center
@@ -282,98 +337,29 @@ public struct GravityDirection {
 	}
 	
 	init?(_ textValue: String?) {
-		guard let textValue = textValue else { // boilerplate! ick
+		guard let textValue = textValue else {
 			return nil
 		}
 		
 		let valueParts = textValue.lowercaseString.componentsSeparatedByString(" ")
 		
 		if valueParts.contains("left") {
-			horizontal = GravityDirection.Left
+			horizontal = .Left
 		} else if valueParts.contains("center") {
-			horizontal = GravityDirection.Center
+			horizontal = .Center
 		} else if valueParts.contains("right") {
-			horizontal = GravityDirection.Right
+			horizontal = .Right
 		}
 		
 		if valueParts.contains("top") {
-			vertical = GravityDirection.Top
-		} else if valueParts.contains("mid") || valueParts.contains("middle") {
-			vertical = GravityDirection.Middle
+			vertical = .Top
+		} else if valueParts.contains("middle") {
+			vertical = .Middle
 		} else if valueParts.contains("bottom") {
-			vertical = GravityDirection.Bottom
+			vertical = .Bottom
 		}
 	}
 }
-
-//public struct GravityDirection: OptionSetType {
-//	// we could also just do this with two separate member variables
-//	public var rawValue: Int = 0
-////	public var rawHorizontal: Int = 0
-////	public var rawVertical: Int = 0
-//	
-//	public init(rawValue: Int) {
-//		self.rawValue = rawValue
-//	}
-//	
-//	// TODO: can we use a converter for this??
-//	init(_ textValue: String) {
-//		let valueParts = textValue.lowercaseString.componentsSeparatedByString(" ")
-//		var gravity = GravityDirection()
-//		
-//		if valueParts.contains("left") {
-//			gravity.horizontal = GravityDirection.Left
-//		} else if valueParts.contains("center") {
-//			gravity.horizontal = GravityDirection.Center
-//		} else if valueParts.contains("right") {
-//			gravity.horizontal = GravityDirection.Right
-//		}
-//		
-//		if valueParts.contains("top") {
-//			gravity.vertical = GravityDirection.Top
-//		} else if valueParts.contains("mid") || valueParts.contains("middle") {
-//			gravity.vertical = GravityDirection.Middle
-//		} else if valueParts.contains("bottom") {
-//			gravity.vertical = GravityDirection.Bottom
-//		}
-//
-//		rawValue = gravity.rawValue
-//	}
-//	
-//	// horizontal gravity
-//	static let Left = GravityDirection(rawValue: 0b01)
-//	static let Right = GravityDirection(rawValue: 0b10)
-//	static let Center = GravityDirection(rawValue: 0b11)
-//	
-//	// vertical gravity
-//	static let Top = GravityDirection(rawValue: 0b01 << 3)
-//	static let Bottom = GravityDirection(rawValue: 0b10 << 3)
-//	static let Middle = GravityDirection(rawValue: 0b11 << 3)
-//	
-//	func hasHorizontal() -> Bool {
-//		return horizontal.rawValue > 0
-//	}
-//	var horizontal: GravityDirection {
-//		get {
-//			return GravityDirection(rawValue: rawValue & 0b111)
-//		}
-//		set(value) {
-//			rawValue = vertical.rawValue | (value.rawValue & 0b111)
-//		}
-//	}
-//	
-//	func hasVertical() -> Bool {
-//		return vertical.rawValue > 0
-//	}
-//	var vertical: GravityDirection {
-//		get {
-//			return GravityDirection(rawValue: rawValue & (0b111 << 3))
-//		}
-//		set(value) {
-//			rawValue = horizontal.rawValue | (value.rawValue & (0b111 << 3))
-//		}
-//	}
-//}
 
 @available(iOS 9.0, *)
 extension GravityNode {
@@ -398,52 +384,132 @@ extension GravityNode {
 		}
 	}
 	
-//	internal func isExplicitlySizedAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
-//		switch axis {
-//			case .Horizontal:
-//		}
-//	}
-	
-	internal func isFilledAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+	internal func isExplicitlySizedAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
 		switch axis {
 			case .Horizontal:
-//				if self["maxWidth"] != nil {
-//					return false // experimental
-//				}
-				if self["width"] == "fill" {
-					return true
-				}
-				let width = attributes["width"]?.textValue?.lowercaseString
-				if width == "fill" {
-					return true
-				} else if width != nil && width != "auto" { // "auto" is the default and is the same as not specifying
-					return false
-				}
-//				if
-				
-				for childNode in childNodes {
-					if childNode.isFilledAlongAxis(axis) && childNode["maxWidth"] == nil {
+				if let width = self["width"]?.textValue {
+					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+					if width.rangeOfCharacterFromSet(charset) == nil {
 						return true
 					}
 				}
-				
 				return false
 			
 			case .Vertical:
-				let height = attributes["height"]?.textValue?.lowercaseString
-				if height == "fill" {
-					return true
-				} else if height != nil && height != "auto" { // "auto" is the default and is the same as not specifying
-					return false
-				}
-				
-				for childNode in childNodes {
-					if childNode.isFilledAlongAxis(axis) {
+				if let height = self["height"]?.textValue {
+					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+					if height.rangeOfCharacterFromSet(charset) == nil {
 						return true
 					}
 				}
-				
+				return false
+			
+			default:
 				return false
 		}
+	}
+	
+	// there is a bubble between this node and its parent
+	internal func isDivergentAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+		guard let parentNode = parentNode else {
+			return false
+		}
+		
+		if self.recursiveDepth == 1 {
+			return true // leaving in for now
+		}
+		
+		if parentNode.isFilledAlongAxis(axis) {
+			return true
+		} else if self.isFilledAlongAxis(axis) {
+			return false
+		} else if parentNode.isExplicitlySizedAlongAxis(axis) {
+			return true
+		}
+		
+		switch axis {
+			case .Horizontal:
+				if parentNode["minWidth"] != nil {
+					return true
+				}
+			
+			case .Vertical:
+				if parentNode["minHeight"] != nil {
+					return true
+				}
+		}
+		
+		return false
+	}
+	
+	internal func isFilledAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+		if !isOtherwiseFilledAlongAxis(axis) {
+			return false
+		}
+		
+		switch axis {
+			case .Horizontal:
+				return self["maxWidth"] == nil
+			
+			case .Vertical:
+				return self["maxHeight"] == nil
+		}
+	}
+	
+	internal func isOtherwiseFilledAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+		switch axis {
+			case .Horizontal:
+//				if self["maxWidth"] != nil { // we could verify that it is numeric, but i can't think of a concise way to do that
+//					// even if we have width="fill", if there's a maxWidth, that still just equals width
+//					return false
+//				}
+				
+				if let width = self["width"]?.textValue {
+					if width == "fill" {
+						// are there any other negation cases?
+						return true
+					}
+					
+					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+					if width.rangeOfCharacterFromSet(charset) == nil {
+						return false
+					}
+				}
+				break
+//				for childNode in childNodes {
+//					if childNode.isFilledAlongAxis(axis) {
+//						return true
+//					}
+//				}
+//				
+//				return false
+			
+			case .Vertical:
+//				if self["maxHeight"] != nil { // we could verify that it is numeric, but i can't think of a concise way to do that
+//					// even if we have width="fill", if there's a maxWidth, that still just equals width
+//					return false
+//				}
+				
+				if let height = self["height"]?.textValue {
+					if height == "fill" {
+						// are there any other negation cases?
+						return true
+					}
+					
+					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+					if height.rangeOfCharacterFromSet(charset) == nil {
+						return false
+					}
+				}
+				break
+		}
+		
+		for childNode in childNodes {
+			if childNode.isFilledAlongAxis(axis) {
+				return true
+			}
+		}
+		
+		return false
 	}
 }

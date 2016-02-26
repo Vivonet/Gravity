@@ -8,7 +8,9 @@ Suppose you wanted to construct the following simple layout (everything inside t
 
 ![Sample](img/Sample.png)
 
-With Gravity, your job is to break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stacks views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is clearly our first division and it is horizontal. Everything to the left of it is stacked vertically, with the two directions buttons at the bottom stacked horizontally.
+In Auto Layout, your job is to examine each edge of each view, figuring out which other view edges each one should bind to and at what constraint priorities, what each view's content compression resistance and content hugging priorities are, and whether or not you have enough constraints to fully satisfy both axes, or have too many and have an ambiguous layout.
+
+With Gravity, on the other hand, you break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stacks views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is clearly our first division and it is horizontal. Everything to the left of the Order button is stacked vertically, with the two directions buttons at the bottom stacked horizontally.
 
 Here's how you say that in gravity:
 
@@ -211,23 +213,28 @@ Instead, if you want to customize the appearance of elements within your embedde
 ###True Native UI (Fast!)
 Gravity is purely an Auto Layout framework. It doesn't make compromises when it comes to supporting different platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
 
+###No More Ambiguous Layouts
+I'm pretty sure Gravity is mathematically deterministic, although I'm not going to attempt to prove it. What this means, though, is that (not counting bugs in the engine) any possible layout you construct with Gravity will be guaranteed to be correct as far as Auto Layout is concerned. No missing constraints, no ambiguous constraints.
+
+The deterministic nature of the hierarchy that powers Gravity answers any and all ambiguities Auto Layout may be worried about. Ambiguous and missing constraints just aren't something you have to think about when using Gravity.
+
 ###Real MVC
 Gravity is a true realization of the Model-View-Controller paradigm. There are few who would argue in favour of Apple's implementation (many jokingly refer to it as "Massive View Controller"). This is because of a few mistakes Apple made, in my opinion:
 
-1. They made encapsulation too hard (tedious)
+1. They made encapsulation too difficult (tedious)
 2. They didn't split the view from the controller properly (UIViewController does both view and controller related things)
 3. Use of the delegate pattern instead of a publisher-subscriber model for events
-4. Generally failing to follow object-oriented tenets (UITableView, UICollectionView)
+4. Generally failing to follow object-oriented principles (UITableView, UICollectionView)
 
 All of these contribute to the ViewController in Apple's implementation becoming a monolithic "catch-all" class that essentially does the work of many things.
 
-An example: If I want to add a sub-element to my interface to display information in a table, I would drag a UITableView into my XIB or Storyboard, bind its delegate to my controller, and implement a handful of UITableView *delegate* methods on my controller. The methods we are adding to our view controller do not pertain to the objective role of that class, they pertain to the function of a *child* of that class. This means that the more children you have in your class, the bigger that class is itself going to get, managing all of those children's delegate methods. Not a good design.
+An example: If I want to add a sub-element to my interface to display information in a table, I would drag a UITableView into my XIB or Storyboard, bind its delegate to my controller, and implement a handful of UITableView *delegate* methods on my controller. The methods we are adding to our view controller do not pertain to the objective role of that class, they pertain to the function of a *child* of that class. This means that the more children you have to manage in your class, the bigger that class is itself going to get, managing all of those children's delegate methods. Not a good design.
 
-In Gravity, the view talks directly to the model. There's often no controller even involved. Your XML file represents your view. The model, as always, is isolated and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be consumed by the view, by means of property dot-notation and data binding.
+In Gravity, the view talks directly to the model and views can be broken down into as many levels of embedded views as you like. There's often no controller even involved. Your XML file represents your view. The model, as always, is independent and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be accessed by the view, by means of property dot-notation and data binding.
 
-This establishes the view's connection to the model. Notice the controller isn't even involved yet. In many cases in Gravity a controller is actually not needed, believe it or not. Unlike Apple's model, where the controller is foundational, in Gravity it's the least important citizen. In Gravity, the controller is there to essentially do anything that Gravity can't itself. So any arbitrary logic (i.e. code) goes into the controller. The controller is the thinking part. The model and the view are just data and display respectively.
+This establishes the view's connection to the model. Notice the controller isn't even involved yet. In many cases in Gravity a controller is actually not needed, believe it or not. Unlike Apple's model, where the view controller is fundamental, in Gravity it's the least important citizen. In Gravity, the controller is there to essentially do anything that you can't just do in your gravity file itself. So any arbitrary logic (i.e. code) goes into the controller. The controller is the thinking part. The model and the view are just the data and the displaying of that data, respectively.
 
-In Gravity, to add a table to your view you simply add a UITableView node to your layout and provide it with a *row template*, which is itself a view that is either written directly into the parent document, or a reference to a child document. Each instantiation of a row from the template will have a different data context for each element of the table's data source, and will render itself accordingly. We *still* don't need a controller for any of this.
+In Gravity, to add a table to your view you add a UITableView node to your layout and provide it with a *row template*, which is itself a view hierarchy that is either written directly into the document, or a reference to an encapsulated child layout. Each instantiation of a row from the template will have a different data context (model object) for each element of the table's data source, and will render itself accordingly. And we *still* don't need a controller for any of this.
 
 ###Rapid Prototyping
 Once you get the hang of it, Gravity is so simple you can often use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.

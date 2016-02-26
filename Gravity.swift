@@ -12,13 +12,18 @@ import UIKit
 
 // TODO: add identifiers for all added constraints
 
-// don't change these values unless you know what you are doing! ;)
-struct GravityPriorities {
-	static let FillSizeHugging: UILayoutPriority = 99
+// the knobs! all in one place for easy dialing
+struct GravityPriority {
+	static let FillSizeHugging: UILayoutPriority = 50
+	static let StackViewSpacerHugging: UILayoutPriority = 100 // must be higher than fill size hugging priority
 	/// The generic containment constraint of an autosizing `UIView`. These constraints ensure that the view will automatically size to fit its contents, but are low priority so as to be easily overridden.
-	static let ViewContainment: UILayoutPriority = 300
+	static let HostViewContainment = Float(200) // the "bubble" priority to use when a parent is filled but not the child; we can think of this as a direction of force
+	static let ViewContainment: UILayoutPriority = 300 // < 250 to delegate to intrisic size, but should be > 250 if we want to override intrinsic size
+	static let Gravity: Float = 700
 	static let BaseCompressionResistance: Float = 750
+	/// This priority affects edge binding in a fill size scenario.
 	static let FillSize: UILayoutPriority = 800
+	/// This priority is used when a view is constrained to an explicit size in your gravity file by means of a `width`, `height`, `maxWidth`, etc.
 	static let ExplicitSize: UILayoutPriority = 900 // was 800
 }
 
@@ -94,8 +99,6 @@ struct GravityPriorities {
 	optional func connectController(node: GravityNode, controller: NSObject) // return?
 	// add a method to bind an id? or just use processAttribute?
 }
-
-// MARK: -
 
 enum GravityError: ErrorType {
 	case InvalidParse

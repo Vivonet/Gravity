@@ -15,8 +15,23 @@ import Foundation
 	public weak var parentNode: GravityNode?
 	public var nodeName: String
 	// FIXME: i think depth is broken for attribute nodes; does that matter? (should fix anyway if it's not a huge effort)
+	
 	/// The number of nodes deep this node is in the immediate document.
-	public var depth = 0
+	
+	/// The number of nodes deep this node is in the fully composed tree.
+	public var recursiveDepth: Int { // rename recursiveDepth?
+		get {
+			// we can optimize this later
+			var depth = 0
+			var parent = self.parentNode
+			while parent != nil {
+				depth++
+				parent = parent?.parentNode ?? parent?.document.parentNode
+			}
+			NSLog("depth of \(self.nodeName): \(depth)")
+			return depth
+		}
+	}
 	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed tree; this must be the FULL depth of the tree, including all embedded subdocuments, and should happen in the preprocess phase.
 	public var attributes = [String: GravityNode]()
 //	public var stringValues: [String: String]
@@ -107,7 +122,7 @@ import Foundation
 	}
 	
 	private func setup() {
-		self.depth = (parentNode?.depth ?? 0) + 1
+//		self.depth = (parentNode?.depth ?? 0) + 1
 		self.attributes = self.attributes ?? [String: GravityNode]()
 	}
 	
@@ -179,13 +194,13 @@ import Foundation
 		
 		_view = _view ?? document.instantiateView(self) // this lets plugins have a chance to see every node, in some capacity
 		view.gravityNode = self // this is now strong (ok?)
-		view.clipsToBounds = true
+//		view.clipsToBounds = true
 		
 		// childDocument is set in the pre-processing phase
 		if let childDocument = childDocument {
 			childDocument.node._view = _view // perhaps there is a better place for this
 			childDocument.node.processNode() // recurse
-			childDocument.postprocess() // experimental (all we need is for the view to be attached so in theory this should be fine)
+//			childDocument.postprocess() // experimental (all we need is for the view to be attached so in theory this should be fine)
 		}
 		
 		for attribute in attributes.keys {
