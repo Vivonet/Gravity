@@ -28,7 +28,7 @@ import Foundation
 				depth++
 				parent = parent?.parentNode ?? parent?.document.parentNode
 			}
-			NSLog("depth of \(self.nodeName): \(depth)")
+//			NSLog("depth of \(self.nodeName): \(depth)")
 			return depth
 		}
 	}
@@ -41,6 +41,24 @@ import Foundation
 	public var childDocument: GravityDocument? = nil // if this node represents an external document
 	/// The textual value of the node as a `String`, if the node is a text node (e.g. an inline attribute). Returns `nil` if the current node does not have a textual value.
 	public var textValue: String?
+	
+	public var boolValue: Bool? {
+		get {
+			return (textValue as NSString?)?.boolValue
+		}
+	}
+	
+	public var intValue: Int? {
+		get {
+			return (textValue as NSString?)?.integerValue
+		}
+	}
+	
+	public var floatValue: Float? {
+		get {
+			return (textValue as NSString?)?.floatValue
+		}
+	}
 	
 //	public var attributes: [String: AnyObject] {
 //		get {
@@ -154,7 +172,7 @@ import Foundation
 		}
 	}
 	
-	private func getDescription(debug: Bool = false) -> String {
+	internal func getDescription(debug: Bool = false) -> String {
 		var attributeStrings = [String]()
 		var attributeNodes = [GravityNode]()
 		for (key, value) in attributes {

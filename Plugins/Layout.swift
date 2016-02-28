@@ -83,18 +83,23 @@ extension Gravity {
 				
 				case "minWidth":
 					UIView.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: .GreaterThanOrEqual)
+						node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: .GreaterThanOrEqual)
+					}
+					UIView.autoSetPriority(50) {//test
+						node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue))
 					}
 					return .Handled
 				
 				case "maxWidth":
-					UIView.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
-						if node.isOtherwiseFilledAlongAxis(.Horizontal) {
-							// a maxWidth that is filled is equal to an explicit width
-							NSLog("filled maxWidth found")
-							node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue))
-						} else {
-							node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: .LessThanOrEqual)
+					if let maxWidth = node.maxWidth {
+						UIView.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
+							if node.isOtherwiseFilledAlongAxis(.Horizontal) {
+								// a maxWidth that is filled is equal to an explicit width
+								NSLog("filled maxWidth found")
+								node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth))
+							} else {
+								node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth), relation: .LessThanOrEqual)
+							}
 						}
 					}
 					return .Handled
@@ -221,7 +226,7 @@ extension Gravity {
 		}
 		
 		public override func postprocessElement(node: GravityNode) {
-			NSLog("Postprocess: \(unsafeAddressOf(node))")
+//			NSLog("Postprocess: \(unsafeAddressOf(node))")
 			// TEMP disabled; we're getting way too many constraints here
 //			for (identifier, nodes) in widthIdentifiers {
 //				let first = nodes[0]
@@ -237,27 +242,32 @@ extension Gravity {
 				if !(node.view.superview is UIStackView) { // we are not inside a stack view
 					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
 					
+					// TODO: what priority should these be?
+					// we need to make a special exception for UIScrollView and potentially others. should we move this back into a default handler/handleChildNodes?
+					node.view.autoMatchDimension(.Width, toDimension: .Width, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
+					node.view.autoMatchDimension(.Height, toDimension: .Height, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
+					
 					if node.isDivergentAlongAxis(.Horizontal) {
-						priority = 200 - Float(node.recursiveDepth)
-					} else {
+						priority = 200 + Float(node.recursiveDepth)
+					}// else {
 					
 					UIView.autoSetPriority(priority) {
 						// if a parent view is not filled, it can still be larger than the child (e.g. via a min size)
 						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
 						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
-					}
+					//}
 					}
 					
 					priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
 					
 					if node.isDivergentAlongAxis(.Vertical) {
-						priority = 200 - Float(node.recursiveDepth)
-					} else {
+						priority = 200 + Float(node.recursiveDepth)
+					}// else {
 					
 					UIView.autoSetPriority(priority) {
 						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
 						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
-					}
+					//}
 					}
 				}
 				
@@ -271,7 +281,7 @@ extension Gravity {
 				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
 				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Horizontal {
 //					if node.view.superview is UIStackView {
-						NSLog("Superview must be a vertical stack view")
+//						NSLog("Superview must be a vertical stack view")
 //					}
 					UIView.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 	//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
@@ -285,7 +295,7 @@ extension Gravity {
 				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Vertical)
 				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Vertical {
 //					if node.view.superview is UIStackView {
-						NSLog("Superview must be a horizontal stack view")
+//						NSLog("Superview must be a horizontal stack view")
 //					}
 					UIView.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 	//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
@@ -378,6 +388,30 @@ extension GravityNode {
 		}
 	}
 	
+	public var minWidth: Float? {
+		get {
+			return self["minWidth"]?.floatValue
+		}
+	}
+	
+	public var maxWidth: Float? {
+		get {
+			return self["maxWidth"]?.floatValue
+		}
+	}
+	
+	public var minHeight: Float? {
+		get {
+			return self["minHeight"]?.floatValue
+		}
+	}
+	
+	public var maxHeight: Float? {
+		get {
+			return self["maxHeight"]?.floatValue
+		}
+	}
+	
 	public var zIndex: Int {
 		get {
 			return Int(attributes["zIndex"]?.textValue ?? "0")!
@@ -403,9 +437,6 @@ extension GravityNode {
 					}
 				}
 				return false
-			
-			default:
-				return false
 		}
 	}
 	
@@ -426,7 +457,10 @@ extension GravityNode {
 		} else if parentNode.isExplicitlySizedAlongAxis(axis) {
 			return true
 		}
-		
+
+		// maybe gravity will actually just take care of this
+		// no because it still overrides intrinsic size; there has to be a bubble of < 250
+		// but this bubble should collapse as soon as the view grows past its minsize
 		switch axis {
 			case .Horizontal:
 				if parentNode["minWidth"] != nil {

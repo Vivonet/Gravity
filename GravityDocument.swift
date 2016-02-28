@@ -185,13 +185,11 @@ import Foundation
 	// MARK: POST-PROCESSING PHASE
 	internal func postprocess() { // post-process view hierarchy
 		if postprocessed {
-//			NSLog("twice?!")
 			return
 		}
 		postprocessed = true
-		// should we set some processed flag so we only do it once?
 		assert(node.isViewInstantiated())
-		for childNode in self.node { // we weren't calling postprocess on sub-documents
+		for childNode in self.node {
 			if let childDocument = childNode.childDocument {
 				childDocument.postprocess() // verify
 			} else {
@@ -202,12 +200,12 @@ import Foundation
 			}
 			
 			if childNode.view.hasAmbiguousLayout() {
-				NSLog("WARNING: Node has ambiguous layout:\n\(childNode)")
+				NSLog("WARNING: Node has ambiguous layout:\n\(childNode.getDescription(true))")
 			}
 			
 			if childNode.view.translatesAutoresizingMaskIntoConstraints {
 				NSLog("WARNING: View has translatesAutoresizingMaskIntoConstraints set.")
-				childNode.view.translatesAutoresizingMaskIntoConstraints = false
+//				childNode.view.translatesAutoresizingMaskIntoConstraints = false
 			}
 		}
 		
@@ -270,6 +268,11 @@ import Foundation
 				return
 			}
 		}
+		
+		// TODO: we could consider text nodes in the form "-n-" embedded in a stack view to create a view n pixels parallel to the stack
+		// we might also consider allowing text nodes to be processed separately by plugins
+		// actually we should totally do that and even move the uilabel handling in there
+		// the problem is this is preprocessing, so no views can exist yet
 		
 		// if the parent is not an attribute node, should we implicitly treat it as a UILabel with text set? that would be cool. it'll (eventually) inherit font, color, etc. already
 		// experimental:

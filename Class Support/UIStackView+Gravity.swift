@@ -191,7 +191,12 @@ extension UIStackView: GravityElement {
 		// TODO: clean this code up
 		// FIXME: for some reason when this is a UIView other elements with intrinsic width trump it; it tends to actually work way better as a UILabel; we should investigate this and understand why so we can improve it
 		let spacer = UIView()
-//		spacer.autoSetDimensionsToSize(CGSize(width: 0, height: 0))
+		// TODO: add priorities to constants
+		// this seems to help but also causes problems:
+		UIView.autoSetPriority(249) {
+			spacer.autoSetDimensionsToSize(CGSize(width: 0, height: 0))
+		}
+		
 //		spacer.text="?"
 //		spacer.backgroundColor = UIColor.magentaColor().colorWithAlphaComponent(0.5)
 //			spacer.text = "hi"

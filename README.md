@@ -10,7 +10,7 @@ Suppose you wanted to construct the following simple layout (everything inside t
 
 In Auto Layout, your job is to examine each edge of each view, figuring out which other view edges each one should bind to and at what constraint priorities, what each view's content compression resistance and content hugging priorities are, and whether or not you have enough constraints to fully satisfy both axes, or have too many and have an ambiguous layout.
 
-With Gravity, on the other hand, you break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stacks views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is clearly our first division and it is horizontal. Everything to the left of the Order button is stacked vertically, with the two directions buttons at the bottom stacked horizontally.
+With Gravity, on the other hand, you break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stack views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is our first division and it is horizontal. Everything to the left of the Order button is stacked vertically, with the two directions buttons at the bottom stacked horizontally.
 
 Here's how you say that in gravity:
 
@@ -138,6 +138,9 @@ Gravity is split into two axes: horizontal and vertical, and each axis can have 
 You can specify one or both axes of gravity at a time. If you omit an axis, that axis will continue to inherit its value from its parent element. Separate multiple gravity values with a space. So, to dock a view to the top-right corner of its parent, set `gravity="top right"`. To center an element horizontally without affecting its vertical gravity, simply set `gravity="center"`. Remember, changing the gravity affects all child elements too, so if you want the things *inside* the view to dock to a different edge, don't forget to adjust their gravity as well.
 
 Note: You can also set native properties like the `alignment` of a stack view or the `textAlignment` of a label directly to avoid changing the gravity for an entire subtree.
+
+#Edge Binding
+Gravity accomplishes view containment by means of edge binding at differing priorities. Most views are bound on all edges to their parent by at least some priority. Gravity sets these priorities based on the configuration of your layout and the information you provide for how views should resize; for example, whether they are filled along an axis, have an explicit size or are constrained to a max/min size.
 
 ###Encapsulation
 Encapsulation couldn't be simpler in Gravity. To create a reusable control or layout template, all you need to do is author that layout as its own gravity file. You can then reference it in another layout by creating a node with the same name as that file. That's literally all you have to do. There's no registering, no linking, no outlets.

@@ -39,6 +39,8 @@ public class GravityViewController: UIViewController {
 		document?.controller = self // does this make sense? if we subclass, yes
 		
 		if let document = document {
+//			document.node.attributes["width"] = GravityNode(document: document, parentNode: document.node, nodeName: "", textValue: "fill");
+//			document.node.attributes["height"] = GravityNode(document: document, parentNode: document.node, nodeName: "", textValue: "fill");
 			view.translatesAutoresizingMaskIntoConstraints = false
 			view.addSubview(document.view)
 //			UIView.autoSetPriority(150) { // must be less than (bubble fill priority - depth)

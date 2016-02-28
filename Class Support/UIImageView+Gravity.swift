@@ -18,7 +18,11 @@ extension UIImageView: GravityElement {
 		
 		switch attribute {
 			case "image":
-				self.image = UIImage(named: textValue)//?.imageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate) // for now; make this configurable
+				self.image = UIImage(named: textValue)?.imageWithRenderingMode(node["template"]?.boolValue == true ? .AlwaysTemplate : .AlwaysOriginal)
+				return .Handled
+			
+			case "template":
+				// handled above
 				return .Handled
 				
 			default:
