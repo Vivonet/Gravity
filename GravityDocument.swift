@@ -37,14 +37,10 @@ import Foundation
 	
 	public var view: UIView {
 		get {
-//			if node.isViewInstantiated() {
-//				return node.view
-//			} else {
-				defer {
-					postprocess() // we could also just set a flag and call this each time
-				}
-				return node.view
-//			}
+			defer {
+				postprocess() // we could also just set a flag and call this each time
+			}
+			return node.view
 		}
 	}
 	
@@ -129,7 +125,7 @@ import Foundation
 	
 	// MARK: PRE-PROCESSING PHASE
 	internal func preprocess() {
-		for childNode in self.node { // sloppy i know
+		for childNode in self.node {
 			if childNode == self.node { // skip self!
 				continue
 			}

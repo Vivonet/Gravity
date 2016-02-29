@@ -14,9 +14,9 @@ private var GravityNodeAssociatedObjectKey = 0
 extension UIView {
 	/// Gravity adds this stored property to all instances of `UIView`.
 	/// - Returns: The `GravityNode` object that was used to instantiate the receiving view, or `nil` if it was not created by Gravity.
-	public var gravityNode: GravityNode {
+	public var gravityNode: GravityNode? {
 		get {
-			return objc_getAssociatedObject(self, &GravityNodeAssociatedObjectKey) as! GravityNode
+			return objc_getAssociatedObject(self, &GravityNodeAssociatedObjectKey) as! GravityNode?
 		}
 		set(value) {
 			objc_setAssociatedObject(self, &GravityNodeAssociatedObjectKey, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) // i believe this should be weak since the view is created and managed by the GravityNode

@@ -70,6 +70,10 @@ extension UIButton: GravityElement {
 		self.adjustsImageWhenHighlighted = true
 //		self.setContentCompressionResistancePriority(1000, forAxis: UILayoutConstraintAxis.Horizontal)
 
+//		for subview in subviews {
+//			subview.removeFromSuperview()
+//		}
+
 		// it seems for some reason, UIButtons have an intrinsic height of 34; i need to figure out where that is coming from and kill it with fire
 		
 		return .NotHandled

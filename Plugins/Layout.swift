@@ -227,47 +227,48 @@ extension Gravity {
 		
 		public override func postprocessElement(node: GravityNode) {
 //			NSLog("Postprocess: \(unsafeAddressOf(node))")
-			// TEMP disabled; we're getting way too many constraints here
-//			for (identifier, nodes) in widthIdentifiers {
-//				let first = nodes[0]
-//				for var i = 1; i < nodes.count; i++ {
-//					// priority?? also we need to add a constraint (but what should its identifier be?)
-//					NSLog("Matching dimension of \(nodes[i]) to \(first).")
-//					nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
-//				}
-//			}
+			// TODO: we may be getting way too many constraints here
+			for (identifier, nodes) in widthIdentifiers {
+				let first = nodes[0]
+				for var i = 1; i < nodes.count; i++ {
+					// priority?? also we need to add a constraint (but what should its identifier be?)
+					NSLog("Matching dimension of \(nodes[i]) to \(first).")
+					nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
+				}
+			}
 
 
 			if node.view.superview != nil {
-				if !(node.view.superview is UIStackView) { // we are not inside a stack view
-					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
-					
+				if (node.view.superview as? UIStackView)?.axis != .Horizontal { // we are not inside a stack view (of the same axis)
 					// TODO: what priority should these be?
 					// we need to make a special exception for UIScrollView and potentially others. should we move this back into a default handler/handleChildNodes?
 					node.view.autoMatchDimension(.Width, toDimension: .Width, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
-					node.view.autoMatchDimension(.Height, toDimension: .Height, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
+					
+					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
 					
 					if node.isDivergentAlongAxis(.Horizontal) {
 						priority = 200 + Float(node.recursiveDepth)
-					}// else {
+					}
 					
 					UIView.autoSetPriority(priority) {
 						// if a parent view is not filled, it can still be larger than the child (e.g. via a min size)
 						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
 						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
-					//}
 					}
+				}
+				
+				if (node.view.superview as? UIStackView)?.axis != .Vertical { // we are not inside a stack view (of the same axis)
+					node.view.autoMatchDimension(.Height, toDimension: .Height, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
 					
-					priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
+					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
 					
 					if node.isDivergentAlongAxis(.Vertical) {
 						priority = 200 + Float(node.recursiveDepth)
-					}// else {
+					}
 					
 					UIView.autoSetPriority(priority) {
 						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
 						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
-					//}
 					}
 				}
 				
@@ -280,9 +281,6 @@ extension Gravity {
 			if node.isFilledAlongAxis(.Horizontal) {
 				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
 				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Horizontal {
-//					if node.view.superview is UIStackView {
-//						NSLog("Superview must be a vertical stack view")
-//					}
 					UIView.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 	//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
 						node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left).autoIdentify("gravity-fill-left") // leading?
@@ -294,12 +292,8 @@ extension Gravity {
 			if node.isFilledAlongAxis(.Vertical) {
 				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Vertical)
 				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Vertical {
-//					if node.view.superview is UIStackView {
-//						NSLog("Superview must be a horizontal stack view")
-//					}
 					UIView.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 	//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
-						
 						node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top).autoIdentify("gravity-fill-top")
 						node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom).autoIdentify("gravity-fill-bottom")
 					}
@@ -440,7 +434,7 @@ extension GravityNode {
 		}
 	}
 	
-	// there is a bubble between this node and its parent
+	/// A node is divergent from its parent on an axis if it has the potential that at least one edge of that axis are not bound to their parent edges. For example, an auto-sized node inside a fixed size node has the potential to be smaller than its container, and is considered divergent.
 	internal func isDivergentAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
 		guard let parentNode = parentNode else {
 			return false
@@ -457,17 +451,20 @@ extension GravityNode {
 		} else if parentNode.isExplicitlySizedAlongAxis(axis) {
 			return true
 		}
-
-		// maybe gravity will actually just take care of this
-		// no because it still overrides intrinsic size; there has to be a bubble of < 250
-		// but this bubble should collapse as soon as the view grows past its minsize
+		
 		switch axis {
 			case .Horizontal:
+				if (parentNode.view as? UIStackView)?.axis == .Vertical {
+					return true
+				}
 				if parentNode["minWidth"] != nil {
 					return true
 				}
 			
 			case .Vertical:
+				if (parentNode.view as? UIStackView)?.axis == .Horizontal {
+					return true
+				}
 				if parentNode["minHeight"] != nil {
 					return true
 				}
@@ -510,13 +507,6 @@ extension GravityNode {
 					}
 				}
 				break
-//				for childNode in childNodes {
-//					if childNode.isFilledAlongAxis(axis) {
-//						return true
-//					}
-//				}
-//				
-//				return false
 			
 			case .Vertical:
 //				if self["maxHeight"] != nil { // we could verify that it is numeric, but i can't think of a concise way to do that

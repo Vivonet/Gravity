@@ -50,14 +50,14 @@ extension Gravity {
 			// there are obviously a lot of these; i'm just going to add them as i need them; try to keep these sorted alphabetically
 			
 			// MARK: UIStackViewAlignment
-			Constants.registerConstant("UIStackViewAlignment.Bottom", value: UIStackViewAlignment.Bottom.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.Center", value: UIStackViewAlignment.Center.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.Fill", value: UIStackViewAlignment.Fill.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.FirstBaseline", value: UIStackViewAlignment.FirstBaseline.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.LastBaseline", value: UIStackViewAlignment.LastBaseline.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.Leading", value: UIStackViewAlignment.Leading.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.Top", value: UIStackViewAlignment.Top.rawValue)
-			Constants.registerConstant("UIStackViewAlignment.Trailing", value: UIStackViewAlignment.Trailing.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.Bottom",				value: UIStackViewAlignment.Bottom.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.Center",				value: UIStackViewAlignment.Center.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.Fill",					value: UIStackViewAlignment.Fill.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.FirstBaseline",		value: UIStackViewAlignment.FirstBaseline.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.LastBaseline",			value: UIStackViewAlignment.LastBaseline.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.Leading",				value: UIStackViewAlignment.Leading.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.Top",					value: UIStackViewAlignment.Top.rawValue)
+			Constants.registerConstant("UIStackViewAlignment.Trailing",				value: UIStackViewAlignment.Trailing.rawValue)
 		}
 	}
 }

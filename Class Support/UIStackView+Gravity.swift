@@ -193,7 +193,8 @@ extension UIStackView: GravityElement {
 		let spacer = UIView()
 		// TODO: add priorities to constants
 		// this seems to help but also causes problems:
-		UIView.autoSetPriority(249) {
+		// i forget why we needed this now, but it seemed to work well for another problem
+		UIView.autoSetPriority(250) {
 			spacer.autoSetDimensionsToSize(CGSize(width: 0, height: 0))
 		}
 		

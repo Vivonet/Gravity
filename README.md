@@ -216,18 +216,21 @@ Instead, if you want to customize the appearance of elements within your embedde
 ###True Native UI (Fast!)
 Gravity is purely an Auto Layout framework. It doesn't make compromises when it comes to supporting different platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
 
+###Create Perfect Interfaces
+Gravity is mathematically precise. Never accidentally misdrag an edge or element again. With Gravity, what you *write* is what you get. (Hey does that mean Gravity is **WYWIWYG**? Yeah that's probably never going to catch on…)
+
 ###No More Ambiguous Layouts
 I'm pretty sure Gravity is mathematically deterministic, although I'm not going to attempt to prove it. What this means, though, is that (not counting bugs in the engine) any possible layout you construct with Gravity will be guaranteed to be correct as far as Auto Layout is concerned. No missing constraints, no ambiguous constraints.
 
 The deterministic nature of the hierarchy that powers Gravity answers any and all ambiguities Auto Layout may be worried about. Ambiguous and missing constraints just aren't something you have to think about when using Gravity.
 
 ###Real MVC
-Gravity is a true realization of the Model-View-Controller paradigm. There are few who would argue in favour of Apple's implementation (many jokingly refer to it as "Massive View Controller"). This is because of a few mistakes Apple made, in my opinion:
+Gravity is a true realization of the Model-View-Controller paradigm. There are probably few who would argue in favour of Apple's implementation (which many jokingly refer to as "Massive View Controller"). This is because of a few mistakes Apple made, in my humble opinion:
 
-1. They made encapsulation too difficult (tedious)
+1. They made encapsulation too difficult (or at best too tedious)
 2. They didn't split the view from the controller properly (UIViewController does both view and controller related things)
-3. Use of the delegate pattern instead of a publisher-subscriber model for events
-4. Generally failing to follow object-oriented principles (UITableView, UICollectionView)
+3. Use of the delegate pattern instead of a publisher-subscriber model for events (which results in exclusively binding child objects to the view controller)
+4. And generally failing to follow object-oriented principles (UITableView, UICollectionView)
 
 All of these contribute to the ViewController in Apple's implementation becoming a monolithic "catch-all" class that essentially does the work of many things.
 
