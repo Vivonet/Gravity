@@ -12,7 +12,7 @@ import Foundation
 @available(iOS 9.0, *)
 @objc
 public class GravityViewController: UIViewController {
-	public var document: GravityDocument? = nil
+	public var document: GravityDocument// = nil
 
 	var bottomPin: NSLayoutConstraint?
 
@@ -23,8 +23,8 @@ public class GravityViewController: UIViewController {
 //	}
 	
 	init(name: String, model: AnyObject? = nil) {
-		super.init(nibName: nil, bundle: nil)
 		document = GravityDocument(name: name, model: model)
+		super.init(nibName: nil, bundle: nil)
 		setup()
 	}
 	
@@ -36,69 +36,32 @@ public class GravityViewController: UIViewController {
 	
 	private func setup() {
 		view.backgroundColor = UIColor.whiteColor()
-		document?.controller = self // does this make sense? if we subclass, yes
+		document.controller = self // does this make sense? if we subclass, yes
 		
-		if let document = document {
-//			document.node.attributes["width"] = GravityNode(document: document, parentNode: document.node, nodeName: "", textValue: "fill");
-//			document.node.attributes["height"] = GravityNode(document: document, parentNode: document.node, nodeName: "", textValue: "fill");
+		var documentView: UIView?
+		if document.error == nil {
+			documentView = document.view
+		} else if let error = document.error {
+			let errorDoc = GravityDocument(name: "GravityError", model: error)
+			documentView = errorDoc.view
+		}
+		
+		if let documentView = documentView {
 			view.translatesAutoresizingMaskIntoConstraints = false
-			view.addSubview(document.view)
-//			UIView.autoSetPriority(150) { // must be less than (bubble fill priority - depth)
-//				document.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: ALEdge.Bottom)
-				document.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-				document.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-				document.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-//				document.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+			view.addSubview(documentView)
+			
+			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Left)
+			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Top)
+			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Right)
 
-				self.bottomPin = document.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-//			}
+			self.bottomPin = documentView.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
 			
-			// read current keyboard frame?
-			
-			// TODO: figure out if we can do this without duplicating the gravity code
-			// any way we can do this in postprocess or use a low-priority host binding for documents to their containers?
-			UIView.autoSetPriority(GravityPriority.Gravity) {
-				switch document.node.gravity.horizontal {
-					case .Left:
-						document.node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
-						break
-					
-					case .Center:
-						document.node.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
-						break
-					
-					case .Right:
-						document.node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
-						break
-					
-					default:
-						break
-				}
-				
-				switch document.node.gravity.vertical {
-					case .Top:
-						document.node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
-						break
-					
-					case .Middle:
-						document.node.view.autoAlignAxisToSuperviewAxis(ALAxis.Horizontal)
-						break
-					
-					case .Bottom:
-						document.node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
-						break
-					
-					default:
-						break
-				}
-			}
-			
-			if document.view.hasAmbiguousLayout() {
+			if documentView.hasAmbiguousLayout() {
 				NSLog("WARNING: Document view is ambiguous!!")
 			}
 		}
 		
-//		document?.postprocess()
+		// read current keyboard frame?
 	}
 
 	required public init?(coder aDecoder: NSCoder) {

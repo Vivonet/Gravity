@@ -17,6 +17,18 @@ extension Gravity {
 			}
 			
 			switch attribute {
+				case "borderColor":
+					if let color = value.convert() as UIColor? {
+						node.view.layer.borderColor = color.CGColor
+					}
+					return .Handled
+				
+				case "borderSize":
+					if let floatValue = value.floatValue {
+						node.view.layer.borderWidth = CGFloat(floatValue)
+					}
+					return .Handled
+				
 				case "cornerRadius":
 					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
 					node.view.layer.cornerRadius = CGFloat((textValue as NSString).floatValue)
@@ -43,7 +55,7 @@ extension GravityNode {
 	
 	public var font: UIFont {
 		get {
-			return nil ?? UIFont() // TODO
+			return getScopedAttribute("font")?.convert() as UIFont? ?? UIFont.systemFontOfSize(17) // same as UILabel default font
 		}
 	}
 }

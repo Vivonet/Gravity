@@ -194,7 +194,7 @@ extension UIStackView: GravityElement {
 		// TODO: add priorities to constants
 		// this seems to help but also causes problems:
 		// i forget why we needed this now, but it seemed to work well for another problem
-		UIView.autoSetPriority(250) {
+		NSLayoutConstraint.autoSetPriority(250) {
 			spacer.autoSetDimensionsToSize(CGSize(width: 0, height: 0))
 		}
 		

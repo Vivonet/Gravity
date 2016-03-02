@@ -55,6 +55,8 @@ extension UILabel: GravityElement {
 			self.textColor = node.color
 		}
 		
+		self.font = node.font
+		
 		if let maxWidth = node.maxWidth {
 			self.preferredMaxLayoutWidth = CGFloat(maxWidth)
 		}

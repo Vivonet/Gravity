@@ -90,7 +90,7 @@ import Foundation
 	
 	// i think view should actually be UIView? because not all nodes are views
 	// either we throw an exception or we just make this optional
-	private var _view: UIView?
+	private var _view: UIView? // should this actually be weak?? i would think that we would hang onto the view while we are using it, and if we lose our reference to that, we can always rebuild it again from the gravity on demand (may take some refactoring to keep _view alive while we need it)
 	public var view: UIView {
 		get {
 			if _view == nil {

@@ -18,6 +18,7 @@ import Foundation
 	public var name: String? = nil
 	/// The `GravityNode` that represents this document in the parent tree.
 	public weak var parentNode: GravityNode? = nil // if this document is an embedded node
+	public var error: NSError?
 	public lazy var ids = [String : GravityNode]()
 	public lazy var plugins = [GravityPlugin]() // the instantiated plugins for this document
 	public var model: AnyObject? = nil
@@ -35,12 +36,12 @@ import Foundation
 		}
 	}
 	
-	public var view: UIView {
+	public var view: UIView! { // should this be optional?
 		get {
 			defer {
 				postprocess() // we could also just set a flag and call this each time
 			}
-			return node.view
+			return node?.view
 		}
 	}
 	
@@ -54,15 +55,18 @@ import Foundation
 		
 	}
 	
-	convenience init?(name: String, model: AnyObject? = nil) {
+	convenience init(name: String, model: AnyObject? = nil) {
 		self.init(name: name, model: model, parentNode: nil)
 	}
 	
-	private init?(name: String, model: AnyObject? = nil, parentNode: GravityNode?) {
+	/// Creates and returns a `GravityDocument` with the given name, if it exists.
+	///
+	/// Either `node` or `error` will be filled in.
+	private init(name: String, model: AnyObject? = nil, parentNode: GravityNode?) {
 		super.init()
 		
 		self.node = GravityNode(document: self, parentNode: parentNode, nodeName: name, attributes: [:])
-		self.nodeStack.append(self.node)
+		self.nodeStack.append(self.node!)
 
 		// append ".xml" if the name doesn't end with it
 		// TODO: we should improve this to check for the given name first
@@ -74,14 +78,19 @@ import Foundation
 			self.xml = try String(contentsOfURL: url, encoding: NSUTF8StringEncoding)
 			parseXML()
 		} catch {
-			return nil
+//			return nil
+			self.error = NSError(domain: "not found", code: 0, userInfo: [:])
 		}
 	}
 
 	public init(xml: String, model: AnyObject? = nil) {
 		super.init()
-		self.xml = xml // really annoying that didSet doesn't work from initializers :(
+		
+		// FIXME: what should the node of a literally-set document be? the root? or something else?
+		self.node = GravityNode(document: self, parentNode: nil, nodeName: "<RAW>", attributes: [:])
 		self.model = model
+		self.xml = xml // really annoying that didSet doesn't work from initializers :(
+		
 		parseXML()
 	}
 	
@@ -105,12 +114,14 @@ import Foundation
 		parser.delegate = self
 		parser.parse()
 
-		if node.childNodes.isEmpty {
-			NSLog("Error: Could not parse gravity file.")
-			return
+//		if node.childNodes.isEmpty {
+//			NSLog("Error: Could not parse gravity file.")
+//			return
+//		}
+		
+		if error != nil {
+			preprocess()
 		}
-
-		preprocess()
 	}
 	
 	// this may belong in GravityNode
@@ -125,7 +136,10 @@ import Foundation
 	
 	// MARK: PRE-PROCESSING PHASE
 	internal func preprocess() {
-		for childNode in self.node {
+		guard let node = node else {
+			return
+		}
+		for childNode in node {
 			if childNode == self.node { // skip self!
 				continue
 			}
@@ -138,7 +152,8 @@ import Foundation
 			}
 			
 			
-			if let childDocument = GravityDocument(name: childNode.nodeName, model: nil, parentNode: childNode) {
+			let childDocument = GravityDocument(name: childNode.nodeName, model: nil, parentNode: childNode)
+			if childDocument.error == nil {
 				childNode.childDocument = childDocument // strong
 				childDocument.parentNode = childNode // weak
 			}
@@ -275,5 +290,10 @@ import Foundation
 		let node = GravityNode(document: self, parentNode: nodeStack.last, nodeName: "UILabel", attributes: ["text": string, "wrap": string.containsString("\n") ? "true" : "false"])
 		nodeStack.last?.childNodes.append(node)
 		// don't append to nodeStack because it will never be popped
+	}
+	
+	public func parser(parser: NSXMLParser, parseErrorOccurred parseError: NSError) {
+		// TODO: set document to a canned error document, with the text of the error templated in (set model to error?).
+		self.error = parseError
 	}
 }

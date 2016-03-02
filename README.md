@@ -88,7 +88,7 @@ Coming soon.
 ##The Philosophy
 Constructing an interface is a way of communicating. It is a way for the developer of an application to communicate relevant contextual information to the user. It shouldn't be something that is hard or takes painstaking work. It should be as natural as language: as thoughts arranged in such a way as to be understood.
 
-Gravity takes much of the *work* out of creating a layout, and makes it much more naturally expressible.
+Gravity takes most of the *work* out of creating a layout and lets you get back to being creative.
 
 ##The Basics
 Gravity is, at its heart, an XML representation of a native layout. Its elements are classes and its attributes are generally properties on those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond directly to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "label" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
@@ -139,7 +139,7 @@ You can specify one or both axes of gravity at a time. If you omit an axis, that
 
 Note: You can also set native properties like the `alignment` of a stack view or the `textAlignment` of a label directly to avoid changing the gravity for an entire subtree.
 
-#Edge Binding
+###Edge Binding
 Gravity accomplishes view containment by means of edge binding at differing priorities. Most views are bound on all edges to their parent by at least some priority. Gravity sets these priorities based on the configuration of your layout and the information you provide for how views should resize; for example, whether they are filled along an axis, have an explicit size or are constrained to a max/min size.
 
 ###Encapsulation
@@ -214,13 +214,17 @@ Instead, if you want to customize the appearance of elements within your embedde
 
 ##Benefits
 ###True Native UI (Fast!)
-Gravity is purely an Auto Layout framework. It doesn't make compromises when it comes to supporting different platforms and produces blistering fast, truly native layouts using Auto Layout. Only the way you specify your interfaces has changed, not the final result.
+Gravity is a pure Auto Layout framework. It doesn't make compromises when it comes to supporting different platforms and produces blistering fast, truly native layouts using only Auto Layout. It's just the way you instantiate your layouts that has changed, not the final result.
+
+Gravity is also super lightweight. Aside from the tiny DOM (which simply gives you object-oriented access to the contents of your XML files) and whatever minimal overhead each plugin uses (the built-in ones are also very lightweight), there is very little memory overhead. And once your view is actually constructed, Gravity steps aside and lets Auto Layout take over, so there's no performance hit whatsoever. Plus, Gravity is almost entirely implemented in Swift, which compiles to fast native code.
+
+In short, Gravity is fast. Very fast.
 
 ###Create Perfect Interfaces
 Gravity is mathematically precise. Never accidentally misdrag an edge or element again. With Gravity, what you *write* is what you get. (Hey does that mean Gravity is **WYWIWYG**? Yeah that's probably never going to catch on…)
 
 ###No More Ambiguous Layouts
-I'm pretty sure Gravity is mathematically deterministic, although I'm not going to attempt to prove it. What this means, though, is that (not counting bugs in the engine) any possible layout you construct with Gravity will be guaranteed to be correct as far as Auto Layout is concerned. No missing constraints, no ambiguous constraints.
+In theory, any possible layout you can construct with Gravity will be guaranteed to be correct as far as Auto Layout is concerned. No missing constraints, no ambiguous constraints.
 
 The deterministic nature of the hierarchy that powers Gravity answers any and all ambiguities Auto Layout may be worried about. Ambiguous and missing constraints just aren't something you have to think about when using Gravity.
 
@@ -236,11 +240,22 @@ All of these contribute to the ViewController in Apple's implementation becoming
 
 An example: If I want to add a sub-element to my interface to display information in a table, I would drag a UITableView into my XIB or Storyboard, bind its delegate to my controller, and implement a handful of UITableView *delegate* methods on my controller. The methods we are adding to our view controller do not pertain to the objective role of that class, they pertain to the function of a *child* of that class. This means that the more children you have to manage in your class, the bigger that class is itself going to get, managing all of those children's delegate methods. Not a good design.
 
-In Gravity, the view talks directly to the model and views can be broken down into as many levels of embedded views as you like. There's often no controller even involved. Your XML file represents your view. The model, as always, is independent and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be accessed by the view, by means of property dot-notation and data binding.
+In Gravity, the view talks directly to the model (or if you prefer a looser separation of concerns, a view-model) and views can be broken down into as many levels of embedded views as you like. There's often no controller even involved. Your XML file represents your view. The model, as always, is independent and has no knowledge of the view or the controller, but through its documented interface exposes the properties and methods that will ultimately be accessed by the view, by means of property dot-notation and data binding.
 
 This establishes the view's connection to the model. Notice the controller isn't even involved yet. In many cases in Gravity a controller is actually not needed, believe it or not. Unlike Apple's model, where the view controller is fundamental, in Gravity it's the least important citizen. In Gravity, the controller is there to essentially do anything that you can't just do in your gravity file itself. So any arbitrary logic (i.e. code) goes into the controller. The controller is the thinking part. The model and the view are just the data and the displaying of that data, respectively.
 
-In Gravity, to add a table to your view you add a UITableView node to your layout and provide it with a *row template*, which is itself a view hierarchy that is either written directly into the document, or a reference to an encapsulated child layout. Each instantiation of a row from the template will have a different data context (model object) for each element of the table's data source, and will render itself accordingly. And we *still* don't need a controller for any of this.
+In Gravity, to add a table to your view you add a UITableView node to your layout and provide it with a *row template*, which is itself a view hierarchy that is either written directly into the document, or a reference to an encapsulated child layout. Each instantiation of a row from the template will have a different data context (model object) for each element of the table's data source, and will render itself accordingly. And we *still* don't need a controller for any of this!
+
+###Super Extensibility
+Gravity was designed with extensibility in mind from the get-go. I knew that there was no way I could personally write every possible feature into Gravity myself, so I designed it so you could all help out! `;)`
+
+Gravity actually has two tiers of extensibility: **class support** and **plugins**. Class support is far simpler, and gives you a dead simple way to add Gravity support to any `UIView` subclass you may or may not control. Support is added to a class by means of adopting the `GravityElement` protocol. This protocol has only one required method (and a couple of optional ones) that allows you to handle custom attributes for configuring with your class in XML form.
+
+Gravity also has a lower-level hook-based plugin model that allows you to add whatever amazing functionality to Gravity you can dream up. In fact, most of the actual behavior of Gravity is implemented as either class support or plugins, which not only demonstrates how capable the architecture is, but also serves as a handy source of example code!
+
+If you find yourself confused as to the difference between class support and plugins, the simplest way to think of it is like this: class support only deals with the elements in your XML file that represent (and have the same name as) your class. If the work you need to do (and the information you need to access) is limited to that single node (or its child nodes), then all you need is to implement the `GravityElement` protocol on your class/extension. On the other hand, if the functionality you are authoring applies to potentially multiple different elements, (including potentially all elements), a plugin is what you need.
+
+So go wild with plugins and please share what you create! Plugins are like the apps of Gravity: the more there are, the more value the platform has.
 
 ###Rapid Prototyping
 Once you get the hang of it, Gravity is so simple you can often use it to build *actual* interfaces faster than you could mock them up using a mockup tool. Use it to sketch out a functioning UI for your app in minutes rather than the hours native Auto Layout would take.
@@ -257,19 +272,19 @@ Outlets are a joke. Most frameworks would simply bind interface elements to thei
 
 Thankfully this nonsense is gone with Gravity. Interface elements are automatically bound to their controller properties of the same name. So that's one whole paradigm you won't even have to think about anymore when using Gravity.
 
-###Readable Source Control Diffs
-Because Gravity's syntax is so much simpler than a XIB file, things like source control diffs actually become human-parseable.
+###Readable Diffs
+Because Gravity's syntax is so much simpler than a XIB file, a nice side-effect is that things like source control diffs actually become human-parseable.
 
 ##Downsides
 ###No Immediate Feedback
-Probably the biggest limitation of Gravity right now is that you cannot immediately see a visual representation of your UI while editing your layout. This isn't a limitation of the design of Gravity per se, but more a limitation of Mac OS and the fact that you cannot instantiate iOS controls inside OS X inside anything other than a simulator. (I honestly don't know how Interface Builder does it, or whether it may be possible some day to integrate Gravity with Xcode's design-time tools, but I suspect Apple keeps much of this proprietary.)
+Probably the biggest limitation of Gravity right now is that you cannot immediately see a visual representation of your UI while editing your layout *in Xcode*. This isn't a limitation of the design of Gravity per se, but more a result of the fact that you cannot instantiate iOS controls inside OS X inside anything other than a simulator. (I honestly don't know how Interface Builder does it, or whether it may be possible some day to integrate Gravity with Xcode's design-time tools, but I suspect Apple keeps much of this proprietary.)
 
-That said, there is the included demo app **Gravity Assist** that allows you to see the results of adjustments to your layout in real time. The only problem is you have to run it on a device or the simulator. :(
+That said, there will be an included demo app called Gravity Assist that will allow you to see the results of adjustments to your layout in real time. The only problem is you have to run it on a device or the simulator. `:(`
 
-I expect things will improve in this area as time goes by, but for now your best bet is to just compile and run to see your changes. One piece of good news is that because xml files are merely considered resources in your app, if you've only modified xml files since your last build, rebuilding is almost instantaneous because everything is already compiled!
+I expect things will improve in this area as time goes by, but for now your best bet is to just compile and run to see your changes. One piece of good news is that because xml files are considered merely resources, if you've only modified xml files since your last build, rebuilding is almost instantaneous because everything is already compiled!
 
 ###No Unit Testing
-There's no unit testing yet, but Gravity is clearly something that would benefit greatly from a suite of unit tests, so you can bet they're coming at some point.
+There's no unit testing *yet*, but Gravity is clearly something that would benefit greatly from a suite of unit tests, so you can bet they're coming at some point.
 
 ##Tips
 Gravity is not just an easier way to work with Auto Layout, it's really a whole philosophy: Build your interfaces from the inside out, not the outside in. Let the content be key. Don't waste space. Think contextually.

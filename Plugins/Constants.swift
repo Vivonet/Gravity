@@ -45,7 +45,7 @@ extension Gravity {
 		}
 		
 		private class func loadDefaultConstants() {
-			// TODO: should we register these alongside the classes that make the most sense? the problem is it's hard to initialize a class extension
+			// should we register these alongside the classes that make the most sense? the problem is it's hard to initialize a class extension
 			
 			// there are obviously a lot of these; i'm just going to add them as i need them; try to keep these sorted alphabetically
 			

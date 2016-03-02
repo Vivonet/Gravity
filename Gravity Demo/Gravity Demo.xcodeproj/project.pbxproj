@@ -1,0 +1,454 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		455F11F01C87658B003C39F0 /* UIButton+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11D81C87658B003C39F0 /* UIButton+Gravity.swift */; };
+		455F11F11C87658B003C39F0 /* UIImageView+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11D91C87658B003C39F0 /* UIImageView+Gravity.swift */; };
+		455F11F21C87658B003C39F0 /* UILabel+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11DA1C87658B003C39F0 /* UILabel+Gravity.swift */; };
+		455F11F31C87658B003C39F0 /* UIStackView+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11DB1C87658B003C39F0 /* UIStackView+Gravity.swift */; };
+		455F11F41C87658B003C39F0 /* UITableView+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11DC1C87658B003C39F0 /* UITableView+Gravity.swift */; };
+		455F11F51C87658B003C39F0 /* UITextView+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11DD1C87658B003C39F0 /* UITextView+Gravity.swift */; };
+		455F11F61C87658B003C39F0 /* UIView+Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11DE1C87658B003C39F0 /* UIView+Gravity.swift */; };
+		455F11F71C87658B003C39F0 /* Gravity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11DF1C87658B003C39F0 /* Gravity.swift */; };
+		455F11F81C87658B003C39F0 /* GravityDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E01C87658B003C39F0 /* GravityDocument.swift */; };
+		455F11F91C87658B003C39F0 /* GravityNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E11C87658B003C39F0 /* GravityNode.swift */; };
+		455F11FA1C87658B003C39F0 /* GravityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E21C87658B003C39F0 /* GravityPlugin.swift */; };
+		455F11FB1C87658B003C39F0 /* GravityViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E31C87658B003C39F0 /* GravityViewController.swift */; };
+		455F11FC1C87658B003C39F0 /* Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E51C87658B003C39F0 /* Appearance.swift */; };
+		455F11FD1C87658B003C39F0 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E61C87658B003C39F0 /* Constants.swift */; };
+		455F11FE1C87658B003C39F0 /* Conversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E71C87658B003C39F0 /* Conversion.swift */; };
+		455F11FF1C87658B003C39F0 /* Default.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E81C87658B003C39F0 /* Default.swift */; };
+		455F12001C87658B003C39F0 /* Interaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11E91C87658B003C39F0 /* Interaction.swift */; };
+		455F12011C87658B003C39F0 /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11EA1C87658B003C39F0 /* Layout.swift */; };
+		455F12021C87658B003C39F0 /* Adaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11EB1C87658B003C39F0 /* Adaptive.swift */; };
+		455F12031C87658B003C39F0 /* Styling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11EC1C87658B003C39F0 /* Styling.swift */; };
+		455F12041C87658B003C39F0 /* Templating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455F11ED1C87658B003C39F0 /* Templating.swift */; };
+		455F12081C87673D003C39F0 /* Main.xml in Resources */ = {isa = PBXBuildFile; fileRef = 455F12071C87673D003C39F0 /* Main.xml */; };
+		455F12151C876A1D003C39F0 /* ALView+PureLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 455F120D1C876A1D003C39F0 /* ALView+PureLayout.m */; };
+		455F12161C876A1D003C39F0 /* NSArray+PureLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 455F120F1C876A1D003C39F0 /* NSArray+PureLayout.m */; };
+		455F12171C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 455F12111C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m */; };
+		455F12191C876A52003C39F0 /* GravityError.xml in Resources */ = {isa = PBXBuildFile; fileRef = 455F12181C876A52003C39F0 /* GravityError.xml */; };
+		45E913701C86129300F0209F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E9136F1C86129300F0209F /* AppDelegate.swift */; };
+		45E913771C86129300F0209F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 45E913761C86129300F0209F /* Assets.xcassets */; };
+		45E9137A1C86129300F0209F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 45E913781C86129300F0209F /* LaunchScreen.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		455F11D81C87658B003C39F0 /* UIButton+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIButton+Gravity.swift"; sourceTree = "<group>"; };
+		455F11D91C87658B003C39F0 /* UIImageView+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIImageView+Gravity.swift"; sourceTree = "<group>"; };
+		455F11DA1C87658B003C39F0 /* UILabel+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UILabel+Gravity.swift"; sourceTree = "<group>"; };
+		455F11DB1C87658B003C39F0 /* UIStackView+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIStackView+Gravity.swift"; sourceTree = "<group>"; };
+		455F11DC1C87658B003C39F0 /* UITableView+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UITableView+Gravity.swift"; sourceTree = "<group>"; };
+		455F11DD1C87658B003C39F0 /* UITextView+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UITextView+Gravity.swift"; sourceTree = "<group>"; };
+		455F11DE1C87658B003C39F0 /* UIView+Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+Gravity.swift"; sourceTree = "<group>"; };
+		455F11DF1C87658B003C39F0 /* Gravity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Gravity.swift; path = ../Gravity.swift; sourceTree = "<group>"; };
+		455F11E01C87658B003C39F0 /* GravityDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GravityDocument.swift; path = ../GravityDocument.swift; sourceTree = "<group>"; };
+		455F11E11C87658B003C39F0 /* GravityNode.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GravityNode.swift; path = ../GravityNode.swift; sourceTree = "<group>"; };
+		455F11E21C87658B003C39F0 /* GravityPlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GravityPlugin.swift; path = ../GravityPlugin.swift; sourceTree = "<group>"; };
+		455F11E31C87658B003C39F0 /* GravityViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = GravityViewController.swift; path = ../GravityViewController.swift; sourceTree = "<group>"; };
+		455F11E51C87658B003C39F0 /* Appearance.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Appearance.swift; sourceTree = "<group>"; };
+		455F11E61C87658B003C39F0 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		455F11E71C87658B003C39F0 /* Conversion.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Conversion.swift; sourceTree = "<group>"; };
+		455F11E81C87658B003C39F0 /* Default.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Default.swift; sourceTree = "<group>"; };
+		455F11E91C87658B003C39F0 /* Interaction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Interaction.swift; sourceTree = "<group>"; };
+		455F11EA1C87658B003C39F0 /* Layout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Layout.swift; sourceTree = "<group>"; };
+		455F11EB1C87658B003C39F0 /* Adaptive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Adaptive.swift; sourceTree = "<group>"; };
+		455F11EC1C87658B003C39F0 /* Styling.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Styling.swift; sourceTree = "<group>"; };
+		455F11ED1C87658B003C39F0 /* Templating.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Templating.swift; sourceTree = "<group>"; };
+		455F11EF1C87658B003C39F0 /* ExceptionCatcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ExceptionCatcher.h; sourceTree = "<group>"; };
+		455F12071C87673D003C39F0 /* Main.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Main.xml; sourceTree = "<group>"; };
+		455F120A1C8768E9003C39F0 /* GravityDemo-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GravityDemo-Bridging-Header.h"; sourceTree = "<group>"; };
+		455F120C1C876A1D003C39F0 /* ALView+PureLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ALView+PureLayout.h"; sourceTree = "<group>"; };
+		455F120D1C876A1D003C39F0 /* ALView+PureLayout.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "ALView+PureLayout.m"; sourceTree = "<group>"; };
+		455F120E1C876A1D003C39F0 /* NSArray+PureLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSArray+PureLayout.h"; sourceTree = "<group>"; };
+		455F120F1C876A1D003C39F0 /* NSArray+PureLayout.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSArray+PureLayout.m"; sourceTree = "<group>"; };
+		455F12101C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSLayoutConstraint+PureLayout.h"; sourceTree = "<group>"; };
+		455F12111C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSLayoutConstraint+PureLayout.m"; sourceTree = "<group>"; };
+		455F12121C876A1D003C39F0 /* PureLayout+Internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "PureLayout+Internal.h"; sourceTree = "<group>"; };
+		455F12131C876A1D003C39F0 /* PureLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PureLayout.h; sourceTree = "<group>"; };
+		455F12141C876A1D003C39F0 /* PureLayoutDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PureLayoutDefines.h; sourceTree = "<group>"; };
+		455F12181C876A52003C39F0 /* GravityError.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = GravityError.xml; sourceTree = "<group>"; };
+		45E9136C1C86129300F0209F /* Gravity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gravity.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		45E9136F1C86129300F0209F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = "Gravity Demo/AppDelegate.swift"; sourceTree = "<group>"; };
+		45E913761C86129300F0209F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		45E913791C86129300F0209F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		45E9137B1C86129300F0209F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		45E913691C86129300F0209F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		455F11D61C87656C003C39F0 /* Gravity */ = {
+			isa = PBXGroup;
+			children = (
+				455F11DF1C87658B003C39F0 /* Gravity.swift */,
+				455F11E01C87658B003C39F0 /* GravityDocument.swift */,
+				455F11E11C87658B003C39F0 /* GravityNode.swift */,
+				455F11E21C87658B003C39F0 /* GravityPlugin.swift */,
+				455F11E31C87658B003C39F0 /* GravityViewController.swift */,
+				455F11D71C87658B003C39F0 /* Class Support */,
+				455F11E41C87658B003C39F0 /* Plugins */,
+				455F11EE1C87658B003C39F0 /* Support */,
+			);
+			name = Gravity;
+			sourceTree = "<group>";
+		};
+		455F11D71C87658B003C39F0 /* Class Support */ = {
+			isa = PBXGroup;
+			children = (
+				455F11D81C87658B003C39F0 /* UIButton+Gravity.swift */,
+				455F11D91C87658B003C39F0 /* UIImageView+Gravity.swift */,
+				455F11DA1C87658B003C39F0 /* UILabel+Gravity.swift */,
+				455F11DB1C87658B003C39F0 /* UIStackView+Gravity.swift */,
+				455F11DC1C87658B003C39F0 /* UITableView+Gravity.swift */,
+				455F11DD1C87658B003C39F0 /* UITextView+Gravity.swift */,
+				455F11DE1C87658B003C39F0 /* UIView+Gravity.swift */,
+			);
+			name = "Class Support";
+			path = "../Class Support";
+			sourceTree = "<group>";
+		};
+		455F11E41C87658B003C39F0 /* Plugins */ = {
+			isa = PBXGroup;
+			children = (
+				455F11EB1C87658B003C39F0 /* Adaptive.swift */,
+				455F11E51C87658B003C39F0 /* Appearance.swift */,
+				455F11E61C87658B003C39F0 /* Constants.swift */,
+				455F11E71C87658B003C39F0 /* Conversion.swift */,
+				455F11E81C87658B003C39F0 /* Default.swift */,
+				455F11E91C87658B003C39F0 /* Interaction.swift */,
+				455F11EA1C87658B003C39F0 /* Layout.swift */,
+				455F11EC1C87658B003C39F0 /* Styling.swift */,
+				455F11ED1C87658B003C39F0 /* Templating.swift */,
+			);
+			name = Plugins;
+			path = ../Plugins;
+			sourceTree = "<group>";
+		};
+		455F11EE1C87658B003C39F0 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				455F11EF1C87658B003C39F0 /* ExceptionCatcher.h */,
+				455F12181C876A52003C39F0 /* GravityError.xml */,
+				455F120B1C876A1D003C39F0 /* PureLayout */,
+			);
+			name = Support;
+			path = ../Support;
+			sourceTree = "<group>";
+		};
+		455F12061C8765FC003C39F0 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				455F12071C87673D003C39F0 /* Main.xml */,
+			);
+			name = Views;
+			path = "Gravity Demo/Views";
+			sourceTree = "<group>";
+		};
+		455F12091C8767D8003C39F0 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				45E9137B1C86129300F0209F /* Info.plist */,
+				455F120A1C8768E9003C39F0 /* GravityDemo-Bridging-Header.h */,
+				45E913781C86129300F0209F /* LaunchScreen.storyboard */,
+				45E913761C86129300F0209F /* Assets.xcassets */,
+			);
+			name = "Supporting Files";
+			path = "Gravity Demo";
+			sourceTree = "<group>";
+		};
+		455F120B1C876A1D003C39F0 /* PureLayout */ = {
+			isa = PBXGroup;
+			children = (
+				455F120C1C876A1D003C39F0 /* ALView+PureLayout.h */,
+				455F120D1C876A1D003C39F0 /* ALView+PureLayout.m */,
+				455F120E1C876A1D003C39F0 /* NSArray+PureLayout.h */,
+				455F120F1C876A1D003C39F0 /* NSArray+PureLayout.m */,
+				455F12101C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.h */,
+				455F12111C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m */,
+				455F12121C876A1D003C39F0 /* PureLayout+Internal.h */,
+				455F12131C876A1D003C39F0 /* PureLayout.h */,
+				455F12141C876A1D003C39F0 /* PureLayoutDefines.h */,
+			);
+			name = PureLayout;
+			path = "Gravity Demo/PureLayout";
+			sourceTree = SOURCE_ROOT;
+		};
+		45E913631C86129300F0209F = {
+			isa = PBXGroup;
+			children = (
+				45E9136F1C86129300F0209F /* AppDelegate.swift */,
+				455F12061C8765FC003C39F0 /* Views */,
+				455F11D61C87656C003C39F0 /* Gravity */,
+				455F12091C8767D8003C39F0 /* Supporting Files */,
+				45E9136D1C86129300F0209F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		45E9136D1C86129300F0209F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				45E9136C1C86129300F0209F /* Gravity.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		45E9136B1C86129300F0209F /* Gravity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 45E9137E1C86129300F0209F /* Build configuration list for PBXNativeTarget "Gravity" */;
+			buildPhases = (
+				45E913681C86129300F0209F /* Sources */,
+				45E913691C86129300F0209F /* Frameworks */,
+				45E9136A1C86129300F0209F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Gravity;
+			productName = "Gravity Demo";
+			productReference = 45E9136C1C86129300F0209F /* Gravity.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		45E913641C86129300F0209F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0720;
+				LastUpgradeCheck = 0720;
+				ORGANIZATIONNAME = Gravity;
+				TargetAttributes = {
+					45E9136B1C86129300F0209F = {
+						CreatedOnToolsVersion = 7.2.1;
+					};
+				};
+			};
+			buildConfigurationList = 45E913671C86129300F0209F /* Build configuration list for PBXProject "Gravity Demo" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 45E913631C86129300F0209F;
+			productRefGroup = 45E9136D1C86129300F0209F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				45E9136B1C86129300F0209F /* Gravity */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		45E9136A1C86129300F0209F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				455F12081C87673D003C39F0 /* Main.xml in Resources */,
+				45E9137A1C86129300F0209F /* LaunchScreen.storyboard in Resources */,
+				45E913771C86129300F0209F /* Assets.xcassets in Resources */,
+				455F12191C876A52003C39F0 /* GravityError.xml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		45E913681C86129300F0209F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				455F11F91C87658B003C39F0 /* GravityNode.swift in Sources */,
+				455F11FF1C87658B003C39F0 /* Default.swift in Sources */,
+				455F12021C87658B003C39F0 /* Adaptive.swift in Sources */,
+				455F11F71C87658B003C39F0 /* Gravity.swift in Sources */,
+				455F12161C876A1D003C39F0 /* NSArray+PureLayout.m in Sources */,
+				455F12041C87658B003C39F0 /* Templating.swift in Sources */,
+				455F11F31C87658B003C39F0 /* UIStackView+Gravity.swift in Sources */,
+				455F11F21C87658B003C39F0 /* UILabel+Gravity.swift in Sources */,
+				455F11F51C87658B003C39F0 /* UITextView+Gravity.swift in Sources */,
+				455F11FA1C87658B003C39F0 /* GravityPlugin.swift in Sources */,
+				455F11F01C87658B003C39F0 /* UIButton+Gravity.swift in Sources */,
+				455F11FD1C87658B003C39F0 /* Constants.swift in Sources */,
+				455F12151C876A1D003C39F0 /* ALView+PureLayout.m in Sources */,
+				455F12031C87658B003C39F0 /* Styling.swift in Sources */,
+				455F11FB1C87658B003C39F0 /* GravityViewController.swift in Sources */,
+				455F11F61C87658B003C39F0 /* UIView+Gravity.swift in Sources */,
+				455F12171C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m in Sources */,
+				455F11FE1C87658B003C39F0 /* Conversion.swift in Sources */,
+				455F11F11C87658B003C39F0 /* UIImageView+Gravity.swift in Sources */,
+				455F12001C87658B003C39F0 /* Interaction.swift in Sources */,
+				455F11FC1C87658B003C39F0 /* Appearance.swift in Sources */,
+				455F11F41C87658B003C39F0 /* UITableView+Gravity.swift in Sources */,
+				455F12011C87658B003C39F0 /* Layout.swift in Sources */,
+				45E913701C86129300F0209F /* AppDelegate.swift in Sources */,
+				455F11F81C87658B003C39F0 /* GravityDocument.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		45E913781C86129300F0209F /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				45E913791C86129300F0209F /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		45E9137C1C86129300F0209F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		45E9137D1C86129300F0209F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		45E9137F1C86129300F0209F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = "Gravity Demo/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gravityui.demo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Gravity Demo/GravityDemo-Bridging-Header.h";
+			};
+			name = Debug;
+		};
+		45E913801C86129300F0209F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = "Gravity Demo/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gravityui.demo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Gravity Demo/GravityDemo-Bridging-Header.h";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		45E913671C86129300F0209F /* Build configuration list for PBXProject "Gravity Demo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				45E9137C1C86129300F0209F /* Debug */,
+				45E9137D1C86129300F0209F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		45E9137E1C86129300F0209F /* Build configuration list for PBXNativeTarget "Gravity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				45E9137F1C86129300F0209F /* Debug */,
+				45E913801C86129300F0209F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 45E913641C86129300F0209F /* Project object */;
+}

@@ -1,0 +1,11 @@
+<UIView backgroundColor="#000">
+<UIView borderColor="#ccc" borderSize="10" cornerRadius="30" width="fill" height="fill" backgroundColor="#fcfcfc">
+	<V color="#333">
+		<UILabel color="#00000033" maxHeight="150" font="System Bold 160" text="✗"/>
+		<UILabel id="titleLabel" font="HelveticaNeue Bold 25" text="Parse error"/>
+		<UIView height="4"/>
+		<UILabel id="messageLabel" color="#666" font="HelveticaNeue 15" text="{_userInfo.NSXMLParserErrorMessage}
+line {_userInfo.NSXMLParserErrorLineNumber} column {_userInfo.NSXMLParserErrorColumn}" wrap="true"/>
+	</V>
+</UIView>
+</UIView>

@@ -62,7 +62,8 @@ struct GravityPriority {
 	/// Instantiate a new instance of the named layout. You can omit the ".xml" from your layout name for brevity.
 	public class func new<T: UIView>(name: String, model: AnyObject? = nil) -> T? {
 		// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time.
-		if let document = GravityDocument(name: name, model: model) {
+		let document = GravityDocument(name: name, model: model)
+		if document.error == nil {
 			return document.view as? T // verify
 		}
 		
@@ -86,6 +87,7 @@ struct GravityPriority {
 
 // MARK: -
 
+// i think this should be moved to GravityPlugin, since it's extensibility related
 @available(iOS 9.0, *)
 @objc public protocol GravityElement { // MARK: GravityElement
 	/// The main attribute handler for the element. You will receive *either* `stringValue` or `nodeValue` as the value for each attribute of your element, depending on the type of the attribute.
@@ -100,6 +102,7 @@ struct GravityPriority {
 	// add a method to bind an id? or just use processAttribute?
 }
 
+// TODO: create this and use it as the model for an ErrorView
 enum GravityError: ErrorType {
 	case InvalidParse
 }
