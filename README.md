@@ -201,11 +201,23 @@ The controller is there to do anything that you can't do in your gravity file it
 How the controller is treated is really up to each plugin or supported class. For example, the UIButton's class support will bind action="selector:" attributes to selectors in your controller, whatever it may be.
 
 ###Attribute Nodes
-Gravity supports a special syntax called **attribute notation** (property notation in WPF) which allows you to configure objective values as if they were being assigned to an attribute of the parent node.
+Gravity supports a special syntax I call **attribute nodes** (property element syntax in XAML) which allows you to define attributes as sub-nodes, rather than strings. This gives you much more flexibility than string notation when you need it, and works perfectly for assigning embedded layout templates to attributes.
 
-XML's syntax only allows string values for attributes, which works in a great many cases when you add conversion to the mix, but there are times when having a single string just isn't enough to represent the configuration of an object. For these situations, we have attribute nodes.
+XML's syntax only allows string values for attributes, which works in a great many cases, especially when you add string converters to the mix, but there are times when having a single string just isn't enough to represent the configuration of an object. For these situations, we have attribute nodes.
 
-Attribute nodes are specified using dot notation on the parent element's name. Everything following the parent element's name is treated as an attribute on the parent element. You can still access child document identifiers by appending further dot components.
+Attribute nodes are specified using the parent element's name followed by a dot followed by the property name. Everything following the parent element's name is treated as an attribute on the parent element. You can still access child document identifiers by appending further dot components.
+
+```xml
+<ParentElement inlineAttribute="inlineValue">
+	<ParentElement.attributeNode>
+		<!-- Everything in here is considered the value of the "attributeNode" attribute on ParentElement. -->
+	</ParentElement.attributeNode>
+	
+	<!-- ParentElement's child nodes (if any) would go here as per usual. -->
+</ParentElement>
+```
+
+Note that attribute nodes aren't limited to representing layouts. You can specify any arbitrary XML inside an attribute node and it will be delivered to the plugin or supported class as a `GravityNode` (as all attribute values are), which can be interpreted as desired.
 
 ###Scoped Attributes
 A scoped attribute is an attribute that affects the node it is applied to and all child nodes of that node, until it is overridden. Note that scoped attributes do not traverse document boundaries, so if you embed another document inside your layout, attributes like gravity and color will not extend into that document.

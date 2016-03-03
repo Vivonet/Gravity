@@ -60,6 +60,13 @@ import Foundation
 		}
 	}
 	
+	/// An attribute’s value will always be either a `String` or a `GravityNode`.
+	subscript(attribute: String) -> GravityNode? {
+		get {
+			return attributes[attribute]
+		}
+	}
+	
 //	public var attributes: [String: AnyObject] {
 //		get {
 //			return Dictionary<String, AnyObject>(stringValues) + Dictionary<String, AnyObject>(nodeValues)
@@ -73,14 +80,7 @@ import Foundation
 			}
 		}
 	}
-	
-	/// An attribute’s value will always be either a `String` or a `GravityNode`.
-	subscript(attribute: String) -> GravityNode? {
-		get {
-			return attributes[attribute]
-		}
-	}
-	
+		
 	// oh but it would be sweet if we could do this!
 //	subscript<T>(attribute: String) -> T? {
 //		get {

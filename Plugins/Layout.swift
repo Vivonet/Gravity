@@ -14,6 +14,18 @@ extension Gravity {
 		private static let keywords = ["fill", "auto"]
 		private var widthIdentifiers = [String: [GravityNode]]() // instead of storing a dictionary of arrays, can we store a dictionary that just points to the first-registered view, and then all subsequent views just add constraints back to that view?
 		
+		public override class func initialize() {
+			// method swizzling:
+			let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets"))
+			let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets_Gravity"))
+			
+			if class_addMethod(UIView.self, Selector("alignmentRectInsets"), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
+				class_replaceMethod(UIView.self, Selector("alignmentRectInsets_Gravity"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
+			} else {
+				method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
+			}
+		}
+		
 		public override func instantiateView(node: GravityNode) -> UIView? {
 			// should this be handled in a stackview plugin?
 			switch node.nodeName {
@@ -160,35 +172,15 @@ extension Gravity {
 					sortedChildren.append(childNode)
 				}
 			}
-			
+				
 			// i'm actually thinking this might make the most sense all in one place in postprocess
 			for childNode in sortedChildren {
 				node.view.addSubview(childNode.view)
-				
-//				UIView.autoSetPriority(GravityPriority.ViewContainment + Float(childNode.depth)) {
-//					// TODO: come up with better constraint identifiers than this
-//					// only apply these implicit constraints if we are not filled
-//					// if a parent view is not filled, it can still be larger than the child (e.g. via a min size)
-//					
-////					if !node.isFilledAlongAxis(.Horizontal) {
-//						childNode.constraints["view-left"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
-//						childNode.constraints["view-right"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
-////					}
-//					
-////					if !node.isFilledAlongAxis(.Vertical) {
-//						childNode.constraints["view-top"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
-//						childNode.constraints["view-bottom"] = childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
-////					}
-//				}
-				
-	//			 TODO: add support for margins via a margin and/or padding attribute
-
-	//			childNode.view.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero)
-				
+	
 				NSLayoutConstraint.autoSetPriority(GravityPriority.Gravity) {
 					switch childNode.gravity.horizontal {
 						case .Left:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left)
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: CGFloat(node.leftMargin + node.leftPadding))
 							break
 						
 						case .Center:
@@ -196,7 +188,7 @@ extension Gravity {
 							break
 						
 						case .Right:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right)
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: CGFloat(node.rightMargin + node.rightPadding))
 							break
 						
 						default:
@@ -205,7 +197,7 @@ extension Gravity {
 					
 					switch childNode.gravity.vertical {
 						case .Top:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top)
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: CGFloat(node.topMargin + node.topPadding))
 							break
 						
 						case .Middle:
@@ -213,7 +205,7 @@ extension Gravity {
 							break
 						
 						case .Bottom:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: CGFloat(node.bottomMargin + node.bottomPadding))
 							break
 						
 						default:
@@ -251,9 +243,10 @@ extension Gravity {
 					}
 					
 					NSLayoutConstraint.autoSetPriority(priority) {
-						// if a parent view is not filled, it can still be larger than the child (e.g. via a min size)
-						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
-						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
+						let leftInset = CGFloat((node.parentNode?.leftMargin ?? 0) + (node.parentNode?.leftPadding ?? 0))
+						let rightInset = CGFloat((node.parentNode?.rightMargin ?? 0) + (node.parentNode?.rightPadding ?? 0))
+						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: leftInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
+						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: rightInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
 					}
 				}
 				
@@ -267,8 +260,10 @@ extension Gravity {
 					}
 					
 					NSLayoutConstraint.autoSetPriority(priority) {
-						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
-						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: 0, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
+						let topInset = CGFloat((node.parentNode?.topMargin ?? 0) + (node.parentNode?.topPadding ?? 0))
+						let bottomInset = CGFloat((node.parentNode?.bottomMargin ?? 0) + (node.parentNode?.bottomPadding ?? 0))
+						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: topInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
+						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: bottomInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
 					}
 				}
 				
@@ -365,6 +360,18 @@ public struct GravityDirection {
 	}
 }
 
+extension UIView {
+	func alignmentRectInsets_Gravity() -> UIEdgeInsets {
+		var insets = self.alignmentRectInsets_Gravity()
+		
+		if let node = self.gravityNode {
+			insets = UIEdgeInsetsMake(insets.top - CGFloat(node.topMargin), insets.left - CGFloat(node.leftMargin), insets.bottom - CGFloat(node.bottomMargin), insets.right - CGFloat(node.rightMargin))
+		}
+		
+		return insets
+	}
+}
+
 @available(iOS 9.0, *)
 extension GravityNode {
 	public var gravity: GravityDirection {
@@ -403,6 +410,66 @@ extension GravityNode {
 	public var maxHeight: Float? {
 		get {
 			return self["maxHeight"]?.floatValue
+		}
+	}
+	
+	public var margin: Float {
+		get {
+			return self["margin"]?.floatValue ?? 0
+		}
+	}
+	
+	public var leftMargin: Float {
+		get {
+			return self["leftMargin"]?.floatValue ?? self.margin
+		}
+	}
+	
+	public var topMargin: Float {
+		get {
+			return self["topMargin"]?.floatValue ?? self.margin
+		}
+	}
+	
+	public var rightMargin: Float {
+		get {
+			return self["rightMargin"]?.floatValue ?? self.margin
+		}
+	}
+	
+	public var bottomMargin: Float {
+		get {
+			return self["bottomMargin"]?.floatValue ?? self.margin
+		}
+	}
+	
+	public var padding: Float {
+		get {
+			return self["padding"]?.floatValue ?? 0
+		}
+	}
+	
+	public var leftPadding: Float {
+		get {
+			return self["leftPadding"]?.floatValue ?? self.padding
+		}
+	}
+	
+	public var topPadding: Float {
+		get {
+			return self["topPadding"]?.floatValue ?? self.padding
+		}
+	}
+	
+	public var rightPadding: Float {
+		get {
+			return self["rightPadding"]?.floatValue ?? self.padding
+		}
+	}
+	
+	public var bottomPadding: Float {
+		get {
+			return self["bottomPadding"]?.floatValue ?? self.padding
 		}
 	}
 	

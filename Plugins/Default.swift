@@ -17,7 +17,8 @@ extension Gravity {
 		// TODO: these should ideally be blocked at the same location they are used (e.g. zIndex and gravity in Layout, id should be blocked in the kernel.
 		
 		public override func instantiateView(node: GravityNode) -> UIView? {
-			if let type = NSClassFromString(node.nodeName) as! UIView.Type? {
+			let type: AnyClass? = NSClassFromString(node.nodeName)
+			if let type = type as! UIView.Type? {
 //				var view: UIView
 //				tryBlock {
 					let view = type.init()
@@ -27,6 +28,10 @@ extension Gravity {
 					return view
 				
 				// TODO: determine if the instance is an instance of UIView or UIViewController and handle the latter by embedding a view controller
+			} else if let type = type as! UIViewController.Type? {
+//				let vc = type.init()
+//				let container = UIView()
+//				container.addSu
 			}
 			return nil
 		}
@@ -41,7 +46,6 @@ extension Gravity {
 		
 		// this is really a singleton; should we provide a better way for this to be overridden?
 		override func postprocessAttribute(node: GravityNode, attribute: String, value: AnyObject) -> GravityResult {
-
 			
 //			NSLog("KeyPath \(attribute) converted 
 			

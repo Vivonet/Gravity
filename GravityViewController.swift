@@ -21,9 +21,15 @@ public class GravityViewController: UIViewController {
 //		document = GravityDocument(xml: xml, model: model)
 //		setup()
 //	}
+
+	init(document: GravityDocument) {
+		self.document = document
+		super.init(nibName: nil, bundle: nil)
+		setup()
+	}
 	
 	init(name: String, model: AnyObject? = nil) {
-		document = GravityDocument(name: name, model: model)
+		document = GravityDocument(name, model: model)
 		super.init(nibName: nil, bundle: nil)
 		setup()
 	}
@@ -42,7 +48,7 @@ public class GravityViewController: UIViewController {
 		if document.error == nil {
 			documentView = document.view
 		} else if let error = document.error {
-			let errorDoc = GravityDocument(name: "GravityError", model: error)
+			let errorDoc = GravityDocument("GravityError", model: error)
 			documentView = errorDoc.view
 		}
 		

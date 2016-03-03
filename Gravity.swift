@@ -31,6 +31,7 @@ struct GravityPriority {
 @available(iOS 9.0, *)
 @objc public class Gravity: NSObject { // class or struct?
 	internal static var plugins = [GravityPlugin.Type]()
+	internal static var window: UIWindow? // a strong reference to a window when started from Gravity.start()
 	
 	public override class func initialize() {
 		// it probably makes sense to put plugins with specifically registered identifiers last as they will be the quickest to check (when implemented)
@@ -48,21 +49,21 @@ struct GravityPriority {
 //	
 //	}
 	
-	// really wish there were a way to actually set the app's window property
-	public class func start(name: String, model: AnyObject? = nil) -> UIWindow {
-		let window = UIWindow(frame: UIScreen.mainScreen().bounds)
-		// i really wish we could assign UIApplication.sharedApplication().delegate.window from here; that would make this a lot more elegant
-		
-		window.rootViewController = GravityViewController(name: name, model: model)
-		window.makeKeyAndVisible()
-
-		return window
+	public class func start(name: String, controller: NSObject? = nil) {
+		self.start(GravityDocument(name))
+	}
+	
+	public class func start(document: GravityDocument) {
+		let gvc = GravityViewController(document: document)
+		Gravity.window = UIWindow(frame: UIScreen.mainScreen().bounds)
+		Gravity.window!.rootViewController = gvc
+		Gravity.window!.makeKeyAndVisible()
 	}
 	
 	/// Instantiate a new instance of the named layout. You can omit the ".xml" from your layout name for brevity.
 	public class func new<T: UIView>(name: String, model: AnyObject? = nil) -> T? {
 		// TODO: we should consider caching constructed views for a given filename if we can do so in such a way that serializing/deserializing a cached view is faster than simply rebuilding it each time.
-		let document = GravityDocument(name: name, model: model)
+		let document = GravityDocument(name, model: model)
 		if document.error == nil {
 			return document.view as? T // verify
 		}

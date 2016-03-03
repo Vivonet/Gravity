@@ -24,6 +24,12 @@ import Foundation
 	public var model: AnyObject? = nil
 	private var postprocessed = false
 	
+	subscript(identifier: String) -> GravityNode? {
+		get {
+			return ids[identifier]
+		}
+	}
+	
 	public var controller: NSObject? = nil {
 		didSet {
 			controllerChanged()
@@ -45,24 +51,18 @@ import Foundation
 		}
 	}
 	
-	subscript(identifier: String) -> GravityNode? {
-		get {
-			return ids[identifier]
-		}
-	}
-	
 	public override init() {
 		
 	}
 	
-	convenience init(name: String, model: AnyObject? = nil) {
-		self.init(name: name, model: model, parentNode: nil)
+	convenience init(_ name: String, model: AnyObject? = nil) {
+		self.init(name, model: model, parentNode: nil)
 	}
 	
 	/// Creates and returns a `GravityDocument` with the given name, if it exists.
 	///
 	/// Either `node` or `error` will be filled in.
-	private init(name: String, model: AnyObject? = nil, parentNode: GravityNode?) {
+	private init(_ name: String, model: AnyObject? = nil, parentNode: GravityNode?) {
 		super.init()
 		
 		self.node = GravityNode(document: self, parentNode: parentNode, nodeName: name, attributes: [:])
@@ -119,7 +119,7 @@ import Foundation
 //			return
 //		}
 		
-		if error != nil {
+		if error == nil {
 			preprocess()
 		}
 	}
@@ -152,7 +152,7 @@ import Foundation
 			}
 			
 			
-			let childDocument = GravityDocument(name: childNode.nodeName, model: nil, parentNode: childNode)
+			let childDocument = GravityDocument(childNode.nodeName, model: nil, parentNode: childNode)
 			if childDocument.error == nil {
 				childNode.childDocument = childDocument // strong
 				childDocument.parentNode = childNode // weak
