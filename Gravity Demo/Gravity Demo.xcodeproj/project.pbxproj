@@ -33,6 +33,7 @@
 		455F12161C876A1D003C39F0 /* NSArray+PureLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 455F120F1C876A1D003C39F0 /* NSArray+PureLayout.m */; };
 		455F12171C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = 455F12111C876A1D003C39F0 /* NSLayoutConstraint+PureLayout.m */; };
 		455F12191C876A52003C39F0 /* GravityError.xml in Resources */ = {isa = PBXBuildFile; fileRef = 455F12181C876A52003C39F0 /* GravityError.xml */; };
+		45D718E61C895D9600139F67 /* NameTag.xml in Resources */ = {isa = PBXBuildFile; fileRef = 45D718E51C895D9600139F67 /* NameTag.xml */; };
 		45E913701C86129300F0209F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E9136F1C86129300F0209F /* AppDelegate.swift */; };
 		45E913771C86129300F0209F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 45E913761C86129300F0209F /* Assets.xcassets */; };
 		45E9137A1C86129300F0209F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 45E913781C86129300F0209F /* LaunchScreen.storyboard */; };
@@ -73,6 +74,7 @@
 		455F12131C876A1D003C39F0 /* PureLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PureLayout.h; sourceTree = "<group>"; };
 		455F12141C876A1D003C39F0 /* PureLayoutDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PureLayoutDefines.h; sourceTree = "<group>"; };
 		455F12181C876A52003C39F0 /* GravityError.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = GravityError.xml; sourceTree = "<group>"; };
+		45D718E51C895D9600139F67 /* NameTag.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = NameTag.xml; sourceTree = "<group>"; };
 		45E9136C1C86129300F0209F /* Gravity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gravity.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		45E9136F1C86129300F0209F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = "Gravity Demo/AppDelegate.swift"; sourceTree = "<group>"; };
 		45E913761C86129300F0209F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 			isa = PBXGroup;
 			children = (
 				455F12071C87673D003C39F0 /* Main.xml */,
+				45D718E51C895D9600139F67 /* NameTag.xml */,
 			);
 			name = Views;
 			path = "Gravity Demo/Views";
@@ -268,6 +271,7 @@
 				45E9137A1C86129300F0209F /* LaunchScreen.storyboard in Resources */,
 				45E913771C86129300F0209F /* Assets.xcassets in Resources */,
 				455F12191C876A52003C39F0 /* GravityError.xml in Resources */,
+				45D718E61C895D9600139F67 /* NameTag.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

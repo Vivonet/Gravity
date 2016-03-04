@@ -1,17 +1,3 @@
-<UIView backgroundColor="#000">
-	<V>
-		<UIButton cornerRadius="20" backgroundColor="#ccc" height="fill">
-			<V userInteractionEnabled="false">
-				<UIView font="System Bold 40" backgroundColor="#66f" color="#fff" height="fill" width="fill">
-					Hi.
-				</UIView>
-				<UIView height="140" color="#999" font="HelveticaNeue CondensedBlack 50">
-					GRAVITY
-				</UIView>
-				<UIView height="40" gravity="top" color="#333" font="HelveticaNeue Light 17">
-					<UILabel text="It’ll rock your hello world."/>
-				</UIView>
-			</V>
-		</UIButton>
-	</V>
-</UIView>
+<UIImageView image="Rainbow" width="fill" height="fill" contentMode="UIViewContentMode.ScaleAspectFill">
+	<NameTag />
+</UIImageView>

@@ -58,6 +58,21 @@ extension Gravity {
 			Constants.registerConstant("UIStackViewAlignment.Leading",				value: UIStackViewAlignment.Leading.rawValue)
 			Constants.registerConstant("UIStackViewAlignment.Top",					value: UIStackViewAlignment.Top.rawValue)
 			Constants.registerConstant("UIStackViewAlignment.Trailing",				value: UIStackViewAlignment.Trailing.rawValue)
+			
+			// MARK: UIViewContentMode
+			Constants.registerConstant("UIViewContentMode.Bottom",					value: UIViewContentMode.Bottom.rawValue)
+			Constants.registerConstant("UIViewContentMode.BottomLeft",				value: UIViewContentMode.BottomLeft.rawValue)
+			Constants.registerConstant("UIViewContentMode.BottomRight",				value: UIViewContentMode.BottomRight.rawValue)
+			Constants.registerConstant("UIViewContentMode.Redraw",					value: UIViewContentMode.Redraw.rawValue)
+			Constants.registerConstant("UIViewContentMode.Center",					value: UIViewContentMode.Center.rawValue)
+			Constants.registerConstant("UIViewContentMode.Left",					value: UIViewContentMode.Left.rawValue)
+			Constants.registerConstant("UIViewContentMode.Right",					value: UIViewContentMode.Right.rawValue)
+			Constants.registerConstant("UIViewContentMode.ScaleAspectFill",			value: UIViewContentMode.ScaleAspectFill.rawValue)
+			Constants.registerConstant("UIViewContentMode.ScaleAspectFit",			value: UIViewContentMode.ScaleAspectFit.rawValue)
+			Constants.registerConstant("UIViewContentMode.ScaleToFill",				value: UIViewContentMode.ScaleToFill.rawValue)
+			Constants.registerConstant("UIViewContentMode.Top",						value: UIViewContentMode.Top.rawValue)
+			Constants.registerConstant("UIViewContentMode.TopLeft",					value: UIViewContentMode.TopLeft.rawValue)
+			Constants.registerConstant("UIViewContentMode.TopRight",				value: UIViewContentMode.TopRight.rawValue)
 		}
 	}
 }

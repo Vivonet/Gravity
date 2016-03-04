@@ -1,0 +1,16 @@
+<UIView alpha="0.9" width="300" color="333" cornerRadius="20" backgroundColor="d22" gravity="center" font="System Bold 21">
+	<V>
+		<UIView color="fff" padding="15">
+			Hello,
+		</UIView>
+		<UIView shrinks="1" backgroundColor="fff" width="fill" height="110">
+			<UIView gravity="middle">
+				<H gravity="top">
+					<UILabel text="I’m" topMargin="10" rightMargin="6"/>
+					<UILabel font="HelveticaNeue CondensedBlack 50" text="GRAVITY."/>
+				</H>
+			</UIView>
+		</UIView>
+		<UIView height="40" width="fill" font="System Bold 14" color="fff"/>
+	</V>
+</UIView>

@@ -45,11 +45,9 @@ Here's how you say that in gravity:
 </H>
 ```
 
-Gravity aims to reduce the mental burden of going from a layout you have *in mind* to an actual functioning application in code. It accomplishes this by representing your layout in a much more natural and intuitive manner than pure Auto Layout, as illustrated above.
+Gravity aims to reduce the mental burden of going from a layout you have *in mind* to an actual functioning application in code. It accomplishes this by representing your layout in a much more natural and intuitive manner than pure Auto Layout. If it feels strange looking at code when you're used to seeing a visual representation, the change can be jarring. But give it five minutes. Gravity is a markup language. Think of it as being closer to a spoken language than a programming language. You are describing things at a higher conceptual level than raw constraints, speaking in terms of order and arrangement moreso than pixel offsets.
 
-The best part of Gravity is that everything is relative and dynamic. If you change the size or style of any of the labels, the entire layout will adjust itself naturally to suit it. Layouts just naturally fit together like pieces of a puzzle. And you don't have to "correct" the rest of your layout because you changed one thing.
-
-##Introduction
+##Background
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
 
 Auto Layout has its apologists, and while there's no arguing it's a powerful system, the fact remains that if you've ever had to work with Auto Layout at some point in your career, you're all but guaranteed to have had a frustrating experience.
@@ -81,9 +79,7 @@ Gravity is inspired on the surface by WPF, but is a much simplified take on it. 
 
 Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you build and tweak your interface *textually*, just like editing source code. It is mathematically precise and because it manages all of the layout constraints for you, has far fewer points of potential failure than traditional Auto Layout. Gravity aims to be a solid mathematical foundation for your app's interface.
 
-Calling Gravity a "layout engine" is a bit of a stretch. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. Gravity is the curtain that hides the great and powerful Oz.
-
-Coming soon.
+Calling Gravity a "layout engine" is a bit of a stretch. It's more of a layout *language*. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. Gravity is the curtain that hides the great and powerful Oz.
 
 ##The Philosophy
 Constructing an interface is a way of communicating. It is a way for the developer of an application to communicate relevant contextual information to the user. It shouldn't be something that is hard or takes painstaking work. It should be as natural as language: as thoughts arranged in such a way as to be understood.
@@ -91,14 +87,14 @@ Constructing an interface is a way of communicating. It is a way for the develop
 Gravity takes most of the *work* out of creating a layout and lets you get back to being creative.
 
 ##The Basics
-Gravity is, at its heart, an XML representation of a native layout. Its elements are classes and its attributes are generally properties on those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond directly to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "label" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
+Gravity is, at the simplest, an XML representation of a native layout. Its elements are view classes and its attributes generally correspond to properties of those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond directly to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "title" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
 
-But even better than that is the fact that you can automatically embed subviews inside any other view, including UIButtons. So you can actually lay out your button's contents using Gravity too! (Note: There are limitations in doing this for buttons, namely that embedded views do not presently respect the button's control state and will not react to presses.)
+But even better is the fact that you can embed subviews in any other view, including UIButtons. So you can actually lay out your button's contents using Gravity too! (Note: There are limitations in doing this for buttons, namely that embedded views do not presently respect the button's control state and will not react to presses.)
 
 In Gravity, you arrange your views by using a combination of stacking and layering. Stacking is fundamental while layering is generally more optional for more complex layouts.
 
 ###Stacking
-Stacking can take place either horizontally or vertically and takes place in a **stack view**. A stack view contains an arbitrary number of child views, each of which will be stacked in a line along the axis of the stack view.
+Stacking can take place either horizontally (`<H>`) or vertically or (`<V>`) in a **stack view**. A stack view contains an arbitrary number of child views, each of which will be stacked in a line along the axis of the stack view.
 
 ###Layering
 Layers in Gravity are analogous to layers in drawing and paint programs: unlike stack views which arrange their subviews in a line horizontally or vertically, layering arranges views *inwards* and *outwards*—that is, along the Z axis.

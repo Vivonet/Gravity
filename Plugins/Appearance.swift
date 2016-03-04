@@ -29,14 +29,17 @@ extension Gravity {
 					}
 					return .Handled
 				
+				case "color":
+					return .Handled
+				
 				case "cornerRadius":
 					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
 					node.view.layer.cornerRadius = CGFloat((textValue as NSString).floatValue)
 					node.view.clipsToBounds = true // assume this is still needed
 					return .Handled
 				
-//				case "font":
-//					return .Handled
+				case "font":
+					return .Handled
 				
 				default:
 					return .NotHandled

@@ -3,8 +3,8 @@
 	<V color="#333">
 		<UILabel color="#00000033" margin="-24" font="System Bold 160" text="✗"/>
 		<UILabel id="titleLabel" font="HelveticaNeue Bold 25" text="Parse error"/>
-		<UILabel topMargin="4" id="messageLabel" color="#666" font="HelveticaNeue 15" text="{_userInfo.NSXMLParserErrorMessage}
-line {_userInfo.NSXMLParserErrorLineNumber} column {_userInfo.NSXMLParserErrorColumn}" wrap="true"/>
+		<UILabel wrap="true" topMargin="4" id="messageLabel" color="#666" font="HelveticaNeue 15" text="{_userInfo.NSXMLParserErrorMessage}
+line {_userInfo.NSXMLParserErrorLineNumber} column {_userInfo.NSXMLParserErrorColumn}"/>
 	</V>
 </UIView>
 </UIView>

@@ -33,7 +33,9 @@ extension UIImageView: GravityElement {
 	}
 	
 	public func processElement(node: GravityNode) -> GravityResult {
-		self.contentMode = UIViewContentMode.ScaleAspectFit
+		if node["contentMode"] == nil {
+			self.contentMode = UIViewContentMode.ScaleAspectFit // this is a much saner default
+		}
 		self.layer.minificationFilter = kCAFilterTrilinear // improves UIImageView rendering
 		self.tintColor = node.color
 		

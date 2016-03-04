@@ -17,10 +17,10 @@ extension Gravity {
 		public override class func initialize() {
 			// method swizzling:
 			let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets"))
-			let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets_Gravity"))
+			let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("grav_alignmentRectInsets"))
 			
 			if class_addMethod(UIView.self, Selector("alignmentRectInsets"), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
-				class_replaceMethod(UIView.self, Selector("alignmentRectInsets_Gravity"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
+				class_replaceMethod(UIView.self, Selector("grav_alignmentRectInsets"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
 			} else {
 				method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
 			}
@@ -145,6 +145,12 @@ extension Gravity {
 					}
 					return .Handled
 				
+				case "margin":
+					return .Handled
+				
+				case "padding":
+					return .Handled
+				
 				case "shrinks":
 					return .Handled
 				
@@ -231,6 +237,11 @@ extension Gravity {
 
 
 			if node.view.superview != nil {
+				let leftInset = CGFloat((node.parentNode?.leftMargin ?? 0) + (node.parentNode?.leftPadding ?? 0))
+				let rightInset = CGFloat((node.parentNode?.rightMargin ?? 0) + (node.parentNode?.rightPadding ?? 0))
+				let topInset = CGFloat((node.parentNode?.topMargin ?? 0) + (node.parentNode?.topPadding ?? 0))
+				let bottomInset = CGFloat((node.parentNode?.bottomMargin ?? 0) + (node.parentNode?.bottomPadding ?? 0))
+				
 				if (node.view.superview as? UIStackView)?.axis != .Horizontal { // we are not inside a stack view (of the same axis)
 					// TODO: what priority should these be?
 					// we need to make a special exception for UIScrollView and potentially others. should we move this back into a default handler/handleChildNodes?
@@ -243,8 +254,6 @@ extension Gravity {
 					}
 					
 					NSLayoutConstraint.autoSetPriority(priority) {
-						let leftInset = CGFloat((node.parentNode?.leftMargin ?? 0) + (node.parentNode?.leftPadding ?? 0))
-						let rightInset = CGFloat((node.parentNode?.rightMargin ?? 0) + (node.parentNode?.rightPadding ?? 0))
 						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: leftInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
 						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: rightInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
 					}
@@ -260,40 +269,39 @@ extension Gravity {
 					}
 					
 					NSLayoutConstraint.autoSetPriority(priority) {
-						let topInset = CGFloat((node.parentNode?.topMargin ?? 0) + (node.parentNode?.topPadding ?? 0))
-						let bottomInset = CGFloat((node.parentNode?.bottomMargin ?? 0) + (node.parentNode?.bottomPadding ?? 0))
 						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: topInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
 						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: bottomInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
 					}
 				}
 				
+				// minWidth, etc. should probably be higher priority than these so they can override fill size
+				if node.isFilledAlongAxis(.Horizontal) {
+					node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
+					if (node.view.superview as? UIStackView)?.axis != .Horizontal {
+						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
+		//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
+							node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: leftInset).autoIdentify("gravity-fill-left") // leading?
+							node.constraints["fill-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: rightInset).autoIdentify("gravity-fill-right") // trailing?
+						}
+					}
+				}
 				
+				if node.isFilledAlongAxis(.Vertical) {
+					node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Vertical)
+					if (node.view.superview as? UIStackView)?.axis != .Vertical {
+						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
+		//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
+							node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: topInset).autoIdentify("gravity-fill-top")
+							node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: topInset).autoIdentify("gravity-fill-bottom")
+						}
+					}
+				}
+			
 			} else {
 				NSLog("superview nil")
 			}
 			
-			// minWidth, etc. should probably be higher priority than these so they can override fill size
-			if node.isFilledAlongAxis(.Horizontal) {
-				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
-				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Horizontal {
-					NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
-	//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
-						node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left).autoIdentify("gravity-fill-left") // leading?
-						node.constraints["fill-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right).autoIdentify("gravity-fill-right") // trailing?
-					}
-				}
-			}
-			
-			if node.isFilledAlongAxis(.Vertical) {
-				node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Vertical)
-				if node.view.superview != nil && (node.view.superview as? UIStackView)?.axis != .Vertical {
-					NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
-	//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
-						node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top).autoIdentify("gravity-fill-top")
-						node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom).autoIdentify("gravity-fill-bottom")
-					}
-				}
-			}
+			// do we need/want to set content hugging if superview is nil?
 		}
 	}
 }
@@ -360,15 +368,18 @@ public struct GravityDirection {
 	}
 }
 
+@available(iOS 9.0, *)
 extension UIView {
-	func alignmentRectInsets_Gravity() -> UIEdgeInsets {
-		var insets = self.alignmentRectInsets_Gravity()
-		
-		if let node = self.gravityNode {
-			insets = UIEdgeInsetsMake(insets.top - CGFloat(node.topMargin), insets.left - CGFloat(node.leftMargin), insets.bottom - CGFloat(node.bottomMargin), insets.right - CGFloat(node.rightMargin))
+	var grav_alignmentRectInsets: UIEdgeInsets {
+		get {
+			var insets = self.grav_alignmentRectInsets
+			
+			if let node = self.gravityNode {
+				insets = UIEdgeInsetsMake(insets.top - CGFloat(node.topMargin), insets.left - CGFloat(node.leftMargin), insets.bottom - CGFloat(node.bottomMargin), insets.right - CGFloat(node.rightMargin))
+			}
+			
+			return insets
 		}
-		
-		return insets
 	}
 }
 
@@ -501,8 +512,12 @@ extension GravityNode {
 		}
 	}
 	
-	/// A node is divergent from its parent on an axis if it has the potential that at least one edge of that axis are not bound to their parent edges. For example, an auto-sized node inside a fixed size node has the potential to be smaller than its container, and is considered divergent.
+	/// A node is divergent from its parent on an axis if it has the potential that at least one edge of that axis is not bound to its corresponding parent edge. For example, an auto-sized node inside a fixed size node has the potential to be smaller than its container, and is therefore considered divergent.
 	internal func isDivergentAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
+		if parentNode != nil && parentNode!.parentNode != nil && document.parentNode != nil {
+			return true
+		}
+		
 		guard let parentNode = parentNode else {
 			return false
 		}
