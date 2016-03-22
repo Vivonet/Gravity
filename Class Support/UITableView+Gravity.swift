@@ -9,20 +9,24 @@
 import Foundation
 
 extension UITableView: GravityElement, UITableViewDataSource {
-	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
-		switch attribute {
-			case "rowTemplate":
-				return .Handled
-			
-			default:
-				return .NotHandled
+	public var recognizedAttributes: [String]? {
+		get {
+			return ["rowTemplate"]
 		}
-	}
+	}//	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+//		switch attribute {
+//			case "rowTemplate":
+//				return .Handled
+//			
+//			default:
+//				return .NotHandled
+//		}
+//	}
 	
-	public func processElement(node: GravityNode) -> GravityResult {
+	public func processElement(node: GravityNode) {
 		self.dataSource = self
 //		self.delegate = self
-		return .NotHandled
+//		return .NotHandled
 	}
 	
 	public func numberOfSectionsInTableView(tableView: UITableView) -> Int {

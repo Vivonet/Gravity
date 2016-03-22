@@ -8,9 +8,9 @@ Suppose you wanted to construct the following simple layout (everything inside t
 
 ![Sample](img/Sample.png)
 
-In Auto Layout, your job is to examine each edge of each view, figuring out which other view edges each one should bind to and at what constraint priorities, what each view's content compression resistance and content hugging priorities are, and whether or not you have enough constraints to fully satisfy both axes, or have too many and have an ambiguous layout.
+In Auto Layout, your job is to examine each edge of each view, figuring out which other view edges each one should bind to and at what constraint priorities, what each view's content compression resistance and content hugging priorities are (if applicable), and whether or not you have enough constraints to fully satisfy both axes, or have too many and have an ambiguous layout.
 
-With Gravity, on the other hand, you break a layout down into a series of embedded horizontal (`<H>`) or vertical (`<V>`) stack views. Looking at the above image, we can see that the Order button is off to the right of everything else and centered vertically. This is our first division and it is horizontal. Everything to the left of the Order button is stacked vertically, with the two directions buttons at the bottom stacked horizontally.
+With Gravity, on the other hand, we approach things in a much different way. Instead of tying edges to each other with constraints, trying to *implement* a desired idea, we think more about how the whole layout is arranged from a higher level and simply communicate this to Gravity. We do this by breaking a layout down into a series of embedded horizontal (`<H>`) and vertical (`<V>`) stack views. Looking at the above image, we can see that the Order button is clearly to the right of everything else, and we simply tell Gravity as much. This is our first division and it is horizontal. Everything to the left of the Order button can be seen as being stacked vertically, with the two directions buttons in the bottom row themselves stacked horizontally.
 
 Here's how you say that in gravity:
 
@@ -63,17 +63,17 @@ Here's my background: I've always been a Mac guy, but I dabbled with .NET for a 
 
 After leaving the Windows world and coming back to Apple by means of the iOS platform, I was utterly dismayed at the mediocre layout tools available to me: at first it was Interface Builder with springs and struts, which was familiar to me from my classic Mac OS programming days. While the springs and struts model was a breeze to understand and worked fairly well for very simple interfaces, it was ultimately very limited in what it could express. It wasn't until Apple released their "next big thing" in layout, though, that things got truly bad.
 
-"Auto Layout," they called it. Ha! As if there is anything auto about it! It is in fact painstakingly manual. Now, instead of simply telling the computer which edges of an element should flow and which should be fixed in place, you have to tie individual edges of elements to each other, and chain these bindings together in a balancing act of constraints and priorities, arranged in precisely the right manner, for fear of not supplying all the required constraints, or supplying too many and having ambiguous or conflicting constraints, all the while having many more things to worry about: (constraint priorities, content hugging, compression resistance, user constraints, system constraints, implicitly generated constraints, placeholder constraints, etc., etc.). Things went from simple but limited to insanely complex overnight.
+"Auto Layout," they called it. Ha! As if there is anything auto about it! It is in fact painstakingly manual. Now, instead of simply telling the computer which edges of an element should flow and which should be fixed in place, you have to tie individual edges of elements to each other, and chain these bindings together in a balancing act of constraints and priorities, arranged in precisely the right manner, for fear of not supplying all the required constraints, or supplying too many and having ambiguous or conflicting constraints, all the while having many more things to worry about: (constraint priorities, content hugging, compression resistance, user constraints, system constraints, intrinsic size, implicitly generated constraints, placeholder constraints, etc., etc.). Things went from simple but limited to insanely complex overnight.
 
 Anyway if you've made it this far I'm probably preaching to the choir.
 
-The *good* news is that Auto Layout is quite powerful enough to act as the foundation for another much-simpler layer built on top of it. Enter: Gravity.
+The *good* news is that Auto Layout is quite powerful enough to act as the foundation for another much simpler layer built on top of it. Enter: Gravity.
 
 Why "Gravity"?
 
 Well, gravity is simple. It's a law: things attract. Gravity is the universe's way of optimizing space, just like your interface elements will naturally size to their ideal size and will just automatically look good and behave like you want, and more importantly, how your users expect.
 
-Go ahead, sketch out a simple UI on a piece of paper or your favourite app. Looking at it, you already have a good idea of which elements should expand or shrink, and which elements should collapse before other elements. It's usually pretty obvious. Gravity aims to turn that intuitive knowledge into a functioning UI with as little work as possible.
+Go ahead, look at any user interface, be it a web page or in an app. Looking at it, you already have a good idea of which elements should expand or shrink, and which elements should collapse before other elements. It's usually pretty obvious. Gravity aims to turn that intuitive knowledge into a functioning UI with as little work as possible.
 
 Gravity is inspired on the surface by WPF, but is a much simplified take on it. You design your layout as a tree: everything has its place in the hierarchy, so you don't need to worry about binding things together, and the resultant interface is generated deterministically with all of the proper layout constraints in place, so you get all the benefits of Auto Layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
 

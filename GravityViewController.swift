@@ -22,6 +22,8 @@ public class GravityViewController: UIViewController {
 //		setup()
 //	}
 
+	// TODO: should we consider instantiating a gvc with a view? do we really need to have a document?
+
 	init(document: GravityDocument) {
 		self.document = document
 		super.init(nibName: nil, bundle: nil)
@@ -56,6 +58,9 @@ public class GravityViewController: UIViewController {
 			view.translatesAutoresizingMaskIntoConstraints = false
 			view.addSubview(documentView)
 			
+			// FIXME: this is broken with embedded view controllers
+			// we need to swizzle didMoveToSuperview and handle this there recursively
+			// and also do the proper view controller binding
 			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Left)
 			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Top)
 			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Right)
@@ -79,7 +84,8 @@ public class GravityViewController: UIViewController {
 	}
 	
 	public override func prefersStatusBarHidden() -> Bool {
-		return true // temp
+		return true // temp -- should we make this an appearance attribute that only applies to view controllers? we may have to swizzle it.
+		// this may be a good use case for having root nodes in a document: it would allow us to specify such an attribute on the root of a layout
 	}
 	
 	@objc private func keyboardWillChangeFrame(notification: NSNotification) {

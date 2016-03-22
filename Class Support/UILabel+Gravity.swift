@@ -10,29 +10,35 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UILabel: GravityElement {
-	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
-//		guard let textValue = value.textValue else {
-//			return .NotHandled
-//		}
-		
-		switch attribute {
-			case "wrap":
-				if value.boolValue == true {
-					self.numberOfLines = 0
-				}
-				
-				// TODO: we may want to set preferredMaxLayoutWidth to the label's maxWidth (possibly looking for a parental max?)
-				
-				return .Handled
-			
-			default:
-				break
+
+	public var recognizedAttributes: [String]? {
+		get {
+			return ["wrap"]
 		}
-		
-		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
 	}
+//	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+////		guard let stringValue = value.stringValue else {
+////			return .NotHandled
+////		}
+//		
+//		switch attribute {
+//			case "wrap":
+//				if value.boolValue == true {
+//					self.numberOfLines = 0
+//				}
+//				
+//				// TODO: we may want to set preferredMaxLayoutWidth to the label's maxWidth (possibly looking for a parental max?)
+//				
+//				return .Handled
+//			
+//			default:
+//				break
+//		}
+//		
+//		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
+//	}
 	
-	public func processElement(node: GravityNode) -> GravityResult {
+	public func processElement(node: GravityNode) {
 		switch node.gravity.horizontal { // TODO: should improve this, possibly by splitting into horizontalGravity and verticalGravity properties
 			case GravityDirection.Left:
 				self.textAlignment = NSTextAlignment.Left
@@ -55,12 +61,17 @@ extension UILabel: GravityElement {
 			self.textColor = node.color
 		}
 		
+		if node["wrap"]?.boolValue == true {
+			self.numberOfLines = 0
+		}
+		
 		self.font = node.font
 		
 		if let maxWidth = node.maxWidth {
+			// FIXME: we probably want to improve this a lot, perhaps by using swizzling to insert logic during the layout pass
 			self.preferredMaxLayoutWidth = CGFloat(maxWidth)
 		}
 //						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
-		return .NotHandled
+//		return .NotHandled
 	}
 }

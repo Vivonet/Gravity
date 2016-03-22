@@ -11,38 +11,37 @@ import Foundation
 @available(iOS 9.0, *)
 extension Gravity {
 	@objc public class Appearance: GravityPlugin {
-		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult {
-			guard let textValue = value.textValue else {
-				return .NotHandled
+	
+//		public override var registeredElements: [String]? {
+//			get {
+//				return nil
+//			}
+//		}
+	
+		public override var recognizedAttributes: [String]? {
+			get {
+				return ["borderColor", "borderSize", "color", "cornerRadius", "font"]
 			}
-			
-			switch attribute {
-				case "borderColor":
-					if let color = value.convert() as UIColor? {
-						node.view.layer.borderColor = color.CGColor
-					}
-					return .Handled
-				
-				case "borderSize":
-					if let floatValue = value.floatValue {
-						node.view.layer.borderWidth = CGFloat(floatValue)
-					}
-					return .Handled
-				
-				case "color":
-					return .Handled
-				
-				case "cornerRadius":
-					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
-					node.view.layer.cornerRadius = CGFloat((textValue as NSString).floatValue)
-					node.view.clipsToBounds = true // assume this is still needed
-					return .Handled
-				
-				case "font":
-					return .Handled
-				
-				default:
-					return .NotHandled
+		}
+		
+		public override func processValue(value: GravityNode) -> GravityResult {
+			// TODO: convert things like "font" and "color" here (?)
+			return .NotHandled
+		}
+		
+		override public func processNode(node: GravityNode) {
+			if let borderColor = node["borderColor"]?.convert() as UIColor? {
+				node.view.layer.borderColor = borderColor.CGColor
+			}
+		
+			if let borderSize = node["borderSize"]?.floatValue {
+				node.view.layer.borderWidth = CGFloat(borderSize)
+			}
+		
+			if let cornerRadius = node["cornerRadius"]?.floatValue {
+				// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
+				node.view.layer.cornerRadius = CGFloat(cornerRadius)
+				node.view.clipsToBounds = true // assume this is still needed
 			}
 		}
 	}

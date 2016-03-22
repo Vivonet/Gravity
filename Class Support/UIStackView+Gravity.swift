@@ -10,6 +10,13 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UIStackView: GravityElement {
+
+	public var recognizedAttributes: [String]? {
+		get {
+			return [] // no attributes? will we still be called??
+		}
+	}
+	
 //	public static func instantiateElement(node: GravityNode) -> UIView? {
 //		switch node.nodeName {
 //			case "H":
@@ -28,58 +35,61 @@ extension UIStackView: GravityElement {
 //	}
 
 	// reorder to attribute, value, node?
-	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
-		guard let textValue = value.textValue else {
-			return .NotHandled
-		}
-//		if let stringValue = value as? String {
-		switch attribute {
-			case "axis":
-				switch textValue.lowercaseString {
-					case "horizontal", "h":
-						self.axis = .Horizontal
-						return .Handled
-					
-					case "vertical", "v":
-						self.axis = .Vertical
-						return .Handled
-					
-					default:
-						break
-				}
-			
-			case "alignment":
-				switch textValue.lowercaseString {
-					case "center":
-						self.alignment = .Center
-						return .Handled
-					
-					case "fill":
-						self.alignment = .Fill
-						return .Handled
-					
-					case "top":
-						self.alignment = .Top
-						return .Handled
-					
-					case "trailing":
-						self.alignment = .Trailing
-						return .Handled
-					
-					default:
-						break
-				}
-			
-			default:
-				break
-		}
+//	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+//		guard let stringValue = value.stringValue else {
+//			return .NotHandled
 //		}
-		
-		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
-	}
+////		if let stringValue = value as? String {
+//		switch attribute {
+//			case "axis":
+//				switch stringValue.lowercaseString {
+//					case "horizontal", "h":
+//						self.axis = .Horizontal
+//						return .Handled
+//					
+//					case "vertical", "v":
+//						self.axis = .Vertical
+//						return .Handled
+//					
+//					default:
+//						break
+//				}
+//			
+//			case "alignment":
+//				switch stringValue.lowercaseString {
+//					case "center":
+//						self.alignment = .Center
+//						return .Handled
+//					
+//					case "fill":
+//						self.alignment = .Fill
+//						return .Handled
+//					
+//					case "top":
+//						self.alignment = .Top
+//						return .Handled
+//					
+//					case "trailing":
+//						self.alignment = .Trailing
+//						return .Handled
+//					
+//					default:
+//						break
+//				}
+//			
+//			default:
+//				break
+//		}
+////		}
+//		
+//		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
+//	}
+
+
+	// TODO: i'd love to have some plugin-like hook for GEs that lets me transform a "shorthand" property value into a constant without having to otherwise handle the setting of the property and still going to the default handler
 	
-	public func processElement(node: GravityNode) -> GravityResult {
-		if node.attributes["alignment"] == nil { // only if alignment is not explicitly set
+	public func processElement(node: GravityNode) {
+		if node["alignment"] == nil { // only if alignment is not explicitly set
 			if self.axis == UILayoutConstraintAxis.Horizontal {
 				switch node.gravity.vertical {
 					case GravityDirection.Top:
@@ -116,10 +126,12 @@ extension UIStackView: GravityElement {
 				}
 			}
 		}
-		
+	}
+	
+	public func processContents(node: GravityNode) {
 		var fillChild: GravityNode? = nil // do we actually need this at all?
 		
-		for childNode in node.childNodes {
+		for childNode in node.contents.childNodes {
 			addArrangedSubview(childNode.view)
 			if childNode.isFilledAlongAxis(axis) {
 				if fillChild != nil {
@@ -141,7 +153,7 @@ extension UIStackView: GravityElement {
 		var shrinks = [(Int, GravityNode)]()
 		for childNode in node.childNodes {
 			// no idea why i need the ! here:
-			let rank = Int(childNode["shrinks"]?.textValue ?? "0")! //gravity.elementMetadata[subview]!.shrinks
+			let rank = Int(childNode["shrinks"]?.stringValue ?? "0")! //gravity.elementMetadata[subview]!.shrinks
 			let adjustedIndex = rank == 0 ? 0 : (1000 - abs(rank)) * (rank > 0 ? -1 : 1)
 //			NSLog("rank %d adjusted to %d", rank, adjustedIndex)
 //			shrinkIndex[adjustedIndex] = childNode
@@ -221,12 +233,12 @@ extension UIStackView: GravityElement {
 			self.addArrangedSubview(spacer) // add an empty view to act as a space filler
 		}
 		
-		return .Handled
+//		return .Handled
 	}
 	
 	// FIXME: implement this somehow (plugin?)
-	public static func processElement(node: GravityNode) {
-		// if the node's parent is a stack view, and its grandparent is a stackview of the *opposite* axis and that grandparent's isTable is true
-		// it's important that this work for embedded views as well (should we look deeper?)
-	}
+//	public static func processElement(node: GravityNode) {
+//		// if the node's parent is a stack view, and its grandparent is a stackview of the *opposite* axis and that grandparent's isTable is true
+//		// it's important that this work for embedded views as well (should we look deeper?)
+//	}
 }

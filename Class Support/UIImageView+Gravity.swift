@@ -10,34 +10,47 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UIImageView: GravityElement {
-	// do we really need this at all?
-	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
-		guard let textValue = value.textValue else {
-			return .NotHandled
+
+	public var recognizedAttributes: [String]? {
+		get {
+			return ["image", "template"]
 		}
-		
-		switch attribute {
-			case "image":
-				self.image = UIImage(named: textValue)?.imageWithRenderingMode(node["template"]?.boolValue == true ? .AlwaysTemplate : .AlwaysOriginal)
-				return .Handled
-			
-			case "template":
-				// handled above
-				return .Handled
-				
-			default:
-				break
-		}
-		
-		return .NotHandled
 	}
 	
-	public func processElement(node: GravityNode) -> GravityResult {
+// do we really need this at all?
+//	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
+//		guard let stringValue = value.stringValue else {
+//			return .NotHandled
+//		}
+//		
+//		switch attribute {
+//			case "image":
+//				self.image = UIImage(named: stringValue)?.imageWithRenderingMode(node["template"]?.boolValue == true ? .AlwaysTemplate : .AlwaysOriginal)
+//				return .Handled
+//			
+//			case "template":
+//				// handled above
+//				return .Handled
+//				
+//			default:
+//				break
+//		}
+//		
+//		return .NotHandled
+//	}
+	
+	public func processElement(node: GravityNode) {
 		if node["contentMode"] == nil {
 			self.contentMode = UIViewContentMode.ScaleAspectFit // this is a much saner default
 		}
 		self.layer.minificationFilter = kCAFilterTrilinear // improves UIImageView rendering
+		
+//		let color = node.color
 		self.tintColor = node.color
+		
+		if let imageName = node["image"]?.stringValue {
+			self.image = UIImage(named: imageName)?.imageWithRenderingMode(node["template"]?.boolValue == true ? .AlwaysTemplate : .AlwaysOriginal)
+		}
 		
 //////						UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
 //////							imageView.autoSetContentCompressionResistancePriorityForAxis(ALAxis.Horizontal)
@@ -48,6 +61,6 @@ extension UIImageView: GravityElement {
 //////    [myImageView autoSetContentHuggingPriorityForAxis:ALAxisHorizontal];
 //////}];
 
-		return .NotHandled
+//		return .NotHandled
 	}
 }

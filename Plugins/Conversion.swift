@@ -13,17 +13,24 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension Gravity {
-	public typealias GravityConverterBlock = (input: GravityNode, inout output: AnyObject?) -> GravityResult
+	public typealias GravityConverterBlock = (value: GravityNode) -> AnyObject?
 	
 	@available(iOS 9.0, *)
 	@objc public class Conversion: GravityPlugin {
 		private static var converters = Dictionary<String, GravityConverterBlock>()
+		
+//		public override var recognizedAttributes: [String]? {
+//			get {
+//				return [] // no attributes
+//			}
+//		}
 		
 		public override class func initialize() {
 			loadDefaultConverters()
 		}
 		
 		public class func registerConverterForClass(type: AnyClass, converter: GravityConverterBlock) {
+			
 			converters["\(type)"] = converter
 		}
 		
@@ -77,9 +84,9 @@ extension Gravity {
 		
 		private class func loadDefaultConverters() {
 			// UIColor
-			registerConverterForClass(UIColor.self) { (input, output) -> GravityResult in
-				guard let value = input.textValue?.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet) else {
-					return .NotHandled
+			registerConverterForClass(UIColor.self) { (value) -> AnyObject? in
+				guard let value = value.stringValue?.stringByTrimmingCharactersInSet(NSCharacterSet.alphanumericCharacterSet().invertedSet) else {
+					return nil
 				}
 				var int = UInt32()
 				NSScanner(string: value).scanHexInt(&int)
@@ -92,16 +99,16 @@ extension Gravity {
 					case 8: // RGBA (32-bit)
 						(r, g, b, a) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
 					default:
-						return .NotHandled
+						return nil
 				}
-				output = UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: CGFloat(a) / 255.0)
-				return .Handled // TODO: error handling
+				return UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: CGFloat(a) / 255.0)
+//				return .Handled // TODO: error handling
 			}
 			
 			// UIFont
-			registerConverterForClass(UIFont.self) { (input, output) -> GravityResult in
-				guard let parts = input.textValue?.componentsSeparatedByString(" ") else {
-					return .NotHandled
+			registerConverterForClass(UIFont.self) { (value) -> AnyObject? in
+				guard let parts = value.stringValue?.componentsSeparatedByString(" ") else {
+					return nil
 				}
 				var font: UIFont?
 				let size = CGFloat((parts.last! as NSString).floatValue)
@@ -142,8 +149,17 @@ extension Gravity {
 						font = UIFont(name: parts.first!, size: size)
 					}
 				}
-				output = font
-				return output != nil ? .Handled : .NotHandled
+				return font
+//				output = font
+//				return output != nil ? .Handled : .NotHandled
+			}
+			
+			registerConverterForClass(UIImage.self) { (value) -> AnyObject? in
+				if let stringValue = value.stringValue {
+					return UIImage(named: stringValue)
+				} else {
+					return nil
+				}
 			}
 		}
 	}
@@ -152,14 +168,14 @@ extension Gravity {
 @available(iOS 9.0, *)
 extension GravityNode {
 	public func convert(type: String) -> AnyObject? {
-//		return Gravity.Conversion.convert(textValue) as? T?
+//		return Gravity.Conversion.convert(stringValue) as? T?
 		if type == "String" || type == "NSString" { // there's got to be a better way to do this
-			return textValue// as? T // verify
+			return stringValue// as? T // verify
 		}
 		if let converter = Gravity.Conversion.converters[type] {
-			var output: AnyObject?
-			if converter(input: self, output: &output) == .Handled {
-				return output// as? T
+//			var output: AnyObject?
+			if let value = converter(value: self) {
+				return value// as? T
 			}
 		}
 		return nil

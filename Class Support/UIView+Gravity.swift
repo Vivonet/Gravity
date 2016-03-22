@@ -12,6 +12,8 @@ private var GravityNodeAssociatedObjectKey = 0
 
 @available(iOS 9.0, *)
 extension UIView {
+	// TODO: we should swizzle UIView.didMoveToSuperview and call appendNode on the parent if both have gravityNodes
+	
 	/// Gravity adds this stored property to all instances of `UIView`.
 	/// - Returns: The `GravityNode` object that was used to instantiate the receiving view, or `nil` if it was not created by Gravity.
 	public var gravityNode: GravityNode? {

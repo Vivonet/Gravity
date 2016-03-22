@@ -12,17 +12,35 @@ import Foundation
 extension Gravity {
 	@objc public class Layout: GravityPlugin {
 		private static let keywords = ["fill", "auto"]
-		private var widthIdentifiers = [String: [GravityNode]]() // instead of storing a dictionary of arrays, can we store a dictionary that just points to the first-registered view, and then all subsequent views just add constraints back to that view?
+		private var widthIdentifiers = [String: Set<GravityNode>]() // instead of storing a dictionary of arrays, can we store a dictionary that just points to the first-registered view, and then all subsequent views just add constraints back to that view?
+		
+		public override var recognizedAttributes: [String]? {
+			get {
+				return [
+					"gravity",
+					"height", "minHeight", "maxHeight",
+					"margin", "leftMargin", "topMargin", "rightMargin", "bottomMargin",
+					"padding", "leftPadding", "topPadding", "rightPadding", "bottomPadding",
+					"shrinks",
+					"width", "minWidth", "maxWidth",
+					"zIndex"
+				]
+			}
+		}
+		
+		static var swizzleToken: dispatch_once_t = 0
 		
 		public override class func initialize() {
-			// method swizzling:
-			let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets"))
-			let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("grav_alignmentRectInsets"))
-			
-			if class_addMethod(UIView.self, Selector("alignmentRectInsets"), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
-				class_replaceMethod(UIView.self, Selector("grav_alignmentRectInsets"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
-			} else {
-				method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
+			dispatch_once(&swizzleToken) {
+				// method swizzling:
+				let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets"))
+				let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("grav_alignmentRectInsets"))
+				
+				if class_addMethod(UIView.self, Selector("alignmentRectInsets"), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
+					class_replaceMethod(UIView.self, Selector("grav_alignmentRectInsets"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
+				} else {
+					method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
+				}
 			}
 		}
 		
@@ -44,122 +62,160 @@ extension Gravity {
 			}
 		}
 		
-		public override func preprocessValue(node: GravityNode, attribute: String, value: GravityNode) {
-			guard let textValue = value.textValue else {
-				return
-			}
-			
-			switch attribute {
-				case "width":
-					if !Layout.keywords.contains(textValue) {
-						let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
-						if textValue.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
-							if widthIdentifiers[textValue] == nil {
-								widthIdentifiers[textValue] = [GravityNode]()
-							}
-							widthIdentifiers[textValue]?.append(node)
-						}
-					}
-					break
-				
-				default:
-					break
-			}
-		}
-		
-		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult {
-			NSLog(attribute)
-			// TODO: can we do anything with node values here?
-			guard let textValue = value.textValue else {
+		public override func processValue(value: GravityNode) -> GravityResult {
+			guard let node = value.parentNode else {
 				return .NotHandled
 			}
 			
-			switch attribute {
+			guard let stringValue = value.stringValue else {
+				return .NotHandled
+			}
+			
+			// this has to be done here because widthIdentifiers should be referenced relative to the document the value is defined in, not the node they are applied to
+			if value.attributeName == "width" {
+				if !Layout.keywords.contains(stringValue) {
+					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+					if stringValue.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
+						if widthIdentifiers[stringValue] == nil {
+							widthIdentifiers[stringValue] = Set<GravityNode>()
+						}
+						widthIdentifiers[stringValue]?.unionInPlace([node])
+					}
+				}
+				return .Handled
+			}
+			return .NotHandled
+		}
+		
+		public override func processNode(node: GravityNode) {
+//			if let width = node["width"]?.stringValue {
+//				if !Layout.keywords.contains(width) {
+//					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+//					if width.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
+////						if widthIdentifiers[width] == nil {
+////							widthIdentifiers[width] = [GravityNode]()
+////						}
+////						widthIdentifiers[width]?.append(node)
+//					} else {
+//						if let width = node.width {
+//							NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
+//								node.constraints["width"] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat(width))
+//							}
+//						}
+//					}
+//				}
+//			}
+			
+//		public override func preprocessAttribute(node: GravityNode, attribute: String, inout value: GravityNode) -> GravityResult {
+//			NSLog(attribute)
+//			// TODO: can we do anything with node values here?
+//			guard let stringValue = value.stringValue else {
+//				return .NotHandled
+//			}
+			
+//			switch attribute {
 				// TODO: may want to set these with higher priority than default to avoid view/container bindings conflicting
 				// we should also capture these priorities as constants and put them all in one place for easier tweaking and balancing
-				case "width":
-					if !Layout.keywords.contains(textValue) {
-						let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
-						if textValue.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
-//							if widthIdentifiers[textValue] == nil {
-//								widthIdentifiers[textValue] = [GravityNode]()
+//				case "width":
+//					if !Layout.keywords.contains(stringValue) {
+//						let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+//						if stringValue.rangeOfCharacterFromSet(charset) != nil { // if the value contains any characters other than numeric characters
+////							if widthIdentifiers[stringValue] == nil {
+////								widthIdentifiers[stringValue] = [GravityNode]()
+////							}
+////							widthIdentifiers[stringValue]?.append(node)
+//						} else {
+//							NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
+//								node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((stringValue as NSString).floatValue))
 //							}
-//							widthIdentifiers[textValue]?.append(node)
-						} else {
-							NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-								node.constraints[attribute] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat((textValue as NSString).floatValue))
-							}
-						}
-					}
-					return .Handled
+//						}
+//					}
+//					return .Handled
 				
-				case "minWidth":
+				if let width = node.width {
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue), relation: .GreaterThanOrEqual)
+						node.constraints["width"] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat(width))
+					}
+				}
+						
+				if let minWidth = node.minWidth {
+					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
+						node.constraints["minWidth"] = node.view.autoSetDimension(.Width, toSize: CGFloat(minWidth), relation: .GreaterThanOrEqual)
 					}
 					NSLayoutConstraint.autoSetPriority(50) {//test
-						node.view.autoSetDimension(.Width, toSize: CGFloat((textValue as NSString).floatValue))
+						node.view.autoSetDimension(.Width, toSize: CGFloat(minWidth))
 					}
-					return .Handled
+				}
 				
-				case "maxWidth":
-					if let maxWidth = node.maxWidth {
+				if let maxWidth = node.maxWidth {
+					if node.isOtherwiseFilledAlongAxis(.Horizontal) {
+							// a maxWidth that is filled is equal to an explicit width
+						NSLayoutConstraint.autoSetPriority(700) {
+							// FIXME: *HOWEVER* it should have lesser priority than the fill binding because it may still be smaller if the fill size is < maxWidth!
+							NSLog("filled maxWidth found")
+							node.constraints["maxWidth"] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth))
+						}
+//						NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
+//							// experimental (we need to keep a maxWidth inside a filled view contained to that filled view, at a higher priority than typical view containment)
+//							// FIXME: we might want to move this to postprocess so it can bind to the parent view properly
+//							node.view.autoPinEdgeToSuperviewEdge(.Left, withInset: CGFloat(node.leftInset))
+//							node.view.autoPinEdgeToSuperviewEdge(.Right, withInset: CGFloat(node.rightInset))
+//						}
+					} else {
 						NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
-							if node.isOtherwiseFilledAlongAxis(.Horizontal) {
-								// a maxWidth that is filled is equal to an explicit width
-								NSLog("filled maxWidth found")
-								node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth))
-							} else {
-								node.constraints[attribute] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth), relation: .LessThanOrEqual)
-							}
+							node.constraints["maxWidth"] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth), relation: .LessThanOrEqual)
 						}
 					}
-					return .Handled
+				}
 				
-				case "height":
-					if !Layout.keywords.contains(textValue) {
-						NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-							node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue))
-						}
-					}
-					return .Handled
-				
-				case "minHeight":
+				if let height = node.height {
+//					if !Layout.keywords.contains(stringValue) {
+						// TODO: add support for height identifiers
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: .GreaterThanOrEqual)
+						node.constraints["height"] = node.view.autoSetDimension(.Height, toSize: CGFloat(height))
+					}
+//					}
+				}
+				
+				if let minHeight = node.minHeight {
+					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
+						node.constraints["minHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight), relation: .GreaterThanOrEqual)
 					}
 					NSLayoutConstraint.autoSetPriority(50) {//test
-						node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue))
+						node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight))
 					}
-					return .Handled
+				}
 				
-				case "maxHeight":
+				if let maxHeight = node.maxHeight {
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
 						if node.isOtherwiseFilledAlongAxis(.Vertical) {
 							// a maxWidth that is filled is equal to an explicit width
 							NSLog("filled maxHeight found")
-							node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue))
+							node.constraints["maxHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(maxHeight))
 						} else {
-							node.constraints[attribute] = node.view.autoSetDimension(.Height, toSize: CGFloat((textValue as NSString).floatValue), relation: .LessThanOrEqual)
+							node.constraints["maxHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(maxHeight), relation: .LessThanOrEqual)
 						}
 					}
-					return .Handled
+				}
 				
-				case "margin":
-					return .Handled
-				
-				case "padding":
-					return .Handled
-				
-				case "shrinks":
-					return .Handled
-				
-				default:
-					return .NotHandled
-			}
+//				case "margin":
+//					return .Handled
+//				
+//				case "padding":
+//					return .Handled
+//				
+//				case "shrinks":
+//					return .Handled
+//				
+//				default:
+//					return .NotHandled
+//			}
 		}
 		
-		public override func handleChildNodes(node: GravityNode) -> GravityResult {
+		public override func processContents(node: GravityNode) -> GravityResult {
+			if !node.viewIsInstantiated {
+				return .NotHandled // no default child handling if we don't have a valid view
+			}
 			// TODO: we may be better off actually setting a z-index on the views; this needs to be computed
 			
 			// we have to do a manual fucking insertion sort here, jesus gawd what the fuck swift?!! no stable sort in version 2.0 of a language??? how is that even remotely acceptable??
@@ -182,19 +238,23 @@ extension Gravity {
 			// i'm actually thinking this might make the most sense all in one place in postprocess
 			for childNode in sortedChildren {
 				node.view.addSubview(childNode.view)
+				
+//				let leftInset = CGFloat(node.leftMargin + node.leftPadding)
+//				let rightInset = CGFloat(node.rightMargin + node.rightPadding)
 	
 				NSLayoutConstraint.autoSetPriority(GravityPriority.Gravity) {
 					switch childNode.gravity.horizontal {
 						case .Left:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: CGFloat(node.leftMargin + node.leftPadding))
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: CGFloat(childNode.leftInset))
 							break
 						
 						case .Center:
-							childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
+							let constraint = childNode.view.autoAlignAxisToSuperviewAxis(ALAxis.Vertical)
+							constraint.constant = CGFloat(childNode.rightInset - childNode.leftInset); // test (not working)
 							break
 						
 						case .Right:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: CGFloat(node.rightMargin + node.rightPadding))
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: CGFloat(childNode.rightInset))
 							break
 						
 						default:
@@ -203,7 +263,7 @@ extension Gravity {
 					
 					switch childNode.gravity.vertical {
 						case .Top:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: CGFloat(node.topMargin + node.topPadding))
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: CGFloat(childNode.topInset))
 							break
 						
 						case .Middle:
@@ -211,7 +271,7 @@ extension Gravity {
 							break
 						
 						case .Bottom:
-							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: CGFloat(node.bottomMargin + node.bottomPadding))
+							childNode.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: CGFloat(childNode.bottomInset))
 							break
 						
 						default:
@@ -223,25 +283,11 @@ extension Gravity {
 			return .Handled
 		}
 		
-		public override func postprocessElement(node: GravityNode) {
-//			NSLog("Postprocess: \(unsafeAddressOf(node))")
-			// TODO: we may be getting way too many constraints here
-			for (identifier, nodes) in widthIdentifiers {
-				let first = nodes[0]
-				for var i = 1; i < nodes.count; i++ {
-					// priority?? also we need to add a constraint (but what should its identifier be?)
-					NSLog("Matching dimension of \(nodes[i]) to \(first).")
-					nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
-				}
-			}
-
-
+		public override func postprocessNode(node: GravityNode) {
+		
+			// FIXME: put widthIdentifiers back in here somewhere
+			
 			if node.view.superview != nil {
-				let leftInset = CGFloat((node.parentNode?.leftMargin ?? 0) + (node.parentNode?.leftPadding ?? 0))
-				let rightInset = CGFloat((node.parentNode?.rightMargin ?? 0) + (node.parentNode?.rightPadding ?? 0))
-				let topInset = CGFloat((node.parentNode?.topMargin ?? 0) + (node.parentNode?.topPadding ?? 0))
-				let bottomInset = CGFloat((node.parentNode?.bottomMargin ?? 0) + (node.parentNode?.bottomPadding ?? 0))
-				
 				if (node.view.superview as? UIStackView)?.axis != .Horizontal { // we are not inside a stack view (of the same axis)
 					// TODO: what priority should these be?
 					// we need to make a special exception for UIScrollView and potentially others. should we move this back into a default handler/handleChildNodes?
@@ -254,8 +300,8 @@ extension Gravity {
 					}
 					
 					NSLayoutConstraint.autoSetPriority(priority) {
-						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: leftInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
-						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: rightInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
+						node.constraints["view-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: CGFloat(node.leftInset), relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-left")
+						node.constraints["view-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: CGFloat(node.rightInset), relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-right")
 					}
 				}
 				
@@ -269,19 +315,19 @@ extension Gravity {
 					}
 					
 					NSLayoutConstraint.autoSetPriority(priority) {
-						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: topInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
-						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: bottomInset, relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
+						node.constraints["view-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: CGFloat(node.topInset), relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-top")
+						node.constraints["view-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: CGFloat(node.bottomInset), relation: NSLayoutRelation.Equal).autoIdentify("gravity-view-bottom")
 					}
 				}
 				
 				// minWidth, etc. should probably be higher priority than these so they can override fill size
-				if node.isFilledAlongAxis(.Horizontal) {
+				if node.isOtherwiseFilledAlongAxis(.Horizontal) {
 					node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
 					if (node.view.superview as? UIStackView)?.axis != .Horizontal {
 						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 		//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
-							node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: leftInset).autoIdentify("gravity-fill-left") // leading?
-							node.constraints["fill-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: rightInset).autoIdentify("gravity-fill-right") // trailing?
+							node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: CGFloat(node.leftInset)).autoIdentify("gravity-fill-left") // leading?
+							node.constraints["fill-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: CGFloat(node.rightInset)).autoIdentify("gravity-fill-right") // trailing?
 						}
 					}
 				}
@@ -291,8 +337,8 @@ extension Gravity {
 					if (node.view.superview as? UIStackView)?.axis != .Vertical {
 						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
 		//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
-							node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: topInset).autoIdentify("gravity-fill-top")
-							node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: topInset).autoIdentify("gravity-fill-bottom")
+							node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: CGFloat(node.topInset)).autoIdentify("gravity-fill-top")
+							node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: CGFloat(node.topInset)).autoIdentify("gravity-fill-bottom")
 						}
 					}
 				}
@@ -303,6 +349,36 @@ extension Gravity {
 			
 			// do we need/want to set content hugging if superview is nil?
 		}
+		
+//		public override func postprocessDocument(document: GravityDocument) {
+//			NSLog("postprocessDocument: \(document.node.nodeName)")
+//			
+//			var widthIdentifiers = [String: GravityNode]()
+			
+//			for node in document.node {
+//				if let width = node["width"]?.stringValue {
+//					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
+//					if width.rangeOfCharacterFromSet(charset) != nil {
+//						if let archetype = widthIdentifiers[width] {
+//							NSLog("Matching dimension of \(unsafeAddressOf(node)) to \(unsafeAddressOf(archetype)).")
+//							// TODO: add a gravity priority
+//							node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: archetype.view)
+//						} else {
+//							widthIdentifiers[width] = node
+//						}
+//					}
+//				}
+//			}
+			
+//			for (identifier, nodes) in widthIdentifiers {
+//				let first = nodes[0]
+//				for var i = 1; i < nodes.count; i++ {
+//					// priority?? also we need to add a constraint (but what should its identifier be?)
+//					NSLog("Matching dimension of \(unsafeAddressOf(nodes[i])) to \(unsafeAddressOf(first)).")
+//					nodes[i].view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: first.view)
+//				}
+//			}
+//		}
 	}
 }
 
@@ -343,12 +419,12 @@ public struct GravityDirection {
 		self.vertical = vertical
 	}
 	
-	init?(_ textValue: String?) {
-		guard let textValue = textValue else {
+	init?(_ stringValue: String?) {
+		guard let stringValue = stringValue else {
 			return nil
 		}
 		
-		let valueParts = textValue.lowercaseString.componentsSeparatedByString(" ")
+		let valueParts = stringValue.lowercaseString.componentsSeparatedByString(" ")
 		
 		if valueParts.contains("left") {
 			horizontal = .Left
@@ -385,9 +461,28 @@ extension UIView {
 
 @available(iOS 9.0, *)
 extension GravityNode {
+	// MARK: Debugging
+	
+	internal var leftInset: Float {
+		get { return (parentNode?.leftMargin ?? 0) + (parentNode?.leftPadding ?? 0) }
+	}
+	
+	internal var topInset: Float {
+		get { return (parentNode?.topMargin ?? 0) + (parentNode?.topPadding ?? 0) }
+	}
+	
+	internal var rightInset: Float {
+		get { return (parentNode?.rightMargin ?? 0) + (parentNode?.rightPadding ?? 0) }
+	}
+	
+	internal var bottomInset: Float {
+		get { return (parentNode?.bottomMargin ?? 0) + (parentNode?.bottomPadding ?? 0) }
+	}
+	
+	// MARK: Public
 	public var gravity: GravityDirection {
 		get {
-			var gravity = GravityDirection(self["gravity"]?.textValue) ?? GravityDirection()
+			var gravity = GravityDirection(self["gravity"]?.stringValue) ?? GravityDirection()
 			
 			if gravity.horizontal == .Inherit {
 				gravity.horizontal = parentNode?.gravity.horizontal ?? .Center
@@ -397,6 +492,18 @@ extension GravityNode {
 			}
 			
 			return gravity
+		}
+	}
+	
+	public var width: Float? {
+		get {
+			return self["width"]?.floatValue // verify this is nil for a string, also test "123test" etc.
+		}
+	}
+	
+	public var height: Float? {
+		get {
+			return self["height"]?.floatValue
 		}
 	}
 	
@@ -486,14 +593,14 @@ extension GravityNode {
 	
 	public var zIndex: Int {
 		get {
-			return Int(attributes["zIndex"]?.textValue ?? "0")!
+			return Int(attributes["zIndex"]?.stringValue ?? "0")!
 		}
 	}
 	
 	internal func isExplicitlySizedAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
 		switch axis {
 			case .Horizontal:
-				if let width = self["width"]?.textValue {
+				if let width = self["width"]?.stringValue {
 					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
 					if width.rangeOfCharacterFromSet(charset) == nil {
 						return true
@@ -502,7 +609,7 @@ extension GravityNode {
 				return false
 			
 			case .Vertical:
-				if let height = self["height"]?.textValue {
+				if let height = self["height"]?.stringValue {
 					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
 					if height.rangeOfCharacterFromSet(charset) == nil {
 						return true
@@ -577,7 +684,7 @@ extension GravityNode {
 //					return false
 //				}
 				
-				if let width = self["width"]?.textValue {
+				if let width = self["width"]?.stringValue {
 					if width == "fill" {
 						// are there any other negation cases?
 						return true
@@ -596,7 +703,7 @@ extension GravityNode {
 //					return false
 //				}
 				
-				if let height = self["height"]?.textValue {
+				if let height = self["height"]?.stringValue {
 					if height == "fill" {
 						// are there any other negation cases?
 						return true

@@ -31,23 +31,34 @@ extension Gravity {
 			loadDefaultConstants()
 		}
 		
-		override func postprocessValue(node: GravityNode, attribute: String, input: GravityNode, inout output: AnyObject) -> GravityResult {
-			guard let textValue = input.textValue else {
-				return .NotHandled
+		public override var recognizedAttributes: [String]? {
+			get {
+				return [] // no attributes (presently value calls get called on all plugins)
+				// TODO: is there a better way to register value transformers?
+			}
+		}
+		
+		public override func transformValue(value: GravityNode) {
+			guard let stringValue = value.stringValue else {
+				return
 			}
 			
-			if let constant = Constants.constants[textValue.stringByReplacingOccurrencesOfString(".", withString: "")] {
-				output = constant
-				return .Handled
+			if let constant = Constants.constants[stringValue.stringByReplacingOccurrencesOfString(".", withString: "")] {
+				value.objectValue = constant
+//				return constant
 			}
 			
-			return .NotHandled
+//			return nil
 		}
 		
 		private class func loadDefaultConstants() {
 			// should we register these alongside the classes that make the most sense? the problem is it's hard to initialize a class extension
 			
 			// there are obviously a lot of these; i'm just going to add them as i need them; try to keep these sorted alphabetically
+			
+			// MARK: UILayoutConstraintAxis
+			Constants.registerConstant("UILayoutConstraintAxis.Horizontal",			value: UILayoutConstraintAxis.Horizontal.rawValue)
+			Constants.registerConstant("UILayoutConstraintAxis.Vertical",			value: UILayoutConstraintAxis.Vertical.rawValue)
 			
 			// MARK: UIStackViewAlignment
 			Constants.registerConstant("UIStackViewAlignment.Bottom",				value: UIStackViewAlignment.Bottom.rawValue)

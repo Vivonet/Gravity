@@ -17,7 +17,7 @@ struct GravityPriority {
 	static let FillSizeHugging: UILayoutPriority = 50
 	static let StackViewSpacerHugging: UILayoutPriority = 100 // must be higher than fill size hugging priority
 	/// The generic containment constraint of an autosizing `UIView`. These constraints ensure that the view will automatically size to fit its contents, but are low priority so as to be easily overridden.
-	static let HostViewContainment = Float(200) // the "bubble" priority to use when a parent is filled but not the child; we can think of this as a direction of force
+	static let HostViewContainment = Float(200) // the "bubble" priority to use when a parent is filled but not the child; we can think of this as a direction of force // TODO: rename DivergentContainment
 	static let ViewContainment: UILayoutPriority = 300 // < 250 to delegate to intrisic size, but should be > 250 if we want to override intrinsic size
 	static let Gravity: Float = 700
 	static let BaseCompressionResistance: Float = 750
@@ -27,7 +27,6 @@ struct GravityPriority {
 	static let ExplicitSize: UILayoutPriority = 900 // was 800
 }
 
-// rename to GravityCore?
 @available(iOS 9.0, *)
 @objc public class Gravity: NSObject { // class or struct?
 	internal static var plugins = [GravityPlugin.Type]()
@@ -36,21 +35,24 @@ struct GravityPriority {
 	public override class func initialize() {
 		// it probably makes sense to put plugins with specifically registered identifiers last as they will be the quickest to check (when implemented)
 		registerPlugin(Default) // default always runs last
-		registerPlugin(Conversion)
-		// i'm actually not sure this is true anymore to be honest; conversion is now on-demand (it may not even need to be a plugin technically)
-		registerPlugin(Templating) // important: templating MUST be processed before type conversion (these are backwards because plugins are processed in reverse order)
+		registerPlugin(Conversion) // this doesn't technically need to be a plugin anymore
+		registerPlugin(Templating)
 		registerPlugin(Constants)
 		registerPlugin(Layout)
 		registerPlugin(Styling)
 		registerPlugin(Appearance)
+		registerPlugin(Conditionals)
 	}
 	
 //	public class func start(xml: String) {
 //	
 //	}
 	
-	public class func start(name: String, controller: NSObject? = nil) {
-		self.start(GravityDocument(name))
+	// do we really want to pass a controller? wouldn't it be easier to make the root of the document a controller if we want that? we should pass model instead
+	public class func start(name: String, controller: NSObject? = nil) -> GravityDocument {
+		let document = GravityDocument(name)
+		self.start(document)
+		return document
 	}
 	
 	public class func start(document: GravityDocument) {
@@ -84,23 +86,6 @@ struct GravityPriority {
 	public class func registerPlugin(type: GravityPlugin.Type) {
 		plugins.insert(type, atIndex: 0) // plugins acts as a stack, this lets us iterate it forwards instead of having to reverse it each time
 	}
-}
-
-// MARK: -
-
-// i think this should be moved to GravityPlugin, since it's extensibility related
-@available(iOS 9.0, *)
-@objc public protocol GravityElement { // MARK: GravityElement
-	/// The main attribute handler for the element. You will receive *either* `stringValue` or `nodeValue` as the value for each attribute of your element, depending on the type of the attribute.
-	/// - parameter node: The `GravityNode` the attribute applies to.
-	/// - parameter attribute: The attribute to process. If you recognize this attribute, you should process its value and return `Handled`. If you do not recognize the attribute, return `NotHandled` to defer processing.
-	/// - parameter value: The value of the attribute. The attribute may have a `textValue` or it may have child nodes.
-	func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult
-	
-	optional func processElement(node: GravityNode) -> GravityResult // return true if you handled your own child nodes, otherwise false to handle them automatically
-	
-	optional func connectController(node: GravityNode, controller: NSObject) // return?
-	// add a method to bind an id? or just use processAttribute?
 }
 
 // TODO: create this and use it as the model for an ErrorView
