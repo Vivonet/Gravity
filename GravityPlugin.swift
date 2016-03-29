@@ -16,13 +16,20 @@ public enum GravityResult: Int {
 	/// Return this value to indicate that the operation was successfully handled, and that further attempts to handle it should stop. See the documentation for each plugin function to see how this value is interpreted for each case.
 	case Handled = 1
 }
+
+//@objc
+//public enum GravityInclusion: Int {
+//	case Exclude = 0
+//	
+//	case Include = 1
+//}
 // consider changing the above to a different metaphor like "Claimed", which would mean that the plugin claims ownership of the handling of the attribute, and will continue to process it at all stages.
 
 @available(iOS 9.0, *)
 @objc public protocol GravityElement { // MARK: GravityElement
 	optional static func instantiateView(node: GravityNode) -> UIView? // experimental
 	
-	var recognizedAttributes: [String]? { get }
+//	var recognizedAttributes: [String]? { get } // good riddance
 	
 	/// The main attribute handler for the element. You will receive *either* `stringValue` or `nodeValue` as the value for each attribute of your element, depending on the type of the attribute.
 	/// - parameter node: The `GravityNode` the attribute applies to.
@@ -59,6 +66,7 @@ public enum GravityResult: Int {
 //		}
 //	}
 	
+	// this is now an OPTIONAL array
 	/// Provide an array of `String`s representing the attributes this plugin handles. If you return `nil`, the plugin will be called for every attribute. (There are many hooks so this can amount to a lot of calls if you do not provide a definition.)
 	///
 	/// You should only return `nil` if the plugin’s interpretation of the attribute is dynamic and not registrable.
@@ -66,9 +74,9 @@ public enum GravityResult: Int {
 	/// **Note:** The default implementation returns an empty array, which is equivalent to matching no attributes.
 	///
 	/// **Important:** You should provide an accurate definition for this property for performance reasons. Only return `nil` if you need to.
-	public var recognizedAttributes: [String]? { // maybe rename to claimedAttributes or back to handledAttributes
+	public var handledAttributes: [String]? { // maybe rename to claimedAttributes or back to handledAttributes
 		get {
-			return [] // test
+			return nil // test
 //			preconditionFailure("This property must be overridden.")
 		}
 	}
@@ -89,6 +97,7 @@ public enum GravityResult: Int {
 //		return .NotHandled
 //	}
 	
+	// MARK: DOM Phase
 
 	// TODO: convert this to dom- and view-based calls. add a note that the view-based processNode should *not* depend on any state of the view, and should get all of its information solely from the node. it should be fully deterministic based on the provided dynamic dom.
 	
@@ -98,8 +107,8 @@ public enum GravityResult: Int {
 	/// **Important:** This is a *value*-based plugin call. The instance of your plugin that is called will belong to the document where the value is actually defined, which is not necessarily the same document where the parent element is defined.
 	///
 	/// **Note:** This function may be called multiple times, but the constraints will be reset upon each call, so you don't have to worry about removing or updating constraints. You are, however, responsible for maintaining any other state.
-	public func processValue(value: GravityNode) -> GravityResult {
-		return .NotHandled
+	public func processValue(value: GravityNode) {
+//		return .Include
 	}
 	
 	// TODO: we could consider adding another value hook that acts as an initializing call, called only once per value
@@ -114,8 +123,24 @@ public enum GravityResult: Int {
 	///
 	/// This function may be called multiple times on the same node.
 	public func processNode(node: GravityNode) { // rename processElement?
-//		return .NotHandled
+//		return .Include
 	}
+	
+	// MARK: View Phase
+	// TODO: rename these as appropriate
+	
+//	public func handleValue(value: GravityNode) -> GravityResult {
+//		return .NotHandled
+//	}
+	
+	/// The main attribute handler in the view cycle.
+	///
+	/// - node: The node.
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+		return .NotHandled
+	}
+	
+	// do we need a handleNode call? that would probably be confusing and might lead to developers just attempting to handle all attributes there
 	
 	/// Pre-process value transformation. Overload this method if you want to transform or otherwise process the value of an attribute relative to the *value’s* DOM before it is handled, and are not changing the type of the value to something other than a `GravityNode`.
 	///
@@ -129,8 +154,8 @@ public enum GravityResult: Int {
 	// to cache or not to cache...
 	// NOTE: we may not even need/want this anymore since all attributes will have to be declaratively computed in the DOM phase
 	/// This function is called on demand whenever an attribute’s value is accessed on a node. You may modify any of the **value** properties on the node (`stringValue`, `objectValue`, etc.) that correspond to the expected interpretation of the attribute by its handler.
-	public func transformValue(value: GravityNode) {
-	}
+//	public func transformValue(value: GravityNode) {
+//	}
 	
 	// similar to processNode, but called on value nodes
 	// this is for *handling* attributes at the value level (e.g. widthIdentifiers), no transformations should take place

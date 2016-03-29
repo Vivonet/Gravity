@@ -9,9 +9,9 @@
 import Foundation
 
 extension UINavigationController: GravityElement {
-	public var recognizedAttributes: [String]? {
-		get { return [] }
-	}
+//	public var recognizedAttributes: [String]? {
+//		get { return [] }
+//	}
 	
 //	public static func instantiateView(node: GravityNode) -> UIView? {
 //		let instance = UINavigationController()

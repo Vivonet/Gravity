@@ -18,31 +18,49 @@ extension Gravity {
 //			}
 //		}
 	
-		public override var recognizedAttributes: [String]? {
+		public override var handledAttributes: [String]? {
 			get {
-				return ["borderColor", "borderSize", "color", "cornerRadius", "font"]
+				return ["color", "font"]
 			}
 		}
 		
-		public override func processValue(value: GravityNode) -> GravityResult {
-			// TODO: convert things like "font" and "color" here (?)
+//		public override func processValue(value: GravityNode) -> GravityResult {
+//			// TODO: convert things like "font" and "color" here (?)
+//			return .NotHandled
+//		}
+		
+		override public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+			if attribute == "borderColor" || attribute == nil {
+				if let borderColor = value?.convert() as UIColor? {
+					node.view.layer.borderColor = borderColor.CGColor
+				} else {
+					node.view.layer.borderColor = node.color.CGColor
+				}
+				return .Handled
+			}
+				
+			if attribute == "borderSize" || attribute == nil {
+				if let borderSize = value?.floatValue {
+					node.view.layer.borderWidth = CGFloat(borderSize)
+				} else {
+					node.view.layer.borderWidth = 1
+				}
+				return .Handled
+			}
+				
+			if attribute == "cornerRadius" || attribute == nil {
+				if let cornerRadius = value?.floatValue {
+					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
+					node.view.layer.cornerRadius = CGFloat(cornerRadius)
+					node.view.clipsToBounds = true // assume this is still needed
+				} else {
+					node.view.layer.cornerRadius = 0
+					node.view.clipsToBounds = false // should we do this?
+				}
+				return .Handled
+			}
+			
 			return .NotHandled
-		}
-		
-		override public func processNode(node: GravityNode) {
-			if let borderColor = node["borderColor"]?.convert() as UIColor? {
-				node.view.layer.borderColor = borderColor.CGColor
-			}
-		
-			if let borderSize = node["borderSize"]?.floatValue {
-				node.view.layer.borderWidth = CGFloat(borderSize)
-			}
-		
-			if let cornerRadius = node["cornerRadius"]?.floatValue {
-				// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
-				node.view.layer.cornerRadius = CGFloat(cornerRadius)
-				node.view.clipsToBounds = true // assume this is still needed
-			}
 		}
 	}
 }

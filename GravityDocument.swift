@@ -8,9 +8,10 @@
 
 import Foundation
 
+// TODO: implement StringLiteralConvertible
 /// The ‘D’ in DOM. This class represents a single instance of a gravity layout file.
 @available(iOS 9.0, *)
-@objc public class GravityDocument: NSObject, NSXMLParserDelegate {
+@objc public final class GravityDocument: NSObject, StringLiteralConvertible, NSXMLParserDelegate {
 	private var nodeStack = [GravityNode]() // for parsing
 	
 	/// The `GravityNode` that represents this document in the child tree.
@@ -51,9 +52,8 @@ import Foundation
 	
 	public var view: UIView! { // should this be optional?
 		get {
-//			processing = true
 			defer {
-				postprocess() // we could also just set a flag and call this each time
+				postprocess() // should we do this by swizzling didMoveToSuperview or such?
 			}
 			return node?.view
 		}
@@ -63,7 +63,31 @@ import Foundation
 		super.init()
 		setup()
 	}
-	
+
+	public typealias ExtendedGraphemeClusterLiteralType = StringLiteralType
+	public typealias UnicodeScalarLiteralType = StringLiteralType
+
+	public init(unicodeScalarLiteral value: UnicodeScalarLiteralType) {
+		super.init()
+		self.xml = value
+		setup()
+		parseXML()
+	}
+
+	public init(extendedGraphemeClusterLiteral value: ExtendedGraphemeClusterLiteralType) {
+		super.init()
+		self.xml = value
+		setup()
+		parseXML()
+	}
+
+	public init(stringLiteral value: StringLiteralType) {
+		super.init()
+		self.xml = value
+		setup()
+		parseXML()
+	}
+
 	convenience init(_ name: String, model: AnyObject? = nil) {
 		self.init(name, model: model, parentNode: nil)
 	}
@@ -101,17 +125,17 @@ import Foundation
 	}
 
 	// do we want an initializer or should we just set the .xml property?
-	public init(xml: String, model: AnyObject? = nil) {
-		super.init()
-		
-		// FIXME: what should the node of a literally-set document be? the root? or something else?
-		self.node = GravityNode(document: self, parentNode: nil, nodeName: "<XML>", attributes: [:])
-		self.model = model
-		self.xml = xml // really annoying that didSet doesn't work from initializers :(
-		
-		setup()
-		parseXML()
-	}
+//	public init(xml: String, model: AnyObject? = nil) {
+//		super.init()
+//		
+//		// FIXME: what should the node of a literally-set document be? the root? or something else?
+//		self.node = GravityNode(document: self, parentNode: nil, nodeName: "<XML>", attributes: [:])
+//		self.model = model
+//		self.xml = xml // really annoying that didSet doesn't work from initializers :(
+//		
+//		setup()
+//		parseXML()
+//	}
 	
 	private func setup() {
 		for pluginClass in Gravity.plugins {
@@ -121,10 +145,10 @@ import Foundation
 	}
 	
 	/// Instantiates a new document using the current document as a template. The returned document will be a clone of the current document. Instantiating a `GravityDocument` does *not* establish the receiver’s `view` property.
-	public func instantiate(model: AnyObject? = nil) -> GravityDocument {
-		// should this return a UIView or a GravityDocument?
-		return GravityDocument(xml: self.description, model: model)
-	}
+//	public func instantiate(model: AnyObject? = nil) -> GravityDocument {
+//		// should this return a UIView or a GravityDocument?
+//		return GravityDocument(xml: self.description, model: model)
+//	}
 
 	private func parseXML() {
 		guard let data = self.xml.dataUsingEncoding(NSUTF8StringEncoding) else {
@@ -140,10 +164,12 @@ import Foundation
 		if error == nil {
 			preprocess()
 		}
+		print("\n\(name):\n\(self)")
 	}
 	
 	// MARK: PRE-PROCESSING PHASE
 	// this could also be called the "Syntax Phase" because it deals specifically with language syntax features, not semantics
+	// it's actually part of the load cycle/stage
 	internal func preprocess() {
 		guard let node = node else {
 			NSLog("Warning: Attempted to call preprocess() on a document with no root node.")
@@ -154,7 +180,7 @@ import Foundation
 				continue
 			}
 			
-			if let identifier = childNode.attributes["id"]?.rawStringValue {
+			if let identifier = childNode.attributes["id"]?.staticStringValue {
 				if ids[identifier] != nil {
 					preconditionFailure("Duplicate definition of identifier ‘\(identifier)’.")
 				}
@@ -179,7 +205,7 @@ import Foundation
 					let attributeName = childNode.nodeName.substringFromIndex(parentElementIndex.advancedBy(1))
 					
 					// surprisingly this actually seems to work:
-					parentNode.contents._childNodes = parentNode.contents._childNodes.filter { $0 != childNode }
+					parentNode.staticNodes = parentNode.staticNodes.filter { $0 != childNode }
 					parentNode.attributes[attributeName] = childNode
 				} else {
 					preconditionFailure("Invalid attribute node notation. Element name must start with parent element (expected ‘\(parentNode.nodeName)’).")
@@ -193,16 +219,20 @@ import Foundation
 		// FIXME: is this still an issue??
 		for childNode in self.node {
 			for (attribute, value) in childNode.attributes {
+				assert(!value.loaded)
 //				if attribute.containsString(".") {
 					childNode.attributes.removeValueForKey(attribute) // removes things like "mobile:titleLabel.value" from the DOM
 					assert(childNode.document == self)
 					childNode.setAttribute(attribute, value: value)
 //				}
 			}
+			childNode.loaded = true
 		}
 	}
 	
 	// MARK: POST-PROCESSING PHASE
+	// this phase currently runs on-demand when the view is loaded and so may not run right away
+	// this will probably move to a background process thread
 	internal func postprocess() { // post-process view hierarchy
 		if postprocessed {
 			return
@@ -233,10 +263,18 @@ import Foundation
 			plugin.postprocessDocument(self)
 		}
 		
-		controllerChanged()
+		// this currently only works on the root node; this may change
+		controller = controller ?? node?.controller
 		
 		let processTime = NSDate().timeIntervalSinceDate(startTime)
 		NSLog("*** Process time for \(name): \(processTime)")
+		
+		// TODO: move somewhere more appropriate?
+//		if let controller = node.controller {
+//			assert(node.viewIsInstantiated)
+////			let _ = node.view // make sure it's instantiated
+//			controller.grav_viewDidLoad()
+//		}
 	}
 	
 	// FIXME: there's probably a better way to do this at the appropriate time
@@ -258,17 +296,21 @@ import Foundation
 		}
 	}
 	
-	internal func pluginsForAttribute(attribute: String) -> [GravityPlugin] {
-		return plugins.filter {
-			return $0.recognizedAttributes?.contains(attribute) ?? false
-		}
-	}
-	
-	/// Returns only the generic plugins that can handle any attribute
-	internal func genericPlugins() -> [GravityPlugin] {
-		return plugins.filter {
-			return $0.recognizedAttributes == nil
-		}
+//	internal func pluginsForAttribute(attribute: String) -> [GravityPlugin] {
+//		return plugins.filter {
+//			return $0.recognizedAttributes?.contains(attribute) ?? false
+//		}
+//	}
+//	
+//	/// Returns only the generic plugins that can handle any attribute
+//	internal func genericPlugins() -> [GravityPlugin] {
+//		return plugins.filter {
+//			return $0.recognizedAttributes == nil
+//		}
+//	}
+
+	public override func valueForUndefinedKey(key: String) -> AnyObject? {
+		return self[key]
 	}
 	
 	// MARK: Descriptions
@@ -318,7 +360,7 @@ import Foundation
 		// if so, treat all nodes (including the stored string) as child nodes/labels
 		if let parentNode = nodeStack.last {
 			if parentNode.nodeName.containsString(".") {
-				parentNode.rawStringValue = string
+				parentNode.staticStringValue = string
 				return
 			}
 		}

@@ -11,11 +11,11 @@ import Foundation
 @available(iOS 9.0, *)
 extension UIImageView: GravityElement {
 
-	public var recognizedAttributes: [String]? {
-		get {
-			return ["image", "template"]
-		}
-	}
+//	public var recognizedAttributes: [String]? {
+//		get {
+//			return ["image", "template"]
+//		}
+//	}
 	
 // do we really need this at all?
 //	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {

@@ -1,7 +1,7 @@
 #Gravity
 An easy to learn XML-based layout description language for iOS powered by Auto Layout.
 
-**tl;dr** It's kind of like HTML for native layouts, and is an order of magnitude easier to use than Auto Layout.
+**tl;dr** It's kind of like HTML for native layouts, and is an order of magnitude easier to use than raw Auto Layout.
 
 ##Sample
 Suppose you wanted to construct the following simple layout (everything inside the bubble):
@@ -10,7 +10,7 @@ Suppose you wanted to construct the following simple layout (everything inside t
 
 In Auto Layout, your job is to examine each edge of each view, figuring out which other view edges each one should bind to and at what constraint priorities, what each view's content compression resistance and content hugging priorities are (if applicable), and whether or not you have enough constraints to fully satisfy both axes, or have too many and have an ambiguous layout.
 
-With Gravity, on the other hand, we approach things in a much different way. Instead of tying edges to each other with constraints, trying to *implement* a desired idea, we think more about how the whole layout is arranged from a higher level and simply communicate this to Gravity. We do this by breaking a layout down into a series of embedded horizontal (`<H>`) and vertical (`<V>`) stack views. Looking at the above image, we can see that the Order button is clearly to the right of everything else, and we simply tell Gravity as much. This is our first division and it is horizontal. Everything to the left of the Order button can be seen as being stacked vertically, with the two directions buttons in the bottom row themselves stacked horizontally.
+With Gravity, on the other hand, we approach things in a much different way. Instead of tying edges to each other with constraints in an attempt to *implement* a desired idea in mind, we think more about how the whole layout is arranged from a higher level and simply communicate this to Gravity. We do this by breaking a layout down into a series of embedded horizontal (`<H>`) and vertical (`<V>`) *stacks*. Looking at the above image, we can see that the Order button is clearly to the right of everything else, and we simply tell Gravity as much. This is our first division and it is horizontal. Everything to the left of the Order button can be seen as being stacked vertically, with the two directions buttons that form the bottom row themselves stacked horizontally.
 
 Here's how you say that in gravity:
 
@@ -50,7 +50,7 @@ Gravity aims to reduce the mental burden of going from a layout you have *in min
 ##Background
 In my thirty-five years of existence in this universe, I have encountered few things as brutally frustrating as Apple's Auto Layout engine. For a company that prides itself in the intuitiveness and ease of use of their software, Auto Layout represents a complete 180° on that stance, instead favouring bizarre and unnatural complexity over simplicity of design. The result is a beast of a system that takes many long hours to become even remotely proficient in.
 
-Auto Layout has its apologists, and while there's no arguing it's a powerful system, the fact remains that if you've ever had to work with Auto Layout at some point in your career, you're all but guaranteed to have had a frustrating experience.
+Auto Layout has its apologists, and while there's no arguing it's a powerful system, the fact remains that if you've ever had to work with Auto Layout at some point in your career, you're all but guaranteed to have had a frustrating experience. Trust me, you're not alone.
 
 Auto layout tends to work well in two scenarios:
 
@@ -63,23 +63,25 @@ Here's my background: I've always been a Mac guy, but I dabbled with .NET for a 
 
 After leaving the Windows world and coming back to Apple by means of the iOS platform, I was utterly dismayed at the mediocre layout tools available to me: at first it was Interface Builder with springs and struts, which was familiar to me from my classic Mac OS programming days. While the springs and struts model was a breeze to understand and worked fairly well for very simple interfaces, it was ultimately very limited in what it could express. It wasn't until Apple released their "next big thing" in layout, though, that things got truly bad.
 
-"Auto Layout," they called it. Ha! As if there is anything auto about it! It is in fact painstakingly manual. Now, instead of simply telling the computer which edges of an element should flow and which should be fixed in place, you have to tie individual edges of elements to each other, and chain these bindings together in a balancing act of constraints and priorities, arranged in precisely the right manner, for fear of not supplying all the required constraints, or supplying too many and having ambiguous or conflicting constraints, all the while having many more things to worry about: (constraint priorities, content hugging, compression resistance, user constraints, system constraints, intrinsic size, implicitly generated constraints, placeholder constraints, etc., etc.). Things went from simple but limited to insanely complex overnight.
+Auto Layout, they called it. Ha! As if there is anything "auto" about it! It is, in fact, painstakingly manual. Now, instead of simply telling the computer which edges of an element should expand and which remain fixed in place, you have to tie individual edges of elements to each other, and chain these bindings together in a balancing act of constraint priorities, arranged in precisely the right manner, for fear of not supplying all the required constraints, or supplying too many and having ambiguous or conflicting constraints, all the while having many unnatural things to worry about: (constraint priorities, content hugging, compression resistance, user constraints, system constraints, intrinsic size, implicitly generated constraints, placeholder constraints, etc., etc.). Things went from simple but limited to insanely complex overnight.
 
 Anyway if you've made it this far I'm probably preaching to the choir.
 
-The *good* news is that Auto Layout is quite powerful enough to act as the foundation for another much simpler layer built on top of it. Enter: Gravity.
+The *good* news is that Auto Layout is quite powerful enough to act as the foundation for another much simpler layer built on top of it. Enter Gravity.
 
 Why "Gravity"?
 
-Well, gravity is simple. It's a law: things attract. Gravity is the universe's way of optimizing space, just like your interface elements will naturally size to their ideal size and will just automatically look good and behave like you want, and more importantly, how your users expect.
+Well, gravity is simple. It's a universal law: things attract. Gravity is the universe's way of optimizing space, just like your interface will size to fit its contents by default, and will automatically look good and behave like you want, and more importantly, how your users expect.
+
+Gravity is consistent. It doesn't behave in one way here and another way somewhere else (at least as far as we know!). Consistency and *intuitiveness* are hugely important in a framework. I don't expect you to learn the whole thing up front, I expect you to figure it out as you go. Gravity is designed to be highly figureoutable.
 
 Go ahead, look at any user interface, be it a web page or in an app. Looking at it, you already have a good idea of which elements should expand or shrink, and which elements should collapse before other elements. It's usually pretty obvious. Gravity aims to turn that intuitive knowledge into a functioning UI with as little work as possible.
 
-Gravity is inspired on the surface by WPF, but is a much simplified take on it. You design your layout as a tree: everything has its place in the hierarchy, so you don't need to worry about binding things together, and the resultant interface is generated deterministically with all of the proper layout constraints in place, so you get all the benefits of Auto Layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
+Gravity is inspired on the surface by XAML, but is a much simplified take on it. You design your layout as a tree: everything has its place in the hierarchy, so you don't need to worry about explicitly tying things together, and the resultant interface is generated deterministically with all of the proper layout constraints in place. You get all the benefits of Auto Layout without the burden of having to touch it yourself. (Although you *can* touch it if you want to. It's all still there and easy to get to. Gravity isn't a black box—er… hole?)
 
-Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface graphically, Gravity lets you build and tweak your interface *textually*, just like editing source code. It is mathematically precise and because it manages all of the layout constraints for you, has far fewer points of potential failure than traditional Auto Layout. Gravity aims to be a solid mathematical foundation for your app's interface.
+Gravity is really a layout engine for programmers who prefer the precision and control of a code file over loosey-goosey mousework. Unlike Interface Builder, which presents you with a visualization of your software and requires you to build and tweak that interface with your mouse, Gravity lets you build and tweak your interface *textually*, just like editing source code. It is mathematically precise and because it manages all of the layout constraints for you, has far fewer points of potential failure than traditional Auto Layout. Gravity aims to be a truly solid foundation for your app's interface.
 
-Calling Gravity a "layout engine" is a bit of a stretch. It's more of a layout *language*. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. Gravity is the curtain that hides the great and powerful Oz.
+Calling Gravity a "layout engine" is a bit of a stretch. It's more of a high-level layout *language*. Auto Layout is still the true engine powering Gravity. Gravity just gives you a much simpler way to specify your interface, and Auto Layout takes care of the heavy lifting behind the scenes. Gravity is the curtain that hides the great and powerful Oz.
 
 ##The Philosophy
 Constructing an interface is a way of communicating. It is a way for the developer of an application to communicate relevant contextual information to the user. It shouldn't be something that is hard or takes painstaking work. It should be as natural as language: as thoughts arranged in such a way as to be understood.
@@ -89,7 +91,7 @@ Gravity takes most of the *work* out of creating a layout and lets you get back 
 ##The Basics
 Gravity is, at the simplest, an XML representation of a native layout. Its elements are view classes and its attributes generally correspond to properties of those classes. Some attributes like `gravity`, `color`, `width`, `height`, etc. have special meaning and don't correspond directly to native properties. Gravity aims to keep syntax simple and thus employs many special helper handlers for attributes when mapping directly to properties doesn't work. For example, UIButton does not have a native "title" property, yet in Gravity you can say `<UIButton title="Press Me"/>`. This is because UIButton.title is implemented internally as UIButton.setTitle(_, forState:).
 
-But even better is the fact that you can embed subviews in any other view, including UIButtons. So you can actually lay out your button's contents using Gravity too! (Note: There are limitations in doing this for buttons, namely that embedded views do not presently respect the button's control state and will not react to presses.)
+But even better than doing that is the fact that you can embed views in any other view, including UIButtons. So you can actually lay out your button's contents using Gravity too! (Note: There are currently limitations in doing this for buttons, namely that embedded views do not presently respect the button's control state and will not react to presses.)
 
 In Gravity, you arrange your views by using a combination of stacking and layering. Stacking is fundamental while layering is generally more optional for more complex layouts.
 
@@ -98,6 +100,17 @@ Stacking can take place either horizontally (`<H>`) or vertically or (`<V>`) in 
 
 ###Layering
 Layers in Gravity are analogous to layers in drawing and paint programs: unlike stack views which arrange their subviews in a line horizontally or vertically, layering arranges views *inwards* and *outwards*—that is, along the Z axis.
+
+###Gravity
+Aligning things in Gravity is done with… gravity! Not just a cool name, it's also a key concept in the framework. Gravity is a scoped property that determines the direction elements are attracted to in a layout.
+
+Gravity does not have a corresponding concept in Auto Layout because it comes about from the fact that Gravity is hierarchical (in fact much of the framework's power comes from this fact). Elements inherit their gravity from their parent element in the tree. Thus, changing the gravity for an element affects that element and all elements inside it. You can change the direction of gravity at any point in the tree.
+
+Gravity is split into two axes: horizontal and vertical, and each axis can have one of three possible values. For example, the horizontal gravity can be one of Left, Center, and Right, while the vertical gravity can be one of Top, Middle, and Bottom. Remember, Center means horizontal center while Middle means vertical center.
+
+You can specify one or both axes of gravity at a time. If you omit an axis, that axis will continue to inherit its value from its parent element. Separate multiple gravity values with a space. So, to dock a view to the top-right corner of its parent, set `gravity="top right"`. To center an element horizontally without affecting its vertical gravity, simply set `gravity="center"`. Remember, changing the gravity affects all child elements too, so if you want the things *inside* the view to dock to a different edge, don't forget to adjust their gravity as well.
+
+Note: You can also set native properties like the `alignment` of a stack view or the `textAlignment` of a label directly to avoid changing the gravity for an entire subtree.
 
 ###Growing and Shrinking
 In Auto Layout, you control how elements expand and contract by a combination of **content hugging priority** and **content compression resistance priority**, each of which (being a priority) takes a value between 0 and 1000.
@@ -123,17 +136,6 @@ Given the above layout, it's easy to see that the label will be the first thing 
 Perhaps you want the label to shrink, but only to a point. If you set a minWidth on the label, that will have a higher constraint priority and block the element from shrinking any further.
 
 Unfortunately, I haven't figured out how to get UIStackView to grow or shrink multiple elements equally together. This was really the intended design, but unfortunately doesn't appear to be possible just yet and the stack view seems to always just choose the last element.
-
-###Gravity
-Aligning things in Gravity is done with… gravity! Not just a cool name, it's also a key concept in the framework. Gravity is a scoped property that determines the direction elements are attracted to in a layout.
-
-Gravity does not have a corresponding concept in Auto Layout because it comes about from the fact that Gravity is hierarchical (in fact much of the framework's power comes from this fact). Elements inherit their gravity from their parent element in the tree. Thus, changing the gravity for an element affects that element and all elements inside it. You can change the direction of gravity at any point in the tree.
-
-Gravity is split into two axes: horizontal and vertical, and each axis can have one of three possible values. For example, the horizontal gravity can be one of Left, Center, and Right, while the vertical gravity can be one of Top, Middle, and Bottom. Remember, Center means horizontal center while Middle means vertical center.
-
-You can specify one or both axes of gravity at a time. If you omit an axis, that axis will continue to inherit its value from its parent element. Separate multiple gravity values with a space. So, to dock a view to the top-right corner of its parent, set `gravity="top right"`. To center an element horizontally without affecting its vertical gravity, simply set `gravity="center"`. Remember, changing the gravity affects all child elements too, so if you want the things *inside* the view to dock to a different edge, don't forget to adjust their gravity as well.
-
-Note: You can also set native properties like the `alignment` of a stack view or the `textAlignment` of a label directly to avoid changing the gravity for an entire subtree.
 
 ###Edge Binding
 Gravity accomplishes view containment by means of edge binding at differing priorities. Most views are bound on all edges to their parent by at least some priority. Gravity sets these priorities based on the configuration of your layout and the information you provide for how views should resize; for example, whether they are filled along an axis, have an explicit size or are constrained to a max/min size.
@@ -226,7 +228,7 @@ Gravity is a pure Auto Layout framework. It doesn't make compromises when it com
 
 Gravity is also super lightweight. Aside from the tiny DOM (which simply gives you object-oriented access to the contents of your XML files) and whatever minimal overhead each plugin uses (the built-in ones are also very lightweight), there is very little memory overhead. And once your view is actually constructed, Gravity steps aside and lets Auto Layout take over, so there's no performance hit whatsoever. Plus, Gravity is almost entirely implemented in Swift, which compiles to fast native code.
 
-In short, Gravity is fast. Very fast.
+In short, Gravity is fast. Very fast. But it is also very young and there is still much to be implemented. Load times are the biggest danger point because of all of the plugin processing. I will focus on design for the immediate future and pursue optimization when the core stabilizes.
 
 ###Create Perfect Interfaces
 Gravity is mathematically precise. Never accidentally misdrag an edge or element again. With Gravity, what you *write* is what you get. (Hey does that mean Gravity is **WYWIWYG**? Yeah that's probably never going to catch on…)

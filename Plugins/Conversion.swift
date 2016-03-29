@@ -34,6 +34,60 @@ extension Gravity {
 			converters["\(type)"] = converter
 		}
 		
+		public override func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+			var propertyType: String? = nil
+			
+			guard let attribute = attribute else {
+				return .NotHandled
+			}
+			
+//			if let attribute = attribute { // this is an attribute node
+			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
+				propertyType = "UIColor" // bit of a hack because UIView.backgroundColor doesn't seem to know its property class via inspection :/
+			}
+			
+			if propertyType == nil {
+//				NSLog("Looking up property for \(node.view.dynamicType) . \(attribute)")
+				// is there a better/safer way to do this reliably?
+				if let parentNode = value?.parentNode {
+					let property = class_getProperty(NSClassFromString("\(parentNode.view.dynamicType)"), attribute) // can we do this without touching view?
+					if property != nil {
+						if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
+							if components.count >= 2 {
+								propertyType = components[1]
+	//							NSLog("propertyType: \(propertyType!)")
+							}
+						}
+					}
+				}
+			}
+//			}
+			
+//			if let stringValue = value?.stringValue {
+			var convertedValue: AnyObject? = nil//value.stringValue
+			if let propertyType = propertyType {
+				convertedValue = value?.convert(propertyType)
+			}
+			
+			if convertedValue != nil {
+				value?.objectValue = convertedValue
+			}
+//			}
+//			else { // this is a node value
+//				// do we actually need to do this, or can we write UIView/UIViewController converters? if so they should naturally accept a node value, not a string value
+//				if let propertyType = propertyType {
+//					if let type = NSClassFromString(propertyType) {
+//						if type is UIView.Type {
+//							// TODO: implement
+//						} else if type is UIViewController.Type {
+//							// TODO: implement
+//						}
+//					}
+//				}
+//			}
+			return .NotHandled
+		}
+		
 //		public class func convert<T: AnyObject>(input: String) -> T? {
 //			if "\(T.self)" == "String" { // there's got to be a better way to do this
 //				return input as? T // verify
@@ -154,6 +208,12 @@ extension Gravity {
 //				return output != nil ? .Handled : .NotHandled
 			}
 			
+			// UIView
+			registerConverterForClass(UIView.self) { (value) -> AnyObject? in
+				return value.view // TODO: or do we want to instantiate?
+			}
+			
+			// UIImage
 			registerConverterForClass(UIImage.self) { (value) -> AnyObject? in
 				if let stringValue = value.stringValue {
 					return UIImage(named: stringValue)

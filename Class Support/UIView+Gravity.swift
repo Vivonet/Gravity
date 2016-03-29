@@ -10,6 +10,7 @@ import Foundation
 
 private var GravityNodeAssociatedObjectKey = 0
 
+// TODO: make UIView StringLiteralConvertible?? it could have to be via conversion not initialization
 @available(iOS 9.0, *)
 extension UIView {
 	// TODO: we should swizzle UIView.didMoveToSuperview and call appendNode on the parent if both have gravityNodes
@@ -23,6 +24,19 @@ extension UIView {
 		set(value) {
 			objc_setAssociatedObject(self, &GravityNodeAssociatedObjectKey, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) // i believe this should be weak since the view is created and managed by the GravityNode
 			// FIXME: actually it should probably be strong, and weak in the other direction, since the view object is really dominant.
+		}
+	}
+}
+
+@available(iOS 9.0, *)
+extension UIViewController {
+	// exactly the same as UIView, but for controllers this time
+	public var gravityNode: GravityNode? {
+		get {
+			return objc_getAssociatedObject(self, &GravityNodeAssociatedObjectKey) as! GravityNode?
+		}
+		set(value) {
+			objc_setAssociatedObject(self, &GravityNodeAssociatedObjectKey, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 		}
 	}
 }

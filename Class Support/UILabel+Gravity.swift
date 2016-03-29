@@ -11,11 +11,11 @@ import Foundation
 @available(iOS 9.0, *)
 extension UILabel: GravityElement {
 
-	public var recognizedAttributes: [String]? {
-		get {
-			return ["wrap"]
-		}
-	}
+//	public var recognizedAttributes: [String]? {
+//		get {
+//			return ["wrap"]
+//		}
+//	}
 //	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
 ////		guard let stringValue = value.stringValue else {
 ////			return .NotHandled

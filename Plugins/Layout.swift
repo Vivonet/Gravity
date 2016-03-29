@@ -14,7 +14,7 @@ extension Gravity {
 		private static let keywords = ["fill", "auto"]
 		private var widthIdentifiers = [String: Set<GravityNode>]() // instead of storing a dictionary of arrays, can we store a dictionary that just points to the first-registered view, and then all subsequent views just add constraints back to that view?
 		
-		public override var recognizedAttributes: [String]? {
+		public override var handledAttributes: [String]? {
 			get {
 				return [
 					"gravity",
@@ -33,10 +33,10 @@ extension Gravity {
 		public override class func initialize() {
 			dispatch_once(&swizzleToken) {
 				// method swizzling:
-				let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, Selector("alignmentRectInsets"))
+				let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, #selector(UIView.alignmentRectInsets))
 				let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("grav_alignmentRectInsets"))
 				
-				if class_addMethod(UIView.self, Selector("alignmentRectInsets"), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
+				if class_addMethod(UIView.self, #selector(UIView.alignmentRectInsets), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
 					class_replaceMethod(UIView.self, Selector("grav_alignmentRectInsets"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
 				} else {
 					method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
@@ -62,13 +62,13 @@ extension Gravity {
 			}
 		}
 		
-		public override func processValue(value: GravityNode) -> GravityResult {
+		public override func processValue(value: GravityNode) {
 			guard let node = value.parentNode else {
-				return .NotHandled
+				return
 			}
 			
 			guard let stringValue = value.stringValue else {
-				return .NotHandled
+				return
 			}
 			
 			// this has to be done here because widthIdentifiers should be referenced relative to the document the value is defined in, not the node they are applied to
@@ -82,12 +82,20 @@ extension Gravity {
 						widthIdentifiers[stringValue]?.unionInPlace([node])
 					}
 				}
-				return .Handled
+				return
 			}
-			return .NotHandled
+			return
 		}
 		
-		public override func processNode(node: GravityNode) {
+		/// Removes *all* constraints with a given identifier (verify that there can in fact be multiple).
+		private func removeConstraint(identifier: String, fromNode node: GravityNode) {
+			for constraint in node.view.constraints.filter({ $0.identifier == identifier }) {
+//				node.view.removeConstraint(constraint)
+				constraint.active = false // does this also mean we have to set it to true instead of re-adding??
+			}
+		}
+		
+		public override func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
 //			if let width = node["width"]?.stringValue {
 //				if !Layout.keywords.contains(width) {
 //					let charset = NSCharacterSet(charactersInString: "-0123456789.").invertedSet
@@ -131,22 +139,37 @@ extension Gravity {
 //						}
 //					}
 //					return .Handled
-				
-				if let width = node.width {
+			if attribute == "width" || attribute == nil {
+				if value != nil && node.width != nil {
+					// will this properly handle widths of "fill"? right now it'll remove the width constraint but i think that's ok
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints["width"] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat(width))
+						node.constraints[attribute!] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat(node.width!)).autoIdentify("width")
 					}
+				} else {
+					removeConstraint("width", fromNode: node)
 				}
-						
+				return .Handled
+			}
+			
+			if attribute == "minWidth" || attribute == nil {
 				if let minWidth = node.minWidth {
+					// TODO: we should consider doing this with raw auto layout by looking up a constraint or creating one and modifying its properties
+//					let constraint = node.constraints["minWidth"] ?? NSLayoutConstraint()
+
+//					NSLayoutConstraint(item: node.view, attribute: .Width, relatedBy: .GreaterThanOrEqual, toItem: nil, attribute: .NotAnAttribute, multiplier: 0.0, constant: CGFloat(minWidth)
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints["minWidth"] = node.view.autoSetDimension(.Width, toSize: CGFloat(minWidth), relation: .GreaterThanOrEqual)
+						node.constraints[attribute!] = node.view.autoSetDimension(.Width, toSize: CGFloat(minWidth), relation: .GreaterThanOrEqual).autoIdentify(attribute!)
 					}
 					NSLayoutConstraint.autoSetPriority(50) {//test
 						node.view.autoSetDimension(.Width, toSize: CGFloat(minWidth))
 					}
+				} else {
+					removeConstraint("minWidth", fromNode: node)
 				}
-				
+				return .Handled
+			}
+			
+			if attribute == "maxWidth" || attribute == nil {
 				if let maxWidth = node.maxWidth {
 					if node.isOtherwiseFilledAlongAxis(.Horizontal) {
 							// a maxWidth that is filled is equal to an explicit width
@@ -166,26 +189,41 @@ extension Gravity {
 							node.constraints["maxWidth"] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth), relation: .LessThanOrEqual)
 						}
 					}
+				} else {
+					removeConstraint("maxWidth", fromNode: node)
 				}
-				
+				return .Handled
+			}
+			
+			if attribute == "height" || attribute == nil {
 				if let height = node.height {
 //					if !Layout.keywords.contains(stringValue) {
 						// TODO: add support for height identifiers
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints["height"] = node.view.autoSetDimension(.Height, toSize: CGFloat(height))
+						node.constraints["height"] = node.view.autoSetDimension(.Height, toSize: CGFloat(height)).autoIdentify("height")
 					}
 //					}
+				} else {
+					removeConstraint("height", fromNode: node)
 				}
-				
+				return .Handled
+			}
+			
+			if attribute == "minHeight" || attribute == nil {
 				if let minHeight = node.minHeight {
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
-						node.constraints["minHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight), relation: .GreaterThanOrEqual)
+						node.constraints["minHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight), relation: .GreaterThanOrEqual).autoIdentify("minHeight")
 					}
 					NSLayoutConstraint.autoSetPriority(50) {//test
-						node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight))
+						node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight)).autoIdentify("minHeight") // FIXME: verify that it's safe to use the same identifier for two constraints!! we need to be able to delete them all
 					}
+				} else {
+					removeConstraint("minHeight", fromNode: node)
 				}
-				
+				return .Handled
+			}
+			
+			if attribute == "maxHeight" || attribute == nil {
 				if let maxHeight = node.maxHeight {
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) { // these have to be higher priority than the normal and fill binding to parent edges
 						if node.isOtherwiseFilledAlongAxis(.Vertical) {
@@ -196,20 +234,13 @@ extension Gravity {
 							node.constraints["maxHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(maxHeight), relation: .LessThanOrEqual)
 						}
 					}
+				} else {
+					removeConstraint("maxHeight", fromNode: node)
 				}
+				return .Handled
+			}
 				
-//				case "margin":
-//					return .Handled
-//				
-//				case "padding":
-//					return .Handled
-//				
-//				case "shrinks":
-//					return .Handled
-//				
-//				default:
-//					return .NotHandled
-//			}
+			return .NotHandled
 		}
 		
 		public override func processContents(node: GravityNode) -> GravityResult {
@@ -223,7 +254,7 @@ extension Gravity {
 			var sortedChildren = [GravityNode]()
 			for childNode in node.childNodes {
 				var handled = false
-				for var i = 0; i < sortedChildren.count; i++ {
+				for i in 0 ..< sortedChildren.count {
 					if sortedChildren[i].zIndex > childNode.zIndex {
 						sortedChildren.insert(childNode, atIndex: i)
 						handled = true
@@ -237,7 +268,7 @@ extension Gravity {
 				
 			// i'm actually thinking this might make the most sense all in one place in postprocess
 			for childNode in sortedChildren {
-				node.view.addSubview(childNode.view)
+				node.view.addSubview(childNode.view) // recurse?
 				
 //				let leftInset = CGFloat(node.leftMargin + node.leftPadding)
 //				let rightInset = CGFloat(node.rightMargin + node.rightPadding)

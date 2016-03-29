@@ -10,11 +10,11 @@ import Foundation
 
 @available(iOS 9.0, *)
 extension UITextView: GravityElement {
-	public var recognizedAttributes: [String]? {
-		get {
-			return []
-		}
-	}
+//	public var recognizedAttributes: [String]? {
+//		get {
+//			return []
+//		}
+//	}
 	
 //	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
 //		return .NotHandled

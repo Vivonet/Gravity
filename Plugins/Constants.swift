@@ -31,24 +31,24 @@ extension Gravity {
 			loadDefaultConstants()
 		}
 		
-		public override var recognizedAttributes: [String]? {
+		public override var handledAttributes: [String]? {
 			get {
 				return [] // no attributes (presently value calls get called on all plugins)
 				// TODO: is there a better way to register value transformers?
 			}
 		}
 		
-		public override func transformValue(value: GravityNode) {
-			guard let stringValue = value.stringValue else {
+		public override func processValue(value: GravityNode) {
+			guard let stringValue = value.stringValue else { // or rawStringValue? if we use stringvalue it could chain with templating!
 				return
 			}
 			
 			if let constant = Constants.constants[stringValue.stringByReplacingOccurrencesOfString(".", withString: "")] {
 				value.objectValue = constant
-//				return constant
+				return
 			}
 			
-//			return nil
+			return
 		}
 		
 		private class func loadDefaultConstants() {

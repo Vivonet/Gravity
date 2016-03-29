@@ -36,11 +36,11 @@ struct GravityPriority {
 		// it probably makes sense to put plugins with specifically registered identifiers last as they will be the quickest to check (when implemented)
 		registerPlugin(Default) // default always runs last
 		registerPlugin(Conversion) // this doesn't technically need to be a plugin anymore
-		registerPlugin(Templating)
 		registerPlugin(Constants)
 		registerPlugin(Layout)
 		registerPlugin(Styling)
 		registerPlugin(Appearance)
+		registerPlugin(Templating) // should templating be much lower, so nodes can define dynamic definitions for gravity attributes??
 		registerPlugin(Conditionals)
 	}
 	
@@ -49,8 +49,10 @@ struct GravityPriority {
 //	}
 	
 	// do we really want to pass a controller? wouldn't it be easier to make the root of the document a controller if we want that? we should pass model instead
-	public class func start(name: String, controller: NSObject? = nil) -> GravityDocument {
+	// we should provide an alternative that lets us specify a type as that will be handy for things like view controllers: Gravity.start(MyViewController.self)
+	public class func start(name: String, model: AnyObject? = nil) -> GravityDocument {
 		let document = GravityDocument(name)
+		document.model = model
 		self.start(document)
 		return document
 	}
@@ -78,7 +80,7 @@ struct GravityPriority {
 	}
 	
 	/// The same as Gravity.new() but Objective-C friendly.
-	public class func instantiate(name: String, forModel model: AnyObject? = nil) -> UIView? {
+	public class func instantiate(name: String, model: AnyObject? = nil) -> UIView? {
 		return new(name, model: model)
 	}
 	

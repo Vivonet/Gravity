@@ -8,9 +8,24 @@
 
 import Foundation
 
+@objc
+public enum GravityState: Int, Comparable {
+	case Loading = 0
+	case Loaded
+	case Resolved
+	case Processed
+}
+// it feels weird to me that i need to do this, but here it is:
+public func < (lhs: GravityState, rhs: GravityState) -> Bool {
+	return lhs.rawValue < rhs.rawValue
+}
+
+// TODO: implement a whole shit-ton of literal convertibles!! yeah!!
 @available(iOS 9.0, *)
 // TODO: split these protocols into extensions to follow Swift conventions
-@objc public class GravityNode: NSObject {
+@objc
+public class GravityNode: NSObject {
+	public var state: GravityState = .Loading
 	public var document: GravityDocument! // should this be weak?
 	public weak var parentNode: GravityNode?
 	public var nodeName = "" // should we compute this automatically if empty?
@@ -63,79 +78,60 @@ import Foundation
 			return depth
 		}
 	}
+//	public var isViewCycle {
+//		get {
+//			return NSThread.isMainThread()
+//		}
+//	}
 	// TODO: add a computed relativeDepth property that returns a value between 0-1 based on the maximum depth of the parsed tree; this must be the FULL depth of the tree, including all embedded subdocuments, and should happen in the preprocess phase.
-	public var attributes = [String: GravityNode]()
-	private var computedAttributes = [String: GravityNode]() // "composited"? or perhaps just [GravityNode]? // these are the dynamically-computed (temporary) attributes
-	public var effectiveAttributes: [String: GravityNode] {
-		get {
-			var effectiveAttributes = attributes // this better make a copy
-			for (key, value) in computedAttributes {
-				effectiveAttributes[key] = value
-			}
-			return effectiveAttributes
-		}
-	}
-//	public var stringValues: [String: String]
-//	public var nodeValues: [String: GravityNode]
-	public var constraints = [String: NSLayoutConstraint]() // store constraints here based on their attribute name (width, minHeight, etc.) -- we should move this to a plugin, but only if we can put all or most of the constraint registering in there as well
-	internal lazy var _childNodes = [GravityNode]() // make private if possible
+	public var attributes = [String : GravityNode]() // the static dom attributes
+	private var dynamicAttributes = [String : GravityNode]() // the dynamic dom attributes
+	public var constraints = [String : NSLayoutConstraint]() // store constraints here based on their attribute name (width, minHeight, etc.) -- we should move this to a plugin, but only if we can put all or most of the constraint registering in there as well
+	internal lazy var staticNodes = [GravityNode]() // make private if possible
+	internal lazy var dynamicNodes = [GravityNode]()
+//	private var dynamicChildNodes = [GravityNode]() // the child nodes of the dynamic dom (actually do we need this or should we just set a "contents" attribute during the dom cycle?)
 	public var childNodes: [GravityNode] {
 		get {
-			if isAttributeNode {
-				return _childNodes
-			} else {
-				return contents.childNodes
-			}
+			return loaded ? contents.dynamicNodes : staticNodes // contents already returns self if it's an attribute node
 		}
 	}
+//	private var contents: GravityNode!
 	public var childDocument: GravityDocument? // if this node represents an external document
 	/// The textual value of the node as a `String`, if the node is a text node (e.g. an inline attribute). Returns `nil` if the current node does not have a textual value.
-	public var contents: GravityNode {
+	private var _contents: GravityNode! // only used by content nodes (aka element nodes)
+	private var contents: GravityNode { // should this be public? maybe not
 		get {
-//			if self["contents"] == nil {
-//				
-//			}
-			// should we guarantee this exists, or should it be nil if there are no child nodes?
-			if isAttributeNode { // attribute nodes act as their own contents
-				return self
+			if self.isAttributeNode {
+				return self // no recursion allowed beyond this point ;)
 			}
-			assert(self["contents"] != nil)
-			return self["contents"]! // TODO: implement
+			// should this always return _contents during the load cycle? will it be accessed during the load cycle??
+			return processed ? self["contents"]! : _contents
 		}
 	}
 	
-	public var rawStringValue: String?
+	public var staticStringValue: String?
+	public var include = true // this only has an effect on the dynamic dom and allows nodes to be removed from the dom during processing
 	
 	// MARK: Privates
-	private var processed = false // the node has been processed via processNode or processValue (we might not actually need this anymore)
-	private var valueProcessed = false // the final value(s) of this attribute node have been computed (this nomenclature is confusing, consider renaming)
+	// FIXME: we really need a better way to organize these
+	internal var loaded = false // the node has been statically processed
+	private var processed = false // the node has hit the DOM process stage once; this will probably need to change somehow to support updates
+	private var viewProcessed = false // the view has been processed (again this will probably change when i figure out how best to represent the state of a node--state machine?)
 	private var changed = false
-	
-	// TODO: this will be changing; i don't think we want any on-demand transformation anymore outside of converters which much be deterministic
-	private func processValue() {
-		if valueProcessed {
-			return
-		}
-		
-		valueProcessed = true
-		for plugin in document.plugins {
-			plugin.transformValue(self)
-		}
-	}
 	
 	// TODO: set an internal flag when these are allowed to be set and fail if attempted at the wrong time
 	
 	private var _stringValue: String?
 	public var stringValue: String? {
 		get {
-			processValue()
-			return _stringValue ?? rawStringValue
+//			processValue()
+			return loaded ? _stringValue : staticStringValue
 		}
 		set(value) {
-			if processed {
+			if loaded {
 				_stringValue = value
 			} else {
-				rawStringValue = value // do we want this?
+				staticStringValue = value
 			}
 		}
 	}
@@ -143,7 +139,7 @@ import Foundation
 	private var _objectValue: AnyObject?
 	public var objectValue: AnyObject? {
 		get {
-			processValue()
+//			processValue()
 			return _objectValue ?? stringValue // or nil?? or self?? with transformation this shouldn't happen
 		}
 		set(value) {
@@ -160,7 +156,7 @@ import Foundation
 	private var _boolValue: Bool?
 	public var boolValue: Bool? {
 		get {
-			processValue()
+//			processValue()
 			return _boolValue ?? (stringValue as NSString?)?.boolValue
 		}
 		set(value) {
@@ -174,7 +170,7 @@ import Foundation
 	private var _intValue: Int?
 	public var intValue: Int? {
 		get {
-			processValue()
+//			processValue()
 			if _intValue != nil {
 				return _intValue
 			}
@@ -197,7 +193,7 @@ import Foundation
 	private var _floatValue: Float?
 	public var floatValue: Float? {
 		get {
-			processValue()
+//			processValue()
 			if _floatValue != nil {
 				return _floatValue
 			}
@@ -219,19 +215,10 @@ import Foundation
 	 // MARK: subscript
 	subscript(attribute: String) -> GravityNode? {
 		get {
-//			return processAttributeValue(attribute) //attributes[attribute]
-			if let value = computedAttributes[attribute] ?? attributes[attribute] { // effective (computed) attributes override normal attributes
-				for plugin in value.document.plugins { // ooh, a *value*-based plugin hook!
-					plugin.transformValue(value)
-				}
-				return value
-			} else {
-				return nil
-			}
+			return loaded ? dynamicAttributes[attribute] : attributes[attribute]
 		}
 		set(value) {
 			if value != nil {
-				// TODO: handle "contents" attributes specially
 				setAttribute(attribute, value: value!)
 			}
 		}
@@ -246,11 +233,15 @@ import Foundation
 	
 	// i think view should actually be UIView? because not all nodes are views
 	// either we throw an exception or we just make this optional
-	private var _view: UIView? // should this actually be weak?? i would think that we would hang onto the view while we are using it, and if we lose our reference to that, we can always rebuild it again from the gravity on demand (may take some refactoring to keep _view alive while we need it)
+	internal var _view: UIView? // should this actually be weak?? i would think that we would hang onto the view while we are using it, and if we lose our reference to that, we can always rebuild it again from the gravity on demand (may take some refactoring to keep _view alive while we need it)
 	public var view: UIView {
 		get {
 			if _view == nil {
-				processNode()
+				if processed {
+					processView()
+				} else {
+					process()
+				}
 				assert(_view != nil)
 			}
 			return _view!
@@ -327,7 +318,7 @@ import Foundation
 		self.document = document
 		self.nodeName = "\(parentNode.nodeName).\(attribute)"
 		self.parentNode = parentNode
-		self.rawStringValue = stringValue
+		self.staticStringValue = stringValue
 		super.init()
 		setup()
 	}
@@ -344,30 +335,34 @@ import Foundation
 	private func setup() {
 //		self.depth = (parentNode?.depth ?? 0) + 1
 		self.attributes = self.attributes ?? [String: GravityNode]()
-		if self.attributeName == nil {
-			self["contents"] = GravityNode(document: document, parentNode: self, attributeName: "contents")
+		if !self.isAttributeNode {
+			_contents = GravityNode(document: document, parentNode: self, attributeName: "contents")
 		}
 	}
 	
 	/// Creates and returns a new document containing a copy of the remaining tree in the current node's document. This allows you to instantiate arbitrary sub-trees of a layout as new instances of their own layouts.
 	public func instantiate(model: AnyObject? = nil) -> GravityDocument {
 		let instance = GravityDocument()
-		instance.parentNode = self
-		instance.xml = self.serialize()
+		instance.parentNode = self // or self.parentNode??
+		instance.xml = self.serialize() // this is probably not super efficient, but is reliable
 		instance.model = model ?? instance.model
 //		instance.node = self.copy(instance)
 //		instance.preprocess() // TODO: verify this loads embedded documents
 		return instance
 	}
 	
+	// PG
 	public func appendNode(node: GravityNode) {
-//		if self["contents"] == nil {
-//			self["contents"] = GravityNode(document: document, parentNode: self, attributeName: "contents")
-//		}
-		self.contents._childNodes.append(node)
-		node.parentNode = self
+		if !loaded { // in this case !processed means we're in the load cycle (building the static dom)
+			staticNodes.append(node)
+		} else {
+			contents.dynamicNodes.append(node)
+			node.process() // ok?? if we're adding a node during the dom cycle, it should be processed (if it is not already)
+		}
+		node.parentNode = self // is this safe?? should it actually be contents?
 	}
 	
+	// TODO: we should rename to isViewLoaded to match UIViewController
 	public var viewIsInstantiated: Bool {
 		get {
 			return _view != nil
@@ -400,13 +395,14 @@ import Foundation
 	}
 	
 	// this presently reflects the initial parsed and preprocessed state of the node
-	// we should extend it with options to support optionally retruning the current (computed) state
+	// we should extend it with options to support static vs dynamic dom
 	// note: debugMode does not return valid xml, but includes memory addresses for all instantiated nodes for easier debugging
+	// we should also add an option to sort attribute names, off by default for performance
 	public func serialize(debugMode: Bool = false, indent: String = "  ") -> String {
 		var attributeStrings = [String]()
 		var attributeNodes = [GravityNode]()
-		for (key, value) in attributes {
-			if let stringValue = value.rawStringValue {
+		for (key, value) in attributes { // static
+			if let stringValue = value.staticStringValue {
 				// FIXME: add proper escaping for XML attribute value
 				let escapedValue = stringValue.stringByReplacingOccurrencesOfString("\"", withString: "\\\"")
 				attributeStrings.append("\(key)=\"\(escapedValue)\"")
@@ -416,22 +412,23 @@ import Foundation
 		}
 		
 		let address = debugMode && self.viewIsInstantiated ? "(\(unsafeAddressOf(self)))" : "" // should we return the address of the view or the node?
-		let childNodes = self.childNodes + attributeNodes // verify
+		let childNodes = staticNodes + attributeNodes // verify
 		
 		if childNodes.count > 0 {
-			var childNodeStrings = contents.childNodes.map {
+			// indent:
+			var childNodeStrings = childNodes.map { // static
 				return $0.serialize(debugMode, indent: indent).componentsSeparatedByString("\n").map {
 					return "\(indent)\($0)"
 				}.joinWithSeparator("\n")
 			}
 			
-			if let stringValue = rawStringValue {
+			if let stringValue = staticStringValue {
 				childNodeStrings.append(stringValue)
 			}
 			
 			return "<\(nodeName)\(address)\(attributeStrings.count > 0 ? " " : "")\(attributeStrings.joinWithSeparator(" "))>\n\(childNodeStrings.joinWithSeparator("\n"))\n</\(nodeName)>"
-		} else if rawStringValue != nil {
-			return "<\(nodeName)\(address)>\(rawStringValue!)</\(nodeName)>"
+		} else if staticStringValue != nil {
+			return "<\(nodeName)\(address)>\(staticStringValue!)</\(nodeName)>"
 		} else {
 			return "<\(nodeName)\(address) \(attributeStrings.joinWithSeparator(" "))/>"
 		}
@@ -447,20 +444,131 @@ import Foundation
 		return UIView()
 	}
 	
+	public func process() {
+		process(nil)
+	}
+	
 	/// Processes the current node’s attributes, 
-	public func processNode() { // rename to just process()? this is public-facing and we're already a node, plus we already have a plugin method called processNode
-		if attributeName == "contents" {
-			return // don't process contents nodes as they are handled specially
+	private func process(skipNode: GravityNode?) { // skipNode will work fine so long as there is at most one child that can already have been processed; if this changes we'll need to improve this
+//		if attributeName == "contents" {
+//			return // don't process contents nodes as they are handled specially
+//		}
+		let initialInclude = include
+		let time1 = NSDate()
+		processDOM()
+		let time2 = NSDate()
+		
+		if let parentNode = parentNode where include != initialInclude {
+			parentNode.process(self)
+		} else {
+			print("⏱ DOM Cycle time:  \(Int(round(time2.timeIntervalSinceDate(time1) * 1000))) ms")
+//			NSLog("process() changed: \(changed)")
+			// eventually this will only happen if it's changed
+			processView()
+			let time3 = NSDate()
+			print("⏱ View Cycle time: \(Int(round(time3.timeIntervalSinceDate(time2) * 1000))) ms")
+		}
+	}
+	
+	// II. The DOM Cycle
+	private func processDOM() {
+		if processed {
+			return // do we want this?
 		}
 		
-//		document.processing = true // do we need this still?
-		self.changed = !processed // default changed to true if we have never processed this node, otherwise reset it to false
-		self.processed = true // avoid processing twice (when should we reset this?)
+		loaded = true // i'm not sure where the best place for this is, but by this point we are definitely loaded (i think there are some issues with attribute nodes)
+		// copy the static dom into the dynamic dom; this is experimental
+		dynamicAttributes = attributes//[String: GravityNode]()
+		// FIXME: this is breaking with embedded content (dynamic content is explicitly set before this point and this is clearing it)
+		if isAttributeNode && attributeName != "contents" {
+			dynamicNodes = staticNodes
+		}
+		if !isAttributeNode {
+			// TODO: activate this:
+//			_view = _view ?? instantiateView() // good here? make sure embedded templates do NOT make it to the dom cycle (they should be treated as document values)
+			
+			// TODO: add precedence to recursive nodes (i.e. nodes that actually contain children) to account for failed template references and to fall back on valid contents
+			if dynamicAttributes["contents"] == nil {
+				contents.dynamicNodes = staticNodes // the static (direct) content (maybe this should happen elsewhere?)
+				dynamicAttributes["contents"] = contents
+			} else {
+				NSLog("existing contents found!")
+			}
+		}
+		_stringValue = staticStringValue // need better naming convention here
+		// should we also reset the dynamic values of the node here? man i'm really thinking we need to split the classes...
 		
-		computedAttributes = [String: GravityNode]() // reset computed attributes
-		self.valueProcessed = false
+		include = true // included until proven excluded
 		
-		_view = _view ?? instantiateView() // this lets plugins have a chance to see every view node, in some capacity
+		changed = !processed // default changed to true if we have never processed this node, otherwise reset it to false
+		processed = true // avoid processing twice (when should we reset this?)
+		
+		if contents !== self {
+			contents.processDOM()
+		}
+		// TODO: verify that contents attributes override physical contents
+		
+		// process *direct* contents first (the *actual* contents supplied to handleContents will depend on the "contents" attribute)
+		if isAttributeNode { // exp: only do this for attribute nodes (forces contents to be processed as attributes)
+			for childNode in contents.dynamicNodes { // which means this will === self.dynamicNodes
+	//			if !contents.dynamicNodes.contains(childNode) { // is this possible with conditionals?
+	//				continue
+	//			}
+	//			if childNode === skipNode // TODO: finish this
+				childNode.processDOM()
+				if !childNode.include {
+					// add the child node to the dynamic dom of the direct contents node
+	//				dynamicNodes.append(childNode)
+					contents.dynamicNodes = contents.dynamicNodes.filter { $0 != childNode }
+				}
+			}
+		}
+		
+		for (attribute, value) in dynamicAttributes {
+			// we might also iterate over keys and look it up each time (seems simpler)
+			if dynamicAttributes[attribute] !== value {
+				assert(dynamicAttributes[attribute]?.processed == true)
+				continue // make sure the attribute is still the same (it may have been overwritten; e.g. by a conditional)
+				// we might also implement this by just updating the current value to dynamicAttributes[attribute]; if it is already processed it will be skipped
+			}
+			if !value.processed {
+				value.processDOM()
+				changed = changed || value.changed
+			}
+			// is it possible for a value to be already processed and include == false? yes i think so
+			if !value.include {
+				dynamicAttributes.removeValueForKey(attribute)
+			}
+		}
+		
+//		var include = true // this might need to be an instance variable, and it may need to be tracked by the parent, not us
+		for plugin in document.plugins {
+			if self.isAttributeNode {
+				plugin.processValue(self)
+			} else {
+				plugin.processNode(self) // do we actually need this? weirdly nothing is using it
+			}
+			
+			if !include {
+				return // no point doing any further processing as this entire branch is excluded from the dynamic dom
+			}
+		}
+		
+		// this is presently after contents processing so child documents can include their origin's contents
+		if let childDocument = childDocument { // childDocument is set in the pre-processing phase
+			childDocument.node.processDOM()
+		}
+	}
+	
+	// III. The View Cycle
+	private func processView() {
+		if viewProcessed {
+			return
+		}
+		viewProcessed = true
+		
+		// TODO: move view instantiation to the dom cycle
+		_view = _view ?? instantiateView() // this lets plugins have a chance to see every view node, in some capacity (won't blow away existing view instances)
 		if let view = _view {
 			view.gravityNode = self // this is now strong (ok?)
 
@@ -474,83 +582,39 @@ import Foundation
 			
 			if let childDocument = childDocument { // childDocument is set in the pre-processing phase
 				childDocument.node._view = view // perhaps there is a better place for this
-				childDocument.node.processNode() // recurse
+				childDocument.node.processView() // recurse
 			}
-		}
-		
-		let sortedAttributes = effectiveAttributes.keys.sort { (attributeName, _) -> Bool in // do we need to iterate effective? shouldn't this be == attributes here?
-//			NSLog("Compare: \($0) with \($1)")
-//			let attributeName: String = $0
-			return attributeName.containsString(":") // this should sort attributes with a : to the front
-		}
-		
-		// MARK: Process attributes
-		
-		for attributeName in sortedAttributes {
-			if let attribute = effectiveAttributes[attributeName] {
-				// FIXME: this won't work for updates as we are not presently clearing processed ever
-				// we might use a document flag, or another flag here
-				if !attribute.processed {
-					attribute.processNode()
-					changed = changed || attribute.changed
+			
+			// set up the deterministic defaults for the new node; this ensures that a node's state will always be deterministic even when disabling nodes
+//			if firstViewCycle {
+			// we now actually want to do this every time regardless; we can't just process single attribute changes because we can't know what effect a scoped attribute higher-up might have on other nodes in the document; it may affect their defaults
+				for plugin in document.plugins {
+					plugin.handleAttribute(self, attribute: nil, value: nil)
 				}
-			}
+//			}
 		}
 		
-		// FIXME: we need to default changed to true on the first time processing
-		
-		if !changed && !isAttributeNode {
-			NSLog("Node \(nodeName) is unchanged. Skipping further processing.")
-			return // no need to process further (note: attribute nodes will always be processed since they establish a value)
-		}
-		
-		// MARK: Determine applicable plugins
-		
-		// this could really be cleaned up
-		var applicablePlugins = Set<GravityPlugin>()
-		var effectiveKeys = Set(effectiveAttributes.keys) // we *do* want to check effective here, because there could have been some added above
-		
-		if isAttributeNode {
-//			effectiveKeys = Set([attributeName!])
-			effectiveKeys.unionInPlace([attributeName!])
-		}
-		
-		for attribute in effectiveKeys {
-			applicablePlugins.unionInPlace(document.pluginsForAttribute(attribute))
-		}
-		
-		// don't do this if the attribute is handled by a gravityelement
-		if applicablePlugins.isEmpty && (!isAttributeNode || (parentNode?._view as? GravityElement)?.recognizedAttributes?.contains(attributeName!) != true) { // verify holy shit
-			NSLog("Processing unrecognized node: \(self)")
-			applicablePlugins = Set(document.genericPlugins())
-		}
-		
-		var handled = false
 		
 		// TODO: make sure that GEs are given a chance to process values, and also that if a plugin or a GE recognizes an attribute but returns .NotHandled for it then that should still go to the default handler before processNode. (which means we might want to do it up a few lines)
 		
-		for plugin in document.plugins { // this ensures this is done in plugin order (Set is unordered)
-			if !applicablePlugins.contains(plugin) {
-				continue
+		
+		// use the dynamic dom for this!
+		for (attribute, value) in dynamicAttributes {
+			if attribute == "contents" {
+				continue // we don't want to handle "contents" attributes like other attributes as it has special meaning and no plugin/ge will handle it anyway
 			}
-			
-			if isAttributeNode { // we might want to improve this condition; what about view attribute values like templates? actually i think we want to treat those like value nodes anyway
-				handled = plugin.processValue(self) == .Handled // attribute node
+			var handled = false
+			for plugin in document.plugins { // must be done in plugin order
+				handled = plugin.handleAttribute(self, attribute: attribute, value: value) == .Handled
 				if handled {
+					NSLog("\(nodeName) handled by plugin \(plugin.dynamicType).")
 					break
 				}
-			} else {
-				plugin.processNode(self)// == .Handled // element node
 			}
 			
-			if handled {
-				NSLog("\(nodeName) handled by plugin \(plugin.dynamicType).")
-				break
+			if !handled {
+				NSLog("Warning: Node <\(value.nodeName)> was not explicitly handled.")
 			}
-		}
-		
-		if !handled {
-			NSLog("Warning: Node <\(nodeName)> was not explicitly handled.")
 		}
 		
 		if viewIsInstantiated { // is this good?
@@ -568,7 +632,7 @@ import Foundation
 			if plugin.processContents(self) == .Handled {
 				return
 			}
-		}
+		}		
 	}
 	
 //	internal func processAttributeValue(attribute: String) -> GravityNode? {
@@ -633,7 +697,7 @@ import Foundation
 		
 		value.document = value.document ?? document // should we allow specifying document when creating a value node?
 		value.nodeName = "\(self.nodeName).\(attribute)" // needed?
-		value.parentNode = self
+		value.parentNode = self // won't need this if we unify with appendNode()
 		
 		if attributeParts.count > 1 {
 			if let subDoc = self.childDocument {
@@ -651,12 +715,15 @@ import Foundation
 				NSLog("Error: Cannot use dot notation for an attribute on a node that is not an externalized gravity file.")
 			}
 		} else {
-			// FIXME: document.processing is not true for subdocuments
-			if processed {
+			if loaded {
 				// TODO: store this in a temporary array that we can use to compute changes, or back up the previous array somewhere first
-				computedAttributes[attribute] = value
+				dynamicAttributes[attribute] = value
 				// FIXME: this needs to do the same processing that unrecognized attributes go through
-				value.processNode() // experimental
+				
+				// TODO: this should be done in one place by appendNode and it should only process if the node is not already processed (for the given wave)
+				if !value.processed {
+					value.process() // experimental
+				}
 			} else {
 				attributes[attribute] = value
 			}
@@ -671,7 +738,7 @@ import Foundation
 		if viewIsInstantiated {
 			(view as? GravityElement)?.connectController?(self, controller: controller)
 		}
-		for childNode in childNodes {
+		for childNode in childNodes { // is dynamic right? i assume we will be working with views here
 			childNode.connectController(controller)
 		}
 	}
@@ -696,16 +763,21 @@ import Foundation
 //		
 //		return copy
 //	}
+	
+	// this allows us to reference node attributes using key path notation, however this implementation has the unfortunate side effect of giving precedence to objective properties on the GravityNode class over attributes of the same name
+	public override func valueForUndefinedKey(key: String) -> AnyObject? {
+		return self[key]
+	}
 }
 
 @available(iOS 9.0, *)
 extension GravityNode: SequenceType {
 	public func generate() -> AnyGenerator<GravityNode> {
-		var childGenerator = childNodes.generate()
+		var childGenerator = childNodes.generate() // static or dynamic?? switch on processed?
 		var subGenerator : AnyGenerator<GravityNode>?
 		var returnedSelf = false
 
-		return anyGenerator {
+		return AnyGenerator {
 			if !returnedSelf {
 				returnedSelf = true
 				return self

@@ -40,11 +40,12 @@ public class GravityViewController: UIViewController {
 //		super.didReceiveMemoryWarning()
 //		// Dispose of any resources that can be recreated.
 //		self.view = nil
+//		// the idea here is that we should be able to clear the dynamic dom and the visual tree and keep only the static dom in memory which, along with the program state, can be used to recreate the visual tree at any time
+//		// if a program needs to reclaim memory, gravity should be able to remove a significant chunk of non-informational operating memory automatically.
+//		// this of course should be optional, but probably enabled by default (after all it's better than being outright killed by the OS)
 //	}
 	
 	private func setup() {
-		view.backgroundColor = UIColor.whiteColor()
-		document.controller = self // does this make sense? if we subclass, yes
 		
 		var documentView: UIView?
 		if document.error == nil {
@@ -72,6 +73,8 @@ public class GravityViewController: UIViewController {
 			}
 		}
 		
+		document.controller = document.controller ?? self // does this make sense? if we subclass, yes
+		
 		// read current keyboard frame?
 	}
 
@@ -80,7 +83,16 @@ public class GravityViewController: UIViewController {
 	}
 	
 	public override func viewDidLoad() {
+		view.backgroundColor = UIColor.whiteColor() // don't do this in setup as it breaks viewDidLoad for embedded controllers; do we even need it at all though?
+
 		NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("keyboardWillChangeFrame:"), name: UIKeyboardWillChangeFrameNotification, object: nil)
+		
+		// FIXME: temp/experimental -- we need to finalize this
+		if let controller = document.controller where controller != self {
+			self.addChildViewController(controller)
+			let _ = controller.view // how do we know what view to add the child vc to?
+			controller.didMoveToParentViewController(self)
+		}
 	}
 	
 	public override func prefersStatusBarHidden() -> Bool {

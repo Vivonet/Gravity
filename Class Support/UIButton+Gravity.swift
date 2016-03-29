@@ -25,11 +25,11 @@ private func imageWithColor(color: UIColor) -> UIImage {
 @available(iOS 9.0, *)
 extension UIButton: GravityElement {
 
-	public var recognizedAttributes: [String]? {
-		get {
-			return ["title", "action", "backgroundColor", "highlightColor", "disabledColor"]
-		}
-	}
+//	public var recognizedAttributes: [String]? {
+//		get {
+//			return ["title", "action", "backgroundColor", "highlightColor", "disabledColor"]
+//		}
+//	}
 	
 //	public func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult {
 ////		if let stringValue = value.stringValue as? String {

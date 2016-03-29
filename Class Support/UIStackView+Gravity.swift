@@ -11,11 +11,11 @@ import Foundation
 @available(iOS 9.0, *)
 extension UIStackView: GravityElement {
 
-	public var recognizedAttributes: [String]? {
-		get {
-			return [] // no attributes? will we still be called??
-		}
-	}
+//	public var recognizedAttributes: [String]? {
+//		get {
+//			return [] // no attributes? will we still be called??
+//		}
+//	}
 	
 //	public static func instantiateElement(node: GravityNode) -> UIView? {
 //		switch node.nodeName {
@@ -131,7 +131,7 @@ extension UIStackView: GravityElement {
 	public func processContents(node: GravityNode) {
 		var fillChild: GravityNode? = nil // do we actually need this at all?
 		
-		for childNode in node.contents.childNodes {
+		for childNode in node.childNodes {
 			addArrangedSubview(childNode.view)
 			if childNode.isFilledAlongAxis(axis) {
 				if fillChild != nil {
