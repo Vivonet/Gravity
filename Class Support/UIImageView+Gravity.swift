@@ -39,17 +39,17 @@ extension UIImageView: GravityElement {
 //		return .NotHandled
 //	}
 	
-	public func processElement(node: GravityNode) {
-		if node["contentMode"] == nil {
-			self.contentMode = UIViewContentMode.ScaleAspectFit // this is a much saner default
-		}
-		self.layer.minificationFilter = kCAFilterTrilinear // improves UIImageView rendering
+//	public func processElement(node: GravityNode) {
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
 		
 //		let color = node.color
-		self.tintColor = node.color
-		
-		if let imageName = node["image"]?.stringValue {
-			self.image = UIImage(named: imageName)?.imageWithRenderingMode(node["template"]?.boolValue == true ? .AlwaysTemplate : .AlwaysOriginal)
+		if attribute == "image" || attribute == nil {
+			if let imageName = value?.stringValue {
+				self.image = UIImage(named: imageName)?.imageWithRenderingMode(node["template"]?.boolValue == true ? .AlwaysTemplate : .AlwaysOriginal)
+				return .Handled
+			} else {
+				self.image = nil
+			}
 		}
 		
 //////						UIView.autoSetPriority(UILayoutPriorityRequired, forConstraints: { () -> Void in
@@ -61,6 +61,17 @@ extension UIImageView: GravityElement {
 //////    [myImageView autoSetContentHuggingPriorityForAxis:ALAxisHorizontal];
 //////}];
 
-//		return .NotHandled
+		return .NotHandled
+	}
+	
+	public func postprocessNode(node: GravityNode) {
+		self.layer.minificationFilter = kCAFilterTrilinear // improves UIImageView rendering
+		
+		if node["contentMode"] == nil { // would this be easier as a preprocess (default)? maybe not because we don't want to reset it every time unless we're processing that attribute
+			self.contentMode = UIViewContentMode.ScaleAspectFit // this is a much saner default
+		}
+		if node["tintColor"] == nil { // maybe this should be done generally for all views
+			self.tintColor = node.color // is this the best way/place to handle these defaults? should we have an initializing call?
+		}
 	}
 }

@@ -11,11 +11,20 @@ import Foundation
 /// Return one of these values from certain plugin functions to indicate whether the function fully handled the operation or whether it should defer handling to another subsystem. See the documentation for each plugin function to see how this value is interpreted for each case.
 @objc
 public enum GravityResult: Int {
+	/// The handler for this plugin hook is not implemented and should not be called anymore. You should never return this value explicitly, unless for some reason you don’t want this method called again for the lifetime of the document.
+	///
+	/// **Note:** This is the default return value for all plugin hooks that expect a `GravityResult`. As such, you should never call the `super` implementation of a plugin hook and return its result. There is no need to explicitly call the default implementation of a plugin hook.
+	case NotImplemented = -1
 	/// Return this value to indicate that the function was not able to completely handle the given operation, and that Gravity should continue to find a handler for the operation.
 	case NotHandled = 0
 	/// Return this value to indicate that the operation was successfully handled, and that further attempts to handle it should stop. See the documentation for each plugin function to see how this value is interpreted for each case.
 	case Handled = 1
 }
+
+//@objc
+//public enum PluginHook: Int {
+//	// use this to represent all hooks that return a GR
+//}
 
 //@objc
 //public enum GravityInclusion: Int {
@@ -37,16 +46,22 @@ public enum GravityResult: Int {
 	/// - parameter value: The value of the attribute. The attribute may have a `stringValue` or it may have child nodes.
 //	func processAttribute(node: GravityNode, attribute: String, value: GravityNode) -> GravityResult
 	
-	func processElement(node: GravityNode) // return true if you handled your own child nodes, otherwise false to handle them automatically
+//	func processElement(node: GravityNode) // make optional?
+	func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult
 	
 //	optional func handleChildNodes(node: GravityNode) // if this is implemented we assume they are handled
 	optional func processContents(node: GravityNode)
+//	optional func addChild(node: GravityNode) // should this return a GR so we can handle some children and not others? does that even make sense?
+	
+	optional func postprocessNode(node: GravityNode)
 	
 	// should we add an explicit handleChildNodes? that way we can avoid returning a gravityresult above
 	
 	optional func connectController(node: GravityNode, controller: UIViewController) // return?
 	// add a method to bind an id? or just use processAttribute?
 }
+
+// eventually we may want to turn this into a more sophisticated plugin engine that is capable of detecting when a method is not implemented for a given plugin object and can learn which plugins to call for any given hook. (optimization)
 
 @available(iOS 9.0, *)
 @objc public class GravityPlugin: NSObject {
@@ -81,7 +96,7 @@ public enum GravityResult: Int {
 		}
 	}
 	
-	// MARK: PROCESS PHASE
+	// MARK: Load Cycle
 	
 	// This might best be repurposed to a generic first-chance node handler. For example, if the node represents something a plugin can attach to another node, like a gesture, we need to be able to fully handle and process the node without ever actually turning it into a view.
 	
@@ -97,7 +112,18 @@ public enum GravityResult: Int {
 //		return .NotHandled
 //	}
 	
-	// MARK: DOM Phase
+	// exp: a load cycle hook to allow processing of things like *static* conditions
+	public func preprocessValue(value: GravityNode) -> GravityResult {
+		return .NotHandled
+	}
+	
+	// MARK: DOM Cycle
+	
+	// (Perhaps we should use an inout parameter and return a GR so .NotImplemented is a valid return value (for future optimization)). 
+	/// The purpose of this hook is to identify the correct value for a requested attribute. The first non-nil value returned by a plugin will be used. 
+	public func selectAttribute(node: GravityNode, attribute: String, inout value: GravityNode?) -> GravityResult { // maybe identifyAttribute? resolveAttribute?
+		return .NotHandled
+	}
 
 	// TODO: convert this to dom- and view-based calls. add a note that the view-based processNode should *not* depend on any state of the view, and should get all of its information solely from the node. it should be fully deterministic based on the provided dynamic dom.
 	
@@ -126,7 +152,7 @@ public enum GravityResult: Int {
 //		return .Include
 	}
 	
-	// MARK: View Phase
+	// MARK: View Cycle
 	// TODO: rename these as appropriate
 	
 //	public func handleValue(value: GravityNode) -> GravityResult {
@@ -139,6 +165,20 @@ public enum GravityResult: Int {
 	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
 		return .NotHandled
 	}
+	
+//	/// Add `child.view` as a subview of `node.view`.
+//	public func addChild(node: GravityNode, child: GravityNode) -> GravityResult {
+//		return .NotHandled
+//	}
+//	
+//	// these aren't supported yet
+//	public func activateNode(node: GravityNode) -> GravityResult {
+//		return .NotHandled
+//	}
+//	
+//	public func deactivateNode(node: GravityNode) -> GravityResult {
+//		return .NotHandled
+//	}
 	
 	// do we need a handleNode call? that would probably be confusing and might lead to developers just attempting to handle all attributes there
 	
@@ -209,6 +249,7 @@ public enum GravityResult: Int {
 	// MARK: POST-PROCESS PHASE
 	
 	// this is a post-process wave that runs after everything ran through once during the initial attribute parsing phase. you can use this phase to check for identifiers that were registered and be sure that the tree has been fully parsed.
+	// i don't believe there are any dependencies during this
 	public func postprocessNode(node: GravityNode) {
 	}
 	

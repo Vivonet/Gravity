@@ -30,22 +30,27 @@ extension Gravity {
 //		}
 		
 		override public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+			// this avoids annoying warnings on the console (perhaps find a better way to more accurately determine if the layer is a transform-only layer)
+			if node.view.isKindOfClass(UIStackView.self) {
+				return .NotHandled
+			}
+			
 			if attribute == "borderColor" || attribute == nil {
 				if let borderColor = value?.convert() as UIColor? {
 					node.view.layer.borderColor = borderColor.CGColor
+					return .Handled
 				} else {
 					node.view.layer.borderColor = node.color.CGColor
 				}
-				return .Handled
 			}
 				
 			if attribute == "borderSize" || attribute == nil {
 				if let borderSize = value?.floatValue {
 					node.view.layer.borderWidth = CGFloat(borderSize)
+					return .Handled
 				} else {
-					node.view.layer.borderWidth = 1
+					node.view.layer.borderWidth = 0
 				}
-				return .Handled
 			}
 				
 			if attribute == "cornerRadius" || attribute == nil {
@@ -53,11 +58,11 @@ extension Gravity {
 					// TODO: add support for multiple radii, e.g. "5 10", "8 4 10 4"
 					node.view.layer.cornerRadius = CGFloat(cornerRadius)
 					node.view.clipsToBounds = true // assume this is still needed
+					return .Handled
 				} else {
 					node.view.layer.cornerRadius = 0
-					node.view.clipsToBounds = false // should we do this?
+					node.view.clipsToBounds = true // false is a bad idea; true seems to work as a default
 				}
-				return .Handled
 			}
 			
 			return .NotHandled
@@ -69,13 +74,13 @@ extension Gravity {
 extension GravityNode {
 	public var color: UIColor {
 		get {
-			return getScopedAttribute("color")?.convert() as UIColor? ?? UIColor.blackColor()
+			return getAttribute("color", scope: .Global)?.convert() as UIColor? ?? UIColor.blackColor()
 		}
 	}
 	
 	public var font: UIFont {
 		get {
-			return getScopedAttribute("font")?.convert() as UIFont? ?? UIFont.systemFontOfSize(17) // same as UILabel default font
+			return getAttribute("font", scope: .Global)?.convert() as UIFont? ?? UIFont.systemFontOfSize(17) // same as UILabel default font
 		}
 	}
 }

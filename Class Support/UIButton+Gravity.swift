@@ -73,26 +73,47 @@ extension UIButton: GravityElement {
 //		return .NotHandled
 //	}
 	
-	public func processElement(node: GravityNode) {
-		self.adjustsImageWhenHighlighted = true
+//	public func processElement(node: GravityNode) {
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
 		
-		if let title = node["title"]?.stringValue {
-			self.setTitle(title, forState: .Normal)
+		if attribute == "title" || attribute == nil {
+			if let title = value?.stringValue {
+				self.setTitle(title, forState: .Normal)
+				return .Handled
+			} else {
+				self.setTitle(nil, forState: .Normal)
+			}
 		}
 		
-		if let backgroundColor = node["backgroundColor"]?.convert() as UIColor? {
-			self.setBackgroundImage(imageWithColor(backgroundColor), forState: .Normal)
-			
-			self.adjustsImageWhenHighlighted = (node["highlightColor"] == nil)
-			self.adjustsImageWhenDisabled = (node["disabledColor"] == nil)
-		}
-
-		if let highlightColor = node["highlightColor"]?.convert() as UIColor? {
-			self.setBackgroundImage(imageWithColor(highlightColor), forState: .Highlighted)
+		if attribute == "backgroundColor" || attribute == nil {
+			if let backgroundColor = value?.convert() as UIColor? {
+				self.setBackgroundImage(imageWithColor(backgroundColor), forState: .Normal)
+				self.adjustsImageWhenHighlighted = (node["highlightColor"] == nil)
+				self.adjustsImageWhenDisabled = (node["disabledColor"] == nil)
+				return .Handled
+			} else {
+				self.setBackgroundImage(nil, forState: .Normal)
+			}
 		}
 		
-		if let disabledColor = node["disabledColor"]?.convert() as UIColor? {
-			self.setBackgroundImage(imageWithColor(disabledColor), forState: UIControlState.Disabled)
+		// TODO: replace highlightColor with backgroundColor:highlighted
+		if attribute == "highlightColor" || attribute == nil {
+			if let highlightColor = value?.convert() as UIColor? {
+				self.setBackgroundImage(imageWithColor(highlightColor), forState: .Highlighted)
+				return .Handled
+			} else {
+				self.setBackgroundImage(nil, forState: .Highlighted)
+			}
+		}
+		
+		// replace with :disabled
+		if attribute == "disabledColor" || attribute == nil {
+			if let disabledColor = value?.convert() as UIColor? {
+				self.setBackgroundImage(imageWithColor(disabledColor), forState: .Disabled)
+				return .Handled
+			} else {
+				self.setBackgroundImage(nil, forState: .Disabled)
+			}
 		}
 //		self.setContentCompressionResistancePriority(1000, forAxis: UILayoutConstraintAxis.Horizontal)
 
@@ -102,7 +123,11 @@ extension UIButton: GravityElement {
 
 		// it seems for some reason, UIButtons have an intrinsic height of 34; i need to figure out where that is coming from and kill it with fire
 		
-//		return .NotHandled
+		return .NotHandled
+	}
+	
+	public func postprocessNode(node: GravityNode) {
+//		self.adjustsImageWhenHighlighted = true
 	}
 	
 	// do we want

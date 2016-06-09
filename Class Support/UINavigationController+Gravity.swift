@@ -19,25 +19,35 @@ extension UINavigationController: GravityElement {
 //		return instance.view
 //	}
 	
-	public func processElement(node: GravityNode) {
+//	public func processElement(node: GravityNode) {
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
 		NSLog(node["rootViewController"]?.description ?? "")
 		
-		// TODO: figure out how to handle/default contents here
-		if let rootView = node["rootViewController"] {
-			let newDoc = rootView.instantiate()
-			let gvc = GravityViewController(document: newDoc)
-			gvc.view.translatesAutoresizingMaskIntoConstraints = false
-			self.addChildViewController(gvc)
-		}
-	}
-	
-	public func processContents(node: GravityNode) {
-		// override so gravity doesn't keep trying
-	
-//		for childNode in node.childNodes {
-//			let subdoc = node.instantiate()
-//			let gvc = GravityViewController(document: subdoc)
-//			self.addChildViewController(gvc)
+//		// TODO: figure out how to handle/default contents here
+//		if attribute == nil || attribute == "rootViewController" {
+//			if let rootView = value {
+//				let newDoc = rootView.instantiate()
+//				let gvc = GravityViewController(document: newDoc)
+//				gvc.view.translatesAutoresizingMaskIntoConstraints = false
+////				self.addChildViewController(gvc)
+//				self.pop
+//				self.pushViewController(gvc, animated: true)
+//			} else {
+//				self.remove
+//			}
 //		}
+		return .NotHandled
 	}
+	
+	
+	
+//	public func processContents(node: GravityNode) {
+//		// override so gravity doesn't keep trying
+//	
+////		for childNode in node.childNodes {
+////			let subdoc = node.instantiate()
+////			let gvc = GravityViewController(document: subdoc)
+////			self.addChildViewController(gvc)
+////		}
+//	}
 }

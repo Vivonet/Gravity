@@ -34,23 +34,27 @@ extension Gravity {
 			converters["\(type)"] = converter
 		}
 		
-		public override func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+//		public override func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+		// this is now done in the dom phase because we have the view instantiated! yay! big win!
+		public override func processValue(value: GravityNode) {
 			var propertyType: String? = nil
 			
-			guard let attribute = attribute else {
-				return .NotHandled
+//			assert(value.attributeName != nil)
+			
+			guard let attributeName = value.attributeName else {
+				return //.NotHandled
 			}
 			
 //			if let attribute = attribute { // this is an attribute node
-			if attribute.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == attribute.endIndex {
+			if value.attributeName!.lowercaseString.rangeOfString("color", options:NSStringCompareOptions.BackwardsSearch)?.endIndex == value.attributeName!.endIndex {
 				propertyType = "UIColor" // bit of a hack because UIView.backgroundColor doesn't seem to know its property class via inspection :/
 			}
 			
 			if propertyType == nil {
 //				NSLog("Looking up property for \(node.view.dynamicType) . \(attribute)")
 				// is there a better/safer way to do this reliably?
-				if let parentNode = value?.parentNode {
-					let property = class_getProperty(NSClassFromString("\(parentNode.view.dynamicType)"), attribute) // can we do this without touching view?
+				if let parentNode = value.parentNode {
+					let property = class_getProperty(NSClassFromString("\(parentNode.view.dynamicType)"), attributeName) // can we do this without touching view?
 					if property != nil {
 						if let components = String.fromCString(property_getAttributes(property))?.componentsSeparatedByString("\"") {
 							if components.count >= 2 {
@@ -66,11 +70,11 @@ extension Gravity {
 //			if let stringValue = value?.stringValue {
 			var convertedValue: AnyObject? = nil//value.stringValue
 			if let propertyType = propertyType {
-				convertedValue = value?.convert(propertyType)
+				convertedValue = value.convert(propertyType)
 			}
 			
 			if convertedValue != nil {
-				value?.objectValue = convertedValue
+				value.objectValue = convertedValue
 			}
 //			}
 //			else { // this is a node value
@@ -85,7 +89,7 @@ extension Gravity {
 //					}
 //				}
 //			}
-			return .NotHandled
+			return //.NotHandled
 		}
 		
 //		public class func convert<T: AnyObject>(input: String) -> T? {

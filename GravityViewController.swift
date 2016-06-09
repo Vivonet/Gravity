@@ -66,6 +66,7 @@ public class GravityViewController: UIViewController {
 			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Top)
 			documentView.autoPinEdgeToSuperviewEdge(ALEdge.Right)
 
+//			self.bottomPin = document.node.constraints["view-bottom"]
 			self.bottomPin = documentView.autoPinEdgeToSuperviewEdge(ALEdge.Bottom)
 			
 			if documentView.hasAmbiguousLayout() {
@@ -85,7 +86,7 @@ public class GravityViewController: UIViewController {
 	public override func viewDidLoad() {
 		view.backgroundColor = UIColor.whiteColor() // don't do this in setup as it breaks viewDidLoad for embedded controllers; do we even need it at all though?
 
-		NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("keyboardWillChangeFrame:"), name: UIKeyboardWillChangeFrameNotification, object: nil)
+		NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(GravityViewController.keyboardWillChangeFrame(_:)), name: UIKeyboardWillChangeFrameNotification, object: nil)
 		
 		// FIXME: temp/experimental -- we need to finalize this
 		if let controller = document.controller where controller != self {

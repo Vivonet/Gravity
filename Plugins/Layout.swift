@@ -11,9 +11,11 @@ import Foundation
 @available(iOS 9.0, *)
 extension Gravity {
 	@objc public class Layout: GravityPlugin {
+		public var constraints = [String : NSLayoutConstraint]() // store constraints here based on their attribute name (width, minHeight, etc.) -- we should move this to a plugin, but only if we can put all or most of the constraint registering in there as well
 		private static let keywords = ["fill", "auto"]
 		private var widthIdentifiers = [String: Set<GravityNode>]() // instead of storing a dictionary of arrays, can we store a dictionary that just points to the first-registered view, and then all subsequent views just add constraints back to that view?
 		
+		// we should reintroduce this as an *optional* array to represent attributes handled in means *other* than handleAttribute
 		public override var handledAttributes: [String]? {
 			get {
 				return [
@@ -31,17 +33,23 @@ extension Gravity {
 		static var swizzleToken: dispatch_once_t = 0
 		
 		public override class func initialize() {
-			dispatch_once(&swizzleToken) {
-				// method swizzling:
-				let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, #selector(UIView.alignmentRectInsets))
-				let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("grav_alignmentRectInsets"))
-				
-				if class_addMethod(UIView.self, #selector(UIView.alignmentRectInsets), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
-					class_replaceMethod(UIView.self, Selector("grav_alignmentRectInsets"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
-				} else {
-					method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
-				}
-			}
+			Gravity.swizzle(UIView.self, original: #selector(UIView.alignmentRectInsets), override: #selector(UIView.grav_alignmentRectInsets)) // verify align as func
+			
+//			Gravity.swizzle(UIView.self, original: #selector(UIView.didMoveToSuperview), override: #selector(UIView.grav_didMoveToSuperview))
+
+
+			
+//			dispatch_once(&swizzleToken) {
+//				// method swizzling:
+//				let alignmentRectInsets_orig = class_getInstanceMethod(UIView.self, #selector(UIView.alignmentRectInsets))
+//				let alignmentRectInsets_swiz = class_getInstanceMethod(UIView.self, Selector("grav_alignmentRectInsets"))
+//				
+//				if class_addMethod(UIView.self, #selector(UIView.alignmentRectInsets), method_getImplementation(alignmentRectInsets_swiz), method_getTypeEncoding(alignmentRectInsets_swiz)) {
+//					class_replaceMethod(UIView.self, Selector("grav_alignmentRectInsets"), method_getImplementation(alignmentRectInsets_orig), method_getTypeEncoding(alignmentRectInsets_orig));
+//				} else {
+//					method_exchangeImplementations(alignmentRectInsets_orig, alignmentRectInsets_swiz);
+//				}
+//			}
 		}
 		
 		public override func instantiateView(node: GravityNode) -> UIView? {
@@ -145,10 +153,10 @@ extension Gravity {
 					NSLayoutConstraint.autoSetPriority(GravityPriority.ExplicitSize) {
 						node.constraints[attribute!] = node.view.autoSetDimension(ALDimension.Width, toSize: CGFloat(node.width!)).autoIdentify("width")
 					}
+					return .Handled
 				} else {
 					removeConstraint("width", fromNode: node)
 				}
-				return .Handled
 			}
 			
 			if attribute == "minWidth" || attribute == nil {
@@ -163,10 +171,10 @@ extension Gravity {
 					NSLayoutConstraint.autoSetPriority(50) {//test
 						node.view.autoSetDimension(.Width, toSize: CGFloat(minWidth))
 					}
+					return .Handled
 				} else {
 					removeConstraint("minWidth", fromNode: node)
 				}
-				return .Handled
 			}
 			
 			if attribute == "maxWidth" || attribute == nil {
@@ -189,10 +197,10 @@ extension Gravity {
 							node.constraints["maxWidth"] = node.view.autoSetDimension(.Width, toSize: CGFloat(maxWidth), relation: .LessThanOrEqual)
 						}
 					}
+					return .Handled
 				} else {
 					removeConstraint("maxWidth", fromNode: node)
 				}
-				return .Handled
 			}
 			
 			if attribute == "height" || attribute == nil {
@@ -203,10 +211,10 @@ extension Gravity {
 						node.constraints["height"] = node.view.autoSetDimension(.Height, toSize: CGFloat(height)).autoIdentify("height")
 					}
 //					}
+					return .Handled
 				} else {
 					removeConstraint("height", fromNode: node)
 				}
-				return .Handled
 			}
 			
 			if attribute == "minHeight" || attribute == nil {
@@ -217,10 +225,10 @@ extension Gravity {
 					NSLayoutConstraint.autoSetPriority(50) {//test
 						node.view.autoSetDimension(.Height, toSize: CGFloat(minHeight)).autoIdentify("minHeight") // FIXME: verify that it's safe to use the same identifier for two constraints!! we need to be able to delete them all
 					}
+					return .Handled
 				} else {
 					removeConstraint("minHeight", fromNode: node)
 				}
-				return .Handled
 			}
 			
 			if attribute == "maxHeight" || attribute == nil {
@@ -234,16 +242,17 @@ extension Gravity {
 							node.constraints["maxHeight"] = node.view.autoSetDimension(.Height, toSize: CGFloat(maxHeight), relation: .LessThanOrEqual)
 						}
 					}
+					return .Handled
 				} else {
 					removeConstraint("maxHeight", fromNode: node)
 				}
-				return .Handled
 			}
 				
 			return .NotHandled
 		}
 		
 		public override func processContents(node: GravityNode) -> GravityResult {
+//		public override func addChild(node: GravityNode, child: GravityNode) -> GravityResult {
 			if !node.viewIsInstantiated {
 				return .NotHandled // no default child handling if we don't have a valid view
 			}
@@ -268,7 +277,10 @@ extension Gravity {
 				
 			// i'm actually thinking this might make the most sense all in one place in postprocess
 			for childNode in sortedChildren {
+				assert(!childNode.unprocessed)
 				node.view.addSubview(childNode.view) // recurse?
+				
+				assert(childNode.view.superview != nil)
 				
 //				let leftInset = CGFloat(node.leftMargin + node.leftPadding)
 //				let rightInset = CGFloat(node.rightMargin + node.rightPadding)
@@ -318,11 +330,15 @@ extension Gravity {
 		
 			// FIXME: put widthIdentifiers back in here somewhere
 			
-			if node.view.superview != nil {
-				if (node.view.superview as? UIStackView)?.axis != .Horizontal { // we are not inside a stack view (of the same axis)
+			if let superview = node.view.superview {
+				if (superview as? UIStackView)?.axis != .Horizontal { // we are not inside a stack view (of the same axis)
 					// TODO: what priority should these be?
 					// we need to make a special exception for UIScrollView and potentially others. should we move this back into a default handler/handleChildNodes?
-					node.view.autoMatchDimension(.Width, toDimension: .Width, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
+					
+					// FIXME: fix
+//					NSLayoutConstraint.autoSetPriority(200 - Float(node.recursiveDepth)) {
+//						node.view.autoMatchDimension(.Width, toDimension: .Width, ofView: superview, withOffset: 0, relation: .Equal)
+//					}
 					
 					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
 					
@@ -336,8 +352,10 @@ extension Gravity {
 					}
 				}
 				
-				if (node.view.superview as? UIStackView)?.axis != .Vertical { // we are not inside a stack view (of the same axis)
-					node.view.autoMatchDimension(.Height, toDimension: .Height, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
+				if (superview as? UIStackView)?.axis != .Vertical { // we are not inside a stack view (of the same axis)
+				
+				// FIXME: reenable this when we get horizontal working:
+//					node.view.autoMatchDimension(.Height, toDimension: .Height, ofView: node.parentNode!.view, withOffset: 0, relation: .LessThanOrEqual)
 					
 					var priority = GravityPriority.ViewContainment + Float(node.recursiveDepth)
 					
@@ -352,22 +370,22 @@ extension Gravity {
 				}
 				
 				// minWidth, etc. should probably be higher priority than these so they can override fill size
-				if node.isOtherwiseFilledAlongAxis(.Horizontal) {
+				if node.isFilledAlongAxis(.Horizontal) {
 					node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Horizontal)
-					if (node.view.superview as? UIStackView)?.axis != .Horizontal {
-						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
-		//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: node.view.superview)
+					if (superview as? UIStackView)?.axis != .Horizontal {
+						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize + Float(node.recursiveDepth)) { // i recently changed this from - to +; i didn't think it through but it solved an ambiguous layout problem with InventoryCell
+		//					node.view.autoMatchDimension(ALDimension.Width, toDimension: ALDimension.Width, ofView: superview)
 							node.constraints["fill-left"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Left, withInset: CGFloat(node.leftInset)).autoIdentify("gravity-fill-left") // leading?
 							node.constraints["fill-right"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Right, withInset: CGFloat(node.rightInset)).autoIdentify("gravity-fill-right") // trailing?
 						}
 					}
 				}
 				
-				if node.isFilledAlongAxis(.Vertical) {
+				if node.isFilledAlongAxis(.Vertical) { // should this be otherwise? one of these is wrong
 					node.view.setContentHuggingPriority(GravityPriority.FillSizeHugging, forAxis: .Vertical)
-					if (node.view.superview as? UIStackView)?.axis != .Vertical {
-						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize - Float(node.recursiveDepth)) {
-		//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: node.view.superview)
+					if (superview as? UIStackView)?.axis != .Vertical {
+						NSLayoutConstraint.autoSetPriority(GravityPriority.FillSize + Float(node.recursiveDepth)) {
+		//					node.view.autoMatchDimension(ALDimension.Height, toDimension: ALDimension.Height, ofView: superview)
 							node.constraints["fill-top"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Top, withInset: CGFloat(node.topInset)).autoIdentify("gravity-fill-top")
 							node.constraints["fill-bottom"] = node.view.autoPinEdgeToSuperviewEdge(ALEdge.Bottom, withInset: CGFloat(node.topInset)).autoIdentify("gravity-fill-bottom")
 						}
@@ -477,15 +495,26 @@ public struct GravityDirection {
 
 @available(iOS 9.0, *)
 extension UIView {
-	var grav_alignmentRectInsets: UIEdgeInsets {
-		get {
-			var insets = self.grav_alignmentRectInsets
+	public func grav_alignmentRectInsets() -> UIEdgeInsets {
+//		get {
+			var insets = self.grav_alignmentRectInsets()
 			
 			if let node = self.gravityNode {
 				insets = UIEdgeInsetsMake(insets.top - CGFloat(node.topMargin), insets.left - CGFloat(node.leftMargin), insets.bottom - CGFloat(node.bottomMargin), insets.right - CGFloat(node.rightMargin))
 			}
 			
 			return insets
+//		}
+	}
+	
+	public func grav_didMoveToSuperview() {
+		grav_didMoveToSuperview()
+		
+		if let gravityNode = gravityNode {
+			if gravityNode.parentNode != nil {
+				self.translatesAutoresizingMaskIntoConstraints = false // exp.
+			}
+			gravityNode.postprocess()
 		}
 	}
 }
@@ -624,7 +653,7 @@ extension GravityNode {
 	
 	public var zIndex: Int {
 		get {
-			return Int(attributes["zIndex"]?.stringValue ?? "0")!
+			return Int(self["zIndex"]?.stringValue ?? "0")!
 		}
 	}
 	
@@ -652,15 +681,24 @@ extension GravityNode {
 	
 	/// A node is divergent from its parent on an axis if it has the potential that at least one edge of that axis is not bound to its corresponding parent edge. For example, an auto-sized node inside a fixed size node has the potential to be smaller than its container, and is therefore considered divergent.
 	internal func isDivergentAlongAxis(axis: UILayoutConstraintAxis) -> Bool {
-		if parentNode != nil && parentNode!.parentNode != nil && document.parentNode != nil {
-			return true
+		// make sure there aren't problems caling this when a view is added to its superview but doesn't have its parent node set
+		if view.superview != nil {
+//			assert(parentNode != nil)
+			if parentNode == nil {
+				NSLog("Warning: checking isDivergent superview exists but no parentNode")
+			}
 		}
+		
+		// wtf is this??
+//		if parentNode != nil && parentNode!.parentNode != nil && document.parentNode != nil {
+//			return true
+//		}
 		
 		guard let parentNode = parentNode else {
 			return false
 		}
 		
-		if self.recursiveDepth == 1 {
+		if self.recursiveDepth == 1 { // the root node
 			return true // leaving in for now
 		}
 		
@@ -672,6 +710,7 @@ extension GravityNode {
 			return true
 		}
 		
+		// should we allow plugins to override this definition? depending on UIStackView here doesn't feel right
 		switch axis {
 			case .Horizontal:
 				if (parentNode.view as? UIStackView)?.axis == .Vertical {

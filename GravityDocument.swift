@@ -30,7 +30,10 @@ import Foundation
 //	internal var processing = false // true when the dom is "live" and changes are made temporarily
 	private var postprocessed = false
 	
-	private var startTime: NSDate!
+//	private var startTime: NSDate!
+	
+	internal var dependants = Set<GravityNode>()
+	internal var activeNode: GravityNode? // the node being processed to receive dependencies; experimental
 	
 	subscript(identifier: String) -> GravityNode? {
 		get {
@@ -53,6 +56,7 @@ import Foundation
 	public var view: UIView! { // should this be optional?
 		get {
 			defer {
+//				controller = controller ?? node?.controller // find a better place for this
 				postprocess() // should we do this by swizzling didMoveToSuperview or such?
 			}
 			return node?.view
@@ -155,7 +159,7 @@ import Foundation
 			return // TODO: print message or something
 		}
 		
-		startTime = NSDate()
+//		startTime = NSDate()
 		
 		let parser = NSXMLParser(data: data)
 		parser.delegate = self
@@ -164,12 +168,14 @@ import Foundation
 		if error == nil {
 			preprocess()
 		}
-		print("\n\(name):\n\(self)")
+		
+//		print("\n\(name):\n\(self)")
 	}
 	
 	// MARK: PRE-PROCESSING PHASE
 	// this could also be called the "Syntax Phase" because it deals specifically with language syntax features, not semantics
 	// it's actually part of the load cycle/stage
+	
 	internal func preprocess() {
 		guard let node = node else {
 			NSLog("Warning: Attempted to call preprocess() on a document with no root node.")
@@ -180,7 +186,7 @@ import Foundation
 				continue
 			}
 			
-			if let identifier = childNode.attributes["id"]?.staticStringValue {
+			if let identifier = childNode.attributes["id"]?.stringValue { // TODO: we should consider supporting conditional ids if and when we add support for conditional content nodes
 				if ids[identifier] != nil {
 					preconditionFailure("Duplicate definition of identifier ‘\(identifier)’.")
 				}
@@ -194,39 +200,70 @@ import Foundation
 			}
 			
 			// identify and transform attribute nodes into actual attributes with node values
-			if childNode.nodeName.containsString(".") {
-				guard let parentNode = childNode.parentNode else {
-					// apply to parent document? that breaks containment.
-					preconditionFailure("Attribute node found at top of document. Attribute nodes must have a parent.")
-				}
-				// TODO: allow _ shorthand?
-				let parentElementIndex = childNode.nodeName.startIndex.advancedBy(parentNode.nodeName.characters.count) // wow Swift, wow. :|
-				if childNode.nodeName.substringToIndex(parentElementIndex) == parentNode.nodeName && childNode.nodeName.characters[parentElementIndex] == "." {
-					let attributeName = childNode.nodeName.substringFromIndex(parentElementIndex.advancedBy(1))
-					
-					// surprisingly this actually seems to work:
-					parentNode.staticNodes = parentNode.staticNodes.filter { $0 != childNode }
-					parentNode.attributes[attributeName] = childNode
-				} else {
-					preconditionFailure("Invalid attribute node notation. Element name must start with parent element (expected ‘\(parentNode.nodeName)’).")
-				}
-				
-				// TODO: make sure this works recursively; i.e. we can have multiple levels of attribute nodes affecting each other
-			}
+			// can we safely move this into node.init?
+//			if childNode.nodeName.containsString(".") {
+//				guard let parentNode = childNode.parentNode else {
+//					// apply to parent document? that breaks containment.
+//					preconditionFailure("Attribute node found at top of document. Attribute nodes must have a parent.")
+//				}
+//				// TODO: allow _ shorthand?
+//				let parentElementIndex = childNode.nodeName.startIndex.advancedBy(parentNode.nodeName.characters.count) // wow Swift, wow. :|
+//				if childNode.nodeName.substringToIndex(parentElementIndex) == parentNode.nodeName && childNode.nodeName.characters[parentElementIndex] == "." {
+//					let attributeName = childNode.nodeName.substringFromIndex(parentElementIndex.advancedBy(1))
+//					
+//					// surprisingly this actually seems to work:
+//					parentNode.contents.staticState.childNodes = parentNode.contents.staticState.childNodes.filter { $0 != childNode }
+////					parentNode.staticState.attributes[attributeName] = childNode
+//					parentNode.setAttribute(attributeName, value: childNode)
+//					// we are converting a non-attribute node into an attribute node; we currently have to handle changing its contents manually (this probably indicates we need some tweaks to the design)
+////					childNode.staticState.childNodes = childNode.contentsNode.staticState.childNodes
+//				} else {
+//					preconditionFailure("Invalid attribute node notation. Element name must start with parent element (expected ‘\(parentNode.nodeName)’).")
+//				}
+//				
+//				// TODO: make sure this works recursively; i.e. we can have multiple levels of attribute nodes affecting each other
+//			}
 		}
 		
-		// this is done in a separate loop so all parent-referencing attribute nodes are handled first; this can be optimized later
-		// FIXME: is this still an issue??
-		for childNode in self.node {
-			for (attribute, value) in childNode.attributes {
-				assert(!value.loaded)
-//				if attribute.containsString(".") {
-					childNode.attributes.removeValueForKey(attribute) // removes things like "mobile:titleLabel.value" from the DOM
-					assert(childNode.document == self)
-					childNode.setAttribute(attribute, value: value)
+		// this is done in a separate loop so all parent-referencing attribute nodes are handled first (so they are made to be actual attributes on their parent); this can be optimized later
+		// i think we may need to actually move this into a more reactive component; after all we should support things like titleLabel.text:selected on a FormRow, which means that at runtime we need to be able to process the addition of a subdocument reference.
+		for childNode in node {
+//			NSLog("Preprocessing node \(childNode.nodeName)")
+			processAttributes(childNode)
+
+//			for (attribute, value) in childNode.attributes {
+//				assert(value.state == .Load)
+////				if attribute.containsString(".") {
+////					childNode.attributes.removeValueForKey(attribute) // removes things like "mobile:titleLabel.value" from the DOM
+//					assert(childNode.document == self)
+//					childNode.setAttribute(attribute, value: value)
+////				}
+//			}
+//			childNode.state = .Resolve
+		}
+	}
+	
+	// rename preprocessAttributes?
+	internal func processAttributes(node: GravityNode) {
+		for (attribute, value) in node.attributes {
+			processAttributes(value) // before or after setAttribute?
+			
+//			for plugin in plugins {
+//				// or perhaps we should call this from setAttribute so that we can recursively process nodes with multiple conditions by removing a piece and re-adding the attribute
+//				plugin.preprocessValue(value)
+//				
+//				if !value.include {
+//					break
 //				}
-			}
-			childNode.loaded = true
+//			}
+//			
+//			if value.include {
+				node.setAttribute(attribute, value: value)
+//			} else {
+//				if node.staticState.attributes[attribute] === value { // not sure if we need this; just being careful
+//					node.staticState.attributes.removeValueForKey(attribute)
+//				}
+//			}
 		}
 	}
 	
@@ -234,6 +271,7 @@ import Foundation
 	// this phase currently runs on-demand when the view is loaded and so may not run right away
 	// this will probably move to a background process thread
 	internal func postprocess() { // post-process view hierarchy
+//		preconditionFailure("Shouldn't get here anymore")
 		if postprocessed {
 			return
 		}
@@ -243,15 +281,16 @@ import Foundation
 			if let childDocument = childNode.childDocument {
 				childDocument.postprocess() // verify
 			} else {
+				childNode.postprocess()
 //				NSLog("postprocess: \(childNode)")
-				for plugin in plugins {
-					plugin.postprocessNode(childNode)
-				}
+//				for plugin in plugins {
+//					plugin.postprocessNode(childNode)
+//				}
 			}
 			
-			if childNode.view.hasAmbiguousLayout() {
-				NSLog("WARNING: Node has ambiguous layout:\n\(childNode.serialize(true))")
-			}
+//			if childNode.view.hasAmbiguousLayout() {
+//				NSLog("WARNING: Node has ambiguous layout:\n\(childNode.serialize(true))")
+//			}
 			
 			if childNode.view.translatesAutoresizingMaskIntoConstraints {
 				NSLog("WARNING: View has translatesAutoresizingMaskIntoConstraints set.")
@@ -266,8 +305,8 @@ import Foundation
 		// this currently only works on the root node; this may change
 		controller = controller ?? node?.controller
 		
-		let processTime = NSDate().timeIntervalSinceDate(startTime)
-		NSLog("*** Process time for \(name): \(processTime)")
+//		let processTime = NSDate().timeIntervalSinceDate(startTime)
+//		NSLog("*** Process time for \(name): \(processTime)")
 		
 		// TODO: move somewhere more appropriate?
 //		if let controller = node.controller {
@@ -294,6 +333,11 @@ import Foundation
 			}
 			node.connectController(controller!)
 		}
+	}
+	
+	internal func pluginsForHook() -> [GravityPlugin] { // TODO: add PluginHook enum param
+//		assert(Gravity.nodeStack.count > 0, "Calling pluginsForHook without anything on the node stack.")
+		return plugins // obviously change this
 	}
 	
 //	internal func pluginsForAttribute(attribute: String) -> [GravityPlugin] {
@@ -330,18 +374,26 @@ import Foundation
 	// MARK: NSXMLParserDelegate
 	
 	@objc public func parser(parser: NSXMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String]) {
-		
+//		var node: GravityNode
+//		if elementName.containsString(".") { // this is an attribute node in attribute notation
+//			node = GravityNode(
+//		}
 		let node = GravityNode(document: self, parentNode: nodeStack.last, nodeName: elementName, attributes: attributeDict)
 		
 		// TODO: we should add GravityNode.append that adds the node to childNodes *and* sets the node's parent to ourself (and any other needed logic down the road)
 		// this is also an important piece of programmatic gravity
 //		nodeStack.last?.childNodes.append(node)
-		nodeStack.last?.appendNode(node)
+		if !node.isAttributeNode {
+			nodeStack.last?.appendNode(node)
+		}
 		nodeStack.append(node)
+//		}
 	}
 	
 	public func parser(parser: NSXMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
-	
+//		if elementName.containsString(".") {
+//			return // nothing pushed to the stack for attribute nodes (experimental)
+//		}
 		if let lastNode = nodeStack.popLast() {
 			if nodeStack.count == 0 {
 				node = lastNode
@@ -349,8 +401,8 @@ import Foundation
 		}
 	}
 	
-	public func parser(parser: NSXMLParser, var foundCharacters string: String) {
-		string = string.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+	public func parser(parser: NSXMLParser, foundCharacters string: String) {
+		let string = string.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
 		if string == "" {
 			return
 		}
@@ -360,7 +412,7 @@ import Foundation
 		// if so, treat all nodes (including the stored string) as child nodes/labels
 		if let parentNode = nodeStack.last {
 			if parentNode.nodeName.containsString(".") {
-				parentNode.staticStringValue = string
+				parentNode.stringValue = string
 				return
 			}
 		}

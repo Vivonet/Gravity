@@ -3,6 +3,8 @@ An easy to learn XML-based layout description language for iOS powered by Auto L
 
 **tl;dr** It's kind of like HTML for native layouts, and is an order of magnitude easier to use than raw Auto Layout.
 
+Gravity was forged on the radical idea that **layout doesn't have to be complicated**.
+
 ##Sample
 Suppose you wanted to construct the following simple layout (everything inside the bubble):
 

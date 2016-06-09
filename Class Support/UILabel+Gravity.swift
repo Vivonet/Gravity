@@ -38,7 +38,23 @@ extension UILabel: GravityElement {
 //		return .NotHandled//super.processAttribute(gravity, attribute: attribute, value: value)
 //	}
 	
-	public func processElement(node: GravityNode) {
+//	public func processElement(node: GravityNode) {
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+		if attribute == "wrap" || attribute == nil {
+			if let wrap = value?.boolValue {
+				self.numberOfLines = wrap ? 0 : 1
+				return .Handled
+			} else {
+				self.numberOfLines = 1
+			}
+		}
+		
+		
+//						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
+		return .NotHandled
+	}
+	
+	public func postprocessNode(node: GravityNode) {
 		switch node.gravity.horizontal { // TODO: should improve this, possibly by splitting into horizontalGravity and verticalGravity properties
 			case GravityDirection.Left:
 				self.textAlignment = NSTextAlignment.Left
@@ -57,21 +73,15 @@ extension UILabel: GravityElement {
 				break
 		}
 		
+		self.font = node.font
+		
 		if node["textColor"] == nil {
 			self.textColor = node.color
 		}
-		
-		if node["wrap"]?.boolValue == true {
-			self.numberOfLines = 0
-		}
-		
-		self.font = node.font
 		
 		if let maxWidth = node.maxWidth {
 			// FIXME: we probably want to improve this a lot, perhaps by using swizzling to insert logic during the layout pass
 			self.preferredMaxLayoutWidth = CGFloat(maxWidth)
 		}
-//						label.setContentCompressionResistancePriority(100, forAxis: UILayoutConstraintAxis.Horizontal)
-//		return .NotHandled
 	}
 }

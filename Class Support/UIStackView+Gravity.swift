@@ -88,7 +88,12 @@ extension UIStackView: GravityElement {
 
 	// TODO: i'd love to have some plugin-like hook for GEs that lets me transform a "shorthand" property value into a constant without having to otherwise handle the setting of the property and still going to the default handler
 	
-	public func processElement(node: GravityNode) {
+//	public func processElement(node: GravityNode) {
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+		return .NotHandled
+	}
+	
+	public func postprocessNode(node: GravityNode) {
 		if node["alignment"] == nil { // only if alignment is not explicitly set
 			if self.axis == UILayoutConstraintAxis.Horizontal {
 				switch node.gravity.vertical {
@@ -162,7 +167,7 @@ extension UIStackView: GravityElement {
 		let sortedShrinks = shrinks.sort {
 			return $0.0 < $1.0
 		}
-		for var i = 0; i < sortedShrinks.count; i++ {
+		for i in 0 ..< sortedShrinks.count {
 //				let shrinkTuple = sortedShrinks[i]
 //			guard let subview = 
 			var compressionResistance: Float
@@ -227,9 +232,9 @@ extension UIStackView: GravityElement {
 //			spacer.backgroundColor = colorForStackLevel(stack.count)
 
 		// note that we probably only want to do this for certain gravities
-		if self.axis == UILayoutConstraintAxis.Horizontal && node.gravity.horizontal == GravityDirection.Right || self.axis == UILayoutConstraintAxis.Vertical && node.gravity.vertical == GravityDirection.Bottom {
+		if self.axis == .Horizontal && node.gravity.horizontal == .Right || self.axis == .Vertical && node.gravity.vertical == .Bottom {
 			self.insertArrangedSubview(spacer, atIndex: 0)
-		} else if self.axis == UILayoutConstraintAxis.Horizontal && node.gravity.horizontal == GravityDirection.Left || self.axis == UILayoutConstraintAxis.Vertical && node.gravity.vertical == GravityDirection.Top {
+		} else if self.axis == .Horizontal && node.gravity.horizontal == .Left || self.axis == .Vertical && node.gravity.vertical == .Top {
 			self.addArrangedSubview(spacer) // add an empty view to act as a space filler
 		}
 		

@@ -76,13 +76,10 @@ extension Gravity {
 			return nil
 		}
 		
-//		public override func preprocessAttribute(inout value: GravityNode) -> GravityResult {
-//			if Default.keywords.contains(attribute) {
-//				return .Handled
-//			}
-//			
-//			return .NotHandled
-//		}
+		public override func selectAttribute(node: GravityNode, attribute: String, inout value: GravityNode?) -> GravityResult {
+			value = node.attributes[attribute] // good?
+			return .Handled
+		}
 		
 		// this is really a singleton; should we provide a better way for this to be overridden?
 		// we should turn this into processValue()
@@ -100,11 +97,13 @@ extension Gravity {
 				objectValue = value!.objectValue
 				
 				tryBlock {
-					let defaultValue = node.view.valueForKeyPath(attribute)
 					if self.defaultValues[node] == nil {
 						self.defaultValues[node] = [String: AnyObject?]()
 					}
-					self.defaultValues[node]![attribute] = defaultValue
+					if self.defaultValues[node]![attribute] == nil { // only store the default value the first time (so it is deterministic)
+						let defaultValue = node.view.valueForKeyPath(attribute)
+						self.defaultValues[node]![attribute] = defaultValue
+					}
 				}
 			} else {
 				if let nodeIndex = defaultValues[node] {

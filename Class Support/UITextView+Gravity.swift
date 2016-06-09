@@ -20,9 +20,9 @@ extension UITextView: GravityElement {
 //		return .NotHandled
 //	}
 	
-	public func processElement(node: GravityNode) {
-		self.scrollEnabled = false
+	public func handleAttribute(node: GravityNode, attribute: String?, value: GravityNode?) -> GravityResult {
+//		self.scrollEnabled = false // FIXME: do this in postprocess node or whatever
 		
-//		return .NotHandled
+		return .NotHandled
 	}
 }
